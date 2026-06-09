@@ -1,0 +1,225 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: {userId} (matches request.auth.uid)
+// Fields:
+//   - name: string (1-50 chars) - User's name or gym name
+//   - phone: string (10-20 chars) - Contact number
+//   - email: string (valid email format) - Email address
+//   - type: string (allowed values: 'gym', 'instructor') - User account type
+//   - created_at: timestamp (immutable) - Creation time
+//
+// Collection: jobs
+// Document ID: {jobId} (auto-generated)
+// Fields:
+//   - user_id: string (immutable) - Creator's user ID (must be 'gym' type)
+//   - title: string (1-100 chars) - Job posting title
+//   - salary: string (1-50 chars) - Salary details
+//   - location: string (1-100 chars) - Work location
+//   - career: string (1-50 chars) - Career requirement
+//   - content: string (1-5000 chars) - Job description content
+//   - status: string (allowed values: 'active', 'closed') - Posting status
+//   - created_at: timestamp (immutable) - Creation time
+//
+// Collection: resumes
+// Document ID: {resumeId} (auto-generated)
+// Fields:
+//   - user_id: string (immutable) - Owner's user ID (must be 'instructor' type)
+//   - career: string (1-100 chars) - Career description
+//   - certificate: string (1-200 chars) - Certifications list
+//   - hope_area: string (1-100 chars) - Desired work location
+//   - hope_salary: string (1-50 chars) - Desired salary
+//   - content: string (1-5000 chars) - Self-introduction content
+//
+// Collection: apply
+// Document ID: {applyId} (auto-generated)
+// Fields:
+//   - job_id: string (immutable) - Applied job ID
+//   - resume_id: string (immutable) - Applicant's resume ID
+//   - status: string (allowed values: 'pending', 'accepted', 'rejected') - Application status
+//   - created_at: timestamp (immutable) - Application submit time
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string &&
+        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isRecent(time) {
+      return time is timestamp &&
+        time > request.time - duration.value(5, 'm') &&
+        time <= request.time;
+    }
+
+    // Helper to fetch user data for type checking
+    function getUserData(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data;
+    }
+
+    function isUserOfType(userId, expectedType) {
+      return exists(/databases/$(database)/documents/users/$(userId)) &&
+        getUserData(userId).type == expectedType;
+    }
+
+    // ===============================================================
+    // Domain Validation Functions
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['name', 'phone', 'email', 'type', 'created_at']) &&
+        hasRequiredFields(['name', 'phone', 'email', 'type', 'created_at']) &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 50 &&
+        data.phone is string && data.phone.size() >= 10 && data.phone.size() <= 20 &&
+        data.email is string && isValidEmail(data.email) &&
+        data.type is string && (data.type == 'gym' || data.type == 'instructor') &&
+        data.created_at is timestamp;
+    }
+
+    function isValidJob(data) {
+      return hasOnlyAllowedFields(['user_id', 'title', 'salary', 'location', 'career', 'content', 'status', 'created_at']) &&
+        hasRequiredFields(['user_id', 'title', 'salary', 'location', 'career', 'content', 'status', 'created_at']) &&
+        data.user_id is string && data.user_id == request.auth.uid &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+        data.salary is string && data.salary.size() >= 1 && data.salary.size() <= 50 &&
+        data.location is string && data.location.size() >= 1 && data.location.size() <= 100 &&
+        data.career is string && data.career.size() >= 1 && data.career.size() <= 50 &&
+        data.content is string && data.content.size() >= 1 && data.content.size() <= 5000 &&
+        data.status is string && (data.status == 'active' || data.status == 'closed') &&
+        data.created_at is timestamp;
+    }
+
+    function isValidResume(data) {
+      return hasOnlyAllowedFields(['user_id', 'career', 'certificate', 'hope_area', 'hope_salary', 'content']) &&
+        hasRequiredFields(['user_id', 'career', 'certificate', 'hope_area', 'hope_salary', 'content']) &&
+        data.user_id is string && data.user_id == request.auth.uid &&
+        data.career is string && data.career.size() >= 1 && data.career.size() <= 100 &&
+        data.certificate is string && data.certificate.size() >= 1 && data.certificate.size() <= 200 &&
+        data.hope_area is string && data.hope_area.size() >= 1 && data.hope_area.size() <= 100 &&
+        data.hope_salary is string && data.hope_salary.size() >= 1 && data.hope_salary.size() <= 50 &&
+        data.content is string && data.content.size() >= 1 && data.content.size() <= 5000;
+    }
+
+    function isValidApply(data) {
+      return hasOnlyAllowedFields(['job_id', 'resume_id', 'status', 'created_at']) &&
+        hasRequiredFields(['job_id', 'resume_id', 'status', 'created_at']) &&
+        data.job_id is string &&
+        data.resume_id is string &&
+        data.status is string && (data.status == 'pending' || data.status == 'accepted' || data.status == 'rejected') &&
+        data.created_at is timestamp;
+    }
+
+
+    // ===============================================================
+    // Rules Matching Collections
+    // ===============================================================
+
+    // Default deny for all collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 1. Users Collection
+    match /users/{userId} {
+      // Allow read to authenticated users (e.g. gyms searching for resume owners, or applicants checking gym owners)
+      // If document contains PII, restrict it. In our case, phone and email are PII,
+      // so only the owner can read their full document.
+      // For general display, we assume public profiles would be denormalized or separated.
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && isRecent(request.resource.data.created_at);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && areImmutableFieldsUnchanged(['created_at', 'type']);
+      allow delete: if isOwner(userId);
+    }
+
+    // 2. Jobs Collection
+    match /jobs/{jobId} {
+      // Anyone can read jobs (including unauthenticated visitors)
+      allow read: if true;
+      // Only authenticated users of 'gym' type can create jobs
+      allow create: if isAuthenticated() && isUserOfType(request.auth.uid, 'gym') && isValidJob(request.resource.data) && isRecent(request.resource.data.created_at);
+      // Only the gym owner can update or delete their job
+      allow update: if isAuthenticated() && resource.data.user_id == request.auth.uid && isValidJob(request.resource.data) && areImmutableFieldsUnchanged(['user_id', 'created_at']);
+      allow delete: if isAuthenticated() && resource.data.user_id == request.auth.uid;
+    }
+
+    // 3. Resumes Collection
+    match /resumes/{resumeId} {
+      // Only logged in users (specifically gym owners to view applicant info, or the owner) can read resumes
+      allow read: if isAuthenticated();
+      // Only authenticated users of 'instructor' type can create resumes
+      allow create: if isAuthenticated() && isUserOfType(request.auth.uid, 'instructor') && isValidResume(request.resource.data);
+      // Only the instructor owner can update/delete their resume
+      allow update: if isAuthenticated() && resource.data.user_id == request.auth.uid && isValidResume(request.resource.data) && areImmutableFieldsUnchanged(['user_id']);
+      allow delete: if isAuthenticated() && resource.data.user_id == request.auth.uid;
+    }
+
+    // 4. Apply (Job Applications) Collection
+    match /apply/{applyId} {
+      // Applications can be read by:
+      // - The applicant (owner of the resume)
+      // - The gym owner (owner of the job)
+      function isApplicantOrGymOwner(jobId, resumeId) {
+        let jobOwner = get(/databases/$(database)/documents/jobs/$(jobId)).data.user_id;
+        let resumeOwner = get(/databases/$(database)/documents/resumes/$(resumeId)).data.user_id;
+        return request.auth.uid == jobOwner || request.auth.uid == resumeOwner;
+      }
+
+      allow read: if isAuthenticated() && isApplicantOrGymOwner(resource.data.job_id, resource.data.resume_id);
+      
+      // Applicants can apply (create status 'pending')
+      allow create: if isAuthenticated() && 
+        isUserOfType(request.auth.uid, 'instructor') &&
+        get(/databases/$(database)/documents/resumes/$(request.resource.data.resume_id)).data.user_id == request.auth.uid &&
+        isValidApply(request.resource.data) &&
+        request.resource.data.status == 'pending' &&
+        isRecent(request.resource.data.created_at);
+        
+      // Update allowed by:
+      // - Gym owner can update status ('accepted' / 'rejected')
+      // - Applicant can update status ('canceled' / 'pending')
+      allow update: if isAuthenticated() &&
+        isValidApply(request.resource.data) &&
+        areImmutableFieldsUnchanged(['job_id', 'resume_id', 'created_at']) &&
+        (
+          // Case A: Gym Owner updates status
+          (request.auth.uid == get(/databases/$(database)/documents/jobs/$(resource.data.job_id)).data.user_id) ||
+          // Case B: Resume Owner updates status
+          (request.auth.uid == get(/databases/$(database)/documents/resumes/$(resource.data.resume_id)).data.user_id)
+        );
+
+      allow delete: if isAuthenticated() &&
+        (request.auth.uid == get(/databases/$(database)/documents/resumes/$(resource.data.resume_id)).data.user_id);
+    }
+  }
+}

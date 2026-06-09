@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="전국 태권도 전문 채용 플랫폼 태권잡! 관장님은 좋은 사범을, 사범님은 좋은 도장을 쉽고 빠르게 찾으세요.">
+  <title>태권잡 | 전국 태권도 전문 채용 플랫폼</title>
+  
+  <!-- Font Preload & stylesheet -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <link rel="stylesheet" href="index.css">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥋</text></svg>">
+
+  <!-- Firebase SDK (compat v10) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+</head>
+<body>
+
+  <!-- Header Navigation -->
+  <header class="main-header">
+    <div class="header-container">
+      <a href="#" class="logo" id="header-logo" aria-label="태권잡 홈으로 이동">
+        <svg class="logo-icon" viewBox="0 0 100 100" width="40" height="40" aria-hidden="true">
+          <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="8"/>
+          <!-- Dynamic kick figure path -->
+          <path d="M 30,65 L 45,55 L 40,35 M 45,55 L 70,30 L 80,35 M 45,55 L 40,75" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="45" cy="25" r="7" fill="currentColor"/>
+        </svg>
+        <span class="logo-text">태권잡<span class="logo-sub">TAEKWONJOB</span></span>
+      </a>
+      
+      <nav class="nav-menu" aria-label="메인 메뉴">
+        <ul>
+          <li><a href="#jobs" id="menu-jobs" class="nav-link active">채용공고</a></li>
+          <li><a href="#talents" id="menu-talents" class="nav-link">인재정보</a></li>
+          <li><a href="#community" id="menu-community" class="nav-link">커뮤니티</a></li>
+          <li><a href="#customer-service" id="menu-customer-service" class="nav-link">고객센터</a></li>
+        </ul>
+      </nav>
+      
+      <div class="auth-buttons" id="auth-buttons-area">
+        <!-- 비로그인 상태 -->
+        <div id="auth-logged-out" style="display:flex;gap:0.5rem;align-items:center">
+          <button type="button" class="btn-text" id="btn-login-trigger">로그인</button>
+          <button type="button" class="btn-filled" id="btn-register-trigger">회원가입</button>
+        </div>
+        <!-- 로그인 상태 -->
+        <div id="auth-logged-in" style="display:none;gap:0.75rem;align-items:center">
+          <span id="auth-user-name" style="font-size:0.88rem;font-weight:700;color:var(--color-navy-800)"></span>
+          <a href="admin.html" id="btn-admin-link" style="display:none;font-size:0.82rem;font-weight:700;color:var(--color-blue-600);padding:0.35rem 0.8rem;border:1.5px solid var(--color-blue-600);border-radius:20px;text-decoration:none">관리자</a>
+          <button type="button" class="btn-text" id="btn-logout">로그아웃</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SPA Sub-Pages container -->
+  <main id="app-content">
+    
+    <!-- MAIN HOME PAGE VIEW -->
+    <div id="view-home" class="page-view">
+      
+      <!-- Main Hero Banner Section -->
+      <section class="hero-section" aria-label="소개 배너">
+        <div class="hero-bg-overlay"></div>
+        <div class="hero-container">
+          <div class="hero-content">
+            <span class="hero-badge">전국 태권도 전문 채용 플랫폼</span>
+            <h1 class="hero-title">
+              관장님은 <span class="highlight-blue">좋은 사범</span>을,<br>
+              사범님은 <span class="highlight-blue">좋은 도장</span>을 찾으세요!
+            </h1>
+            <p class="hero-desc">태권도장 구인구직은 태권잡에서 쉽고 빠르게</p>
+            
+            <div class="hero-actions">
+              <button type="button" class="btn-hero-primary" id="hero-btn-post-job">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                채용공고 등록하기
+              </button>
+              <button type="button" class="btn-hero-secondary" id="hero-btn-post-resume">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                이력서 등록하기
+              </button>
+            </div>
+            
+            <div class="hero-stats">
+              <div class="stat-item">
+                <div class="stat-icon-wrapper">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div class="stat-info">
+                  <span class="stat-label">채용공고</span>
+                  <span class="stat-value" id="stat-jobs-count">1,248건</span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-icon-wrapper">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <div class="stat-info">
+                  <span class="stat-label">인재정보</span>
+                  <span class="stat-value" id="stat-talents-count">3,562명</span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-icon-wrapper">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <div class="stat-info">
+                  <span class="stat-label">도장회원</span>
+                  <span class="stat-value" id="stat-gyms-count">1,025개</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hero-image-pane">
+            <img src="assets/images/hero_instructors.png" alt="태권도복을 입은 사범님들" class="hero-person-img" fetchpriority="high">
+          </div>
+        </div>
+      </section>
+
+      <!-- Advanced Search Bar Section -->
+      <section class="search-bar-section" aria-label="채용공고 검색">
+        <div class="search-container">
+          <form id="main-search-form" class="search-form" action="#" method="GET">
+            <div class="search-fields">
+              <div class="select-wrapper">
+                <label for="search-region" class="sr-only">지역</label>
+                <select id="search-region" name="region">
+                  <option value="">지역을 선택하세요</option>
+                  <option value="서울 강남구">서울 강남구</option>
+                  <option value="서울 송파구">서울 송파구</option>
+                  <option value="경기 용인시">경기 용인시</option>
+                  <option value="경기 성남시">경기 성남시</option>
+                  <option value="인천 연수구">인천 연수구</option>
+                  <option value="대전 서구">대전 서구</option>
+                  <option value="부산 해운대구">부산 해운대구</option>
+                </select>
+              </div>
+              
+              <div class="select-wrapper">
+                <label for="search-position" class="sr-only">직무</label>
+                <select id="search-position" name="position">
+                  <option value="">직무를 선택하세요</option>
+                  <option value="정사범">정사범</option>
+                  <option value="보조사범">보조사범</option>
+                  <option value="수석사범">수석사범</option>
+                  <option value="파트타임">파트타임 사범</option>
+                  <option value="유치부 전임">유치부 전임</option>
+                </select>
+              </div>
+              
+              <div class="select-wrapper">
+                <label for="search-worktype" class="sr-only">근무형태</label>
+                <select id="search-worktype" name="worktype">
+                  <option value="">근무형태 선택</option>
+                  <option value="정규직">정규직</option>
+                  <option value="계약직">계약직</option>
+                  <option value="파트타임">파트타임</option>
+                  <option value="알바">아르바이트</option>
+                </select>
+              </div>
+              
+              <button type="submit" class="btn-search">검색하기</button>
+            </div>
+            
+            <div class="popular-tags">
+              <span class="tag-title">인기 키워드:</span>
+              <div class="tag-group" role="group" aria-label="인기 태그">
+                <button type="button" class="btn-tag" data-tag="정사범"># 정사범</button>
+                <button type="button" class="btn-tag" data-tag="보조사범"># 보조사범</button>
+                <button type="button" class="btn-tag" data-tag="파트타임"># 파트타임</button>
+                <button type="button" class="btn-tag" data-tag="주말"># 주말</button>
+                <button type="button" class="btn-tag" data-tag="유치부"># 유치부</button>
+                <button type="button" class="btn-tag" data-tag="경력무관"># 경력무관</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Real-time Jobs Section -->
+      <section class="section jobs-list-section">
+        <div class="section-container">
+          <div class="section-header">
+            <h2 class="section-title">실시간 채용공고</h2>
+            <a href="#jobs" class="link-more" id="link-more-jobs">더보기 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="9 18 15 12 9 6"/></svg></a>
+          </div>
+          
+          <div class="cards-grid" id="realtime-jobs-grid">
+            <!-- Dynamic Job Cards go here via JS -->
+            <div class="loading-placeholder">공고를 불러오는 중입니다...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Premium Banner -->
+      <section class="premium-ad-section" aria-label="프리미엄 채용공고 안내">
+        <div class="premium-container">
+          <div class="premium-content">
+            <div class="crown-icon-wrapper">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" class="gold-crown"><path d="M12 2L15 8L22 9L17 14L18.5 21L12 17.5L5.5 21L7 14L2 9L9 8L12 2Z"/></svg>
+            </div>
+            <div class="premium-text">
+              <span class="premium-label">프리미엄 채용공고</span>
+              <p class="premium-desc">상단 고정 노출로 더 빠르고 정확하게 인재를 만나보세요!</p>
+            </div>
+          </div>
+          <button type="button" class="btn-premium-action" id="btn-premium-products">프리미엄 상품 보기</button>
+        </div>
+      </section>
+
+      <!-- Recommended Resumes Section -->
+      <section class="section talents-list-section">
+        <div class="section-container">
+          <div class="section-header">
+            <h2 class="section-title">추천 인재정보</h2>
+            <a href="#talents" class="link-more" id="link-more-talents">더보기 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="9 18 15 12 9 6"/></svg></a>
+          </div>
+          
+          <div class="talents-grid" id="recommended-talents-grid">
+            <!-- Dynamic Talent Cards go here via JS -->
+            <div class="loading-placeholder">인재정보를 불러오는 중입니다...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Community Boards Section -->
+      <section class="section community-boards-section">
+        <div class="section-container">
+          <div class="section-header">
+            <h2 class="section-title">커뮤니티</h2>
+            <a href="#community" class="link-more" id="link-more-community">전체보기 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="9 18 15 12 9 6"/></svg></a>
+          </div>
+          
+          <div class="community-grid">
+            <a href="#community?tab=recruit" class="community-card" id="comm-card-recruit">
+              <div class="comm-icon-wrapper">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div class="comm-info">
+                <h3>사범 구인구직</h3>
+                <p>구인구직 정보를 자유롭게 공유하세요.</p>
+              </div>
+            </a>
+            
+            <a href="#community?tab=knowhow" class="community-card" id="comm-card-knowhow">
+              <div class="comm-icon-wrapper">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+              </div>
+              <div class="comm-info">
+                <h3>도장 운영 노하우</h3>
+                <p>도장 운영에 도움이 되는 정보를 나눠보세요.</p>
+              </div>
+            </a>
+            
+            <a href="#community?tab=news" class="community-card" id="comm-card-news">
+              <div class="comm-icon-wrapper">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M16 8h2"/><path d="M16 12h2"/><path d="M16 16h2"/><path d="M6 8h6v8H6z"/></svg>
+              </div>
+              <div class="comm-info">
+                <h3>태권도 뉴스</h3>
+                <p>태권도 관련 최신 소식을 확인해보세요.</p>
+              </div>
+            </a>
+            
+            <a href="#community?tab=free" class="community-card" id="comm-card-free">
+              <div class="comm-icon-wrapper">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div class="comm-info">
+                <h3>자유게시판</h3>
+                <p>자유로운 주제로 이야기를 나눠보세요.</p>
+              </div>
+            </a>
+            
+            <a href="#community?tab=archive" class="community-card" id="comm-card-archive">
+              <div class="comm-icon-wrapper">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div class="comm-info">
+                <h3>자료실</h3>
+                <p>교육자료, 서식 등을 다운로드 받으세요.</p>
+              </div>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Trust Pillars/Features Bar -->
+      <section class="pillars-section" aria-label="플랫폼 서비스 특징">
+        <div class="pillars-container">
+          <div class="pillar-item">
+            <div class="pillar-icon">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            </div>
+            <div class="pillar-text">
+              <h4>태권도 전문 플랫폼</h4>
+              <p>태권도 쉽고 맞춤 서비스.</p>
+            </div>
+          </div>
+          <div class="pillar-item">
+            <div class="pillar-icon">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div class="pillar-text">
+              <h4>안심 채용 시스템</h4>
+              <p>이력서 검증 &amp; 신고시스템.</p>
+            </div>
+          </div>
+          <div class="pillar-item">
+            <div class="pillar-icon">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+            </div>
+            <div class="pillar-text">
+              <h4>간편한 매칭</h4>
+              <p>빠르고 정확한 인재 매칭.</p>
+            </div>
+          </div>
+          <div class="pillar-item">
+            <div class="pillar-icon">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </div>
+            <div class="pillar-text">
+              <h4>전국 네트워크</h4>
+              <p>전국 도장 &amp; 사범 네트워크.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+    
+    <!-- SUB-PAGE VIEW: JOB BOARD -->
+    <div id="view-jobs" class="page-view hidden">
+      <section class="section">
+        <div class="section-container">
+          <div class="page-title-area">
+            <h1>태권도 채용공고</h1>
+            <p>전국의 다양한 태권도장에서 사범님을 모십니다.</p>
+          </div>
+          
+          <div class="board-layout">
+            <aside class="board-filters" aria-label="필터 및 검색">
+              <h3>공고 상세 검색</h3>
+              <form id="jobs-filter-form">
+                <div class="filter-group">
+                  <label for="filter-job-region">지역</label>
+                  <select id="filter-job-region" name="region">
+                    <option value="">전체 지역</option>
+                    <option value="서울 강남구">서울 강남구</option>
+                    <option value="서울 송파구">서울 송파구</option>
+                    <option value="경기 용인시">경기 용인시</option>
+                    <option value="경기 성남시">경기 성남시</option>
+                    <option value="인천 연수구">인천 연수구</option>
+                    <option value="대전 서구">대전 서구</option>
+                    <option value="부산 해운대구">부산 해운대구</option>
+                  </select>
+                </div>
+                <div class="filter-group">
+                  <label for="filter-job-position">직무</label>
+                  <select id="filter-job-position" name="position">
+                    <option value="">전체 직무</option>
+                    <option value="정사범">정사범</option>
+                    <option value="보조사범">보조사범</option>
+                    <option value="수석사범">수석사범</option>
+                    <option value="파트타임">파트타임 사범</option>
+                    <option value="유치부 전임">유치부 전임</option>
+                  </select>
+                </div>
+                <div class="filter-group">
+                  <label for="filter-job-type">근무형태</label>
+                  <select id="filter-job-type" name="type">
+                    <option value="">전체 근무형태</option>
+                    <option value="정규직">정규직</option>
+                    <option value="계약직">계약직</option>
+                    <option value="파트타임">파트타임</option>
+                    <option value="알바">아르바이트</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn-filter-apply">필터 적용하기</button>
+                <button type="reset" class="btn-filter-reset" id="btn-job-filter-reset">초기화</button>
+              </form>
+            </aside>
+            
+            <div class="board-content">
+              <div class="board-meta">
+                <span class="results-count" id="jobs-results-count">총 0건의 공고</span>
+                <button type="button" class="btn-primary-sm" id="board-btn-post-job">채용공고 등록</button>
+              </div>
+              <div class="cards-grid" id="board-jobs-grid">
+                <!-- Filled by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+    
+    <!-- SUB-PAGE VIEW: TALENT BOARD -->
+    <div id="view-talents" class="page-view hidden">
+      <section class="section">
+        <div class="section-container">
+          <div class="page-title-area">
+            <h1>추천 인재정보</h1>
+            <p>준비된 태권도 사범님들의 프로필입니다.</p>
+          </div>
+          
+          <div class="board-layout">
+            <aside class="board-filters" aria-label="인재 검색 필터">
+              <h3>인재 조건 검색</h3>
+              <form id="talents-filter-form">
+                <div class="filter-group">
+                  <label for="filter-talent-region">희망 지역</label>
+                  <select id="filter-talent-region" name="region">
+                    <option value="">전체 지역</option>
+                    <option value="서울 강남구">서울 강남구</option>
+                    <option value="서울 송파구">서울 송파구</option>
+                    <option value="경기 용인시">경기 용인시</option>
+                    <option value="경기 성남시">경기 성남시</option>
+                    <option value="인천 연수구">인천 연수구</option>
+                    <option value="대전 서구">대전 서구</option>
+                    <option value="부산 해운대구">부산 해운대구</option>
+                  </select>
+                </div>
+                <div class="filter-group">
+                  <label for="filter-talent-position">희망 직무</label>
+                  <select id="filter-talent-position" name="position">
+                    <option value="">전체 직무</option>
+                    <option value="정사범">정사범</option>
+                    <option value="보조사범">보조사범</option>
+                    <option value="수석사범">수석사범</option>
+                    <option value="파트타임">파트타임 사범</option>
+                    <option value="유치부 전임">유치부 전임</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn-filter-apply">필터 적용하기</button>
+                <button type="reset" class="btn-filter-reset" id="btn-talent-filter-reset">초기화</button>
+              </form>
+            </aside>
+            
+            <div class="board-content">
+              <div class="board-meta">
+                <span class="results-count" id="talents-results-count">총 0명 등록</span>
+                <button type="button" class="btn-primary-sm" id="board-btn-post-resume">이력서 등록</button>
+              </div>
+              <div class="talents-grid" id="board-talents-grid">
+                <!-- Filled by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+
+
+    <!-- SUB-PAGE VIEW: COMMUNITY -->
+    <div id="view-community" class="page-view hidden">
+      <section class="section">
+        <div class="section-container">
+          <div class="page-title-area">
+            <h1>태권도 커뮤니티</h1>
+            <p>정보 공유부터 소소한 소통까지, 태권도인들의 열린 광장입니다.</p>
+          </div>
+          
+          <div class="community-tabs" role="tablist" aria-label="커뮤니티 게시판 목록">
+            <button role="tab" aria-selected="true" class="comm-tab active" id="tab-recruit" data-filter="recruit">사범 구인구직</button>
+            <button role="tab" aria-selected="false" class="comm-tab" id="tab-knowhow" data-filter="knowhow">도장 운영 노하우</button>
+            <button role="tab" aria-selected="false" class="comm-tab" id="tab-news" data-filter="news">태권도 뉴스</button>
+            <button role="tab" aria-selected="false" class="comm-tab" id="tab-free" data-filter="free">자유게시판</button>
+            <button role="tab" aria-selected="false" class="comm-tab" id="tab-archive" data-filter="archive">자료실</button>
+          </div>
+
+          <div class="board-layout">
+            <div class="board-content full-width">
+              <div class="board-meta">
+                <span class="results-count" id="community-posts-count">글 목록 (5개)</span>
+                <button type="button" class="btn-primary-sm" onclick="alert('글쓰기 기능은 로그인 후 이용하실 수 있습니다.')">글쓰기</button>
+              </div>
+              
+              <div class="community-posts-list" id="community-posts-container">
+                <!-- Filled dynamically by JS based on active tab -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- SUB-PAGE VIEW: CUSTOMER SERVICE -->
+    <div id="view-customer-service" class="page-view hidden">
+      <section class="section">
+        <div class="section-container">
+          <div class="page-title-area">
+            <h1>고객센터</h1>
+            <p>태권잡 이용에 불편함이 있으시거나 문의사항이 있으시면 언제든 연락주세요.</p>
+          </div>
+          
+          <div class="customer-layout">
+            <div class="customer-contacts">
+              <div class="contact-box">
+                <span class="contact-subtitle">상담전화</span>
+                <h3>02-123-4567</h3>
+                <p>평일 09:00 ~ 18:00 (토, 일, 공휴일 휴무)<br>점심시간 12:00 ~ 13:00</p>
+              </div>
+              <div class="contact-box">
+                <span class="contact-subtitle">이메일 문의</span>
+                <h3>help@taekwonjob.com</h3>
+                <p>24시간 접수 가능, 영업일 기준 1일 이내 답변</p>
+              </div>
+            </div>
+
+            <div class="faq-container">
+              <h2>자주 묻는 질문 (FAQ)</h2>
+              <details class="faq-item" open>
+                <summary>구인공고 등록은 무료인가요?</summary>
+                <div class="faq-content">
+                  <p>기본 구인공고 등록은 완전 무료입니다. 단, 공고를 상단에 고정 노출하여 더 높은 조회수를 확보하고 빠르게 채용하고자 하시는 경우 프리미엄 노출 서비스를 유료로 이용하실 수 있습니다.</p>
+                </div>
+              </details>
+              
+              <details class="faq-item">
+                <summary>이력서의 연락처는 언제 노출되나요?</summary>
+                <div class="faq-content">
+                  <p>개인정보 보호를 위해 이력서의 연락처는 기본적으로 비공개 상태입니다. 도장 회원이 사범님께 면접 제안을 보내고 사범님께서 이를 수락하시는 경우에 한하여 연락처가 상호 공개됩니다.</p>
+                </div>
+              </details>
+
+              <details class="faq-item">
+                <summary>도장 매매 매물 등록은 어떻게 하나요?</summary>
+                <div class="faq-content">
+                  <p>도장 매매의 경우 허위 매물 방지 및 원활한 양수양도를 위해 고객센터 유선 상담(02-123-4567) 및 서류 검증(사업자등록증, 원생 대장 등)을 거친 후 무료로 매물 등록을 진행해드리고 있습니다.</p>
+                </div>
+              </details>
+
+              <details class="faq-item">
+                <summary>회원탈퇴 후 데이터는 바로 삭제되나요?</summary>
+                <div class="faq-content">
+                  <p>예, 회원 탈퇴 즉시 개인정보 및 등록하신 채용공고, 이력서 데이터는 안전하게 영구 파기되며 즉각 복구가 불가능합니다.</p>
+                </div>
+              </details>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="mobile-bottom-nav" aria-label="모바일 하단 네비게이션">
+    <ul>
+      <li>
+        <a href="#home" id="m-menu-home" class="m-nav-link active">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>홈</span>
+        </a>
+      </li>
+      <li>
+        <a href="#jobs" id="m-menu-jobs" class="m-nav-link">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span>채용공고</span>
+        </a>
+      </li>
+      <li>
+        <a href="#talents" id="m-menu-talents" class="m-nav-link">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          <span>인재정보</span>
+        </a>
+      </li>
+      <li>
+        <a href="#community" id="m-menu-community" class="m-nav-link">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>커뮤니티</span>
+        </a>
+      </li>
+      <li>
+        <a href="#customer-service" id="m-menu-customer-service" class="m-nav-link">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>고객센터</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Footer -->
+  <footer class="main-footer">
+    <div class="footer-container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="logo">
+            <svg class="logo-icon" viewBox="0 0 100 100" width="30" height="30" aria-hidden="true">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="8"/>
+              <path d="M 30,65 L 45,55 L 40,35 M 45,55 L 70,30 L 80,35 M 45,55 L 40,75" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="45" cy="25" r="7" fill="currentColor"/>
+            </svg>
+            <span class="logo-text">태권잡</span>
+          </div>
+          <p class="footer-slogan">태권도장의 성장과 사범님의 커리어를 함께 응원합니다.</p>
+        </div>
+        
+        <nav class="footer-links" aria-label="하단 서비스 링크">
+          <a href="#">회사소개</a>
+          <a href="#">이용약관</a>
+          <a href="#" class="policy">개인정보처리방침</a>
+          <a href="#">이용안내</a>
+          <a href="#">광고문의</a>
+          <a href="#">제휴문의</a>
+        </nav>
+      </div>
+
+      <hr class="footer-divider">
+
+      <div class="footer-bottom">
+        <div class="company-info">
+          <p><strong>(주)태권잡</strong> | 대표이사 홍길동 | 사업자등록번호 123-45-67890</p>
+          <p>서울특별시 강남구 테헤란로 123, 10층 (역삼동)</p>
+          <p>대표전화 02-123-4567 | 이메일 help@taekwonjob.com</p>
+          <p class="copyright">&copy; TAEKWONJOB. All rights reserved.</p>
+        </div>
+        <div class="footer-cs">
+          <span class="cs-title">고객센터</span>
+          <span class="cs-number">02-123-4567</span>
+          <span class="cs-hours">평일 09:00 - 18:00 (주말/공휴일 휴무)</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- DIALOG MODALS -->
+  
+  <!-- 1. LOGIN / REGISTER DIALOG -->
+  <dialog id="dialog-auth" class="modal-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <div class="dialog-tabs">
+          <button type="button" class="tab-btn active" id="tab-login">로그인</button>
+          <button type="button" class="tab-btn" id="tab-register">회원가입</button>
+        </div>
+        <button type="button" class="btn-close-dialog" aria-label="닫기">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      
+      <!-- Login Pane -->
+      <form id="form-login" class="auth-pane">
+        <div id="auth-error-msg" style="display:none;background:#fef2f2;color:#dc2626;padding:0.6rem 0.85rem;border-radius:8px;font-size:0.82rem;font-weight:600;margin-bottom:0.75rem;border:1px solid #fecaca"></div>
+        <div class="form-group">
+          <label for="login-email">이메일 주소</label>
+          <input type="email" id="login-email" required placeholder="example@email.com">
+        </div>
+        <div class="form-group">
+          <label for="login-password">비밀번호</label>
+          <input type="password" id="login-password" required placeholder="비밀번호를 입력하세요">
+        </div>
+        <button type="submit" class="btn-submit-dialog">로그인하기</button>
+      </form>
+      
+      <!-- Register Pane -->
+      <form id="form-register" class="auth-pane hidden">
+        <div id="auth-error-msg" style="display:none;background:#fef2f2;color:#dc2626;padding:0.6rem 0.85rem;border-radius:8px;font-size:0.82rem;font-weight:600;margin-bottom:0.75rem;border:1px solid #fecaca"></div>
+        <div class="form-group">
+          <label for="reg-name">성명 / 도장명</label>
+          <input type="text" id="reg-name" required placeholder="홍길동 또는 OO태권도장">
+        </div>
+        <div class="form-group">
+          <label for="reg-email">이메일 주소</label>
+          <input type="email" id="reg-email" required placeholder="example@email.com">
+        </div>
+        <div class="form-group">
+          <label for="reg-password">비밀번호</label>
+          <input type="password" id="reg-password" required placeholder="비밀번호 설정 (6자 이상)">
+        </div>
+        <div class="form-group">
+          <label>가입 형태</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="user-role" value="gym" checked>
+              관장님 (구인)
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="user-role" value="instructor">
+              사범님 (구직)
+            </label>
+          </div>
+        </div>
+        <button type="submit" class="btn-submit-dialog">회원가입하기</button>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- 2. JOB POST FORM DIALOG -->
+  <dialog id="dialog-post-job" class="modal-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h2>채용공고 등록</h2>
+        <button type="button" class="btn-close-dialog" aria-label="닫기">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      
+      <form id="form-post-job">
+        <div class="form-group">
+          <label for="job-gym-name">도장 이름</label>
+          <input type="text" id="job-gym-name" required placeholder="예: 강남 태권도장">
+        </div>
+        <div class="form-group">
+          <label for="job-title">공고 제목</label>
+          <input type="text" id="job-title" required placeholder="예: 열정 넘치는 정사범님을 모십니다">
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="job-region">지역</label>
+            <select id="job-region" required>
+              <option value="서울 강남구">서울 강남구</option>
+              <option value="서울 송파구">서울 송파구</option>
+              <option value="경기 용인시">경기 용인시</option>
+              <option value="경기 성남시">경기 성남시</option>
+              <option value="인천 연수구">인천 연수구</option>
+              <option value="대전 서구">대전 서구</option>
+              <option value="부산 해운대구">부산 해운대구</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="job-position">직무</label>
+            <select id="job-position" required>
+              <option value="정사범">정사범</option>
+              <option value="보조사범">보조사범</option>
+              <option value="수석사범">수석사범</option>
+              <option value="파트타임">파트타임 사범</option>
+              <option value="유치부 전임">유치부 전임</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="job-salary">급여 (월급)</label>
+            <input type="text" id="job-salary" required placeholder="예: 월 320만원">
+          </div>
+          <div class="form-group">
+            <label for="job-type">근무형태</label>
+            <select id="job-type" required>
+              <option value="정규직">정규직</option>
+              <option value="파트타임">파트타임</option>
+              <option value="계약직">계약직</option>
+              <option value="알바">아르바이트</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="job-exp">경력 요구사항</label>
+            <input type="text" id="job-exp" placeholder="예: 경력 2년↑ 또는 신입가능" required>
+          </div>
+          <div class="form-group">
+            <label for="job-hotness">공고 뱃지</label>
+            <select id="job-hotness">
+              <option value="">일반 공고</option>
+              <option value="NEW">NEW 뱃지</option>
+              <option value="HOT">HOT 뱃지</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="job-desc">도장 소개 및 상세 업무내용</label>
+          <textarea id="job-desc" rows="4" required placeholder="상세 정보를 기입해주세요."></textarea>
+        </div>
+        <button type="submit" class="btn-submit-dialog">등록하기</button>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- 3. RESUME POST FORM DIALOG -->
+  <dialog id="dialog-post-resume" class="modal-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h2>이력서 등록</h2>
+        <button type="button" class="btn-close-dialog" aria-label="닫기">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      
+      <form id="form-post-resume">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="res-name">사범 이름</label>
+            <input type="text" id="res-name" required placeholder="예: 김태권">
+          </div>
+          <div class="form-group">
+            <label for="res-gender">성별</label>
+            <select id="res-gender" required>
+              <option value="남성">남성</option>
+              <option value="여성">여성</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="res-region">희망 근무 지역</label>
+            <select id="res-region" required>
+              <option value="서울 강남구">서울 강남구</option>
+              <option value="서울 송파구">서울 송파구</option>
+              <option value="경기 용인시">경기 용인시</option>
+              <option value="경기 성남시">경기 성남시</option>
+              <option value="인천 연수구">인천 연수구</option>
+              <option value="대전 서구">대전 서구</option>
+              <option value="부산 해운대구">부산 해운대구</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="res-position">희망 직무</label>
+            <select id="res-position" required>
+              <option value="정사범">정사범</option>
+              <option value="보조사범">보조사범</option>
+              <option value="수석사범">수석사범</option>
+              <option value="파트타임">파트타임 사범</option>
+              <option value="유치부 전임">유치부 전임</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="res-salary">희망 연봉/급여</label>
+            <input type="text" id="res-salary" required placeholder="예: 최저연봉 320만원">
+          </div>
+          <div class="form-group">
+            <label for="res-exp">총 경력</label>
+            <input type="text" id="res-exp" required placeholder="예: 경력 5년">
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="res-dan">태권도 단수</label>
+            <select id="res-dan" required>
+              <option value="태권도 4단">태권도 4단</option>
+              <option value="태권도 3단">태권도 3단</option>
+              <option value="태권도 2단">태권도 2단</option>
+              <option value="태권도 5단 이상">태권도 5단 이상</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="res-license">보유 자격증</label>
+            <select id="res-license" required>
+              <option value="생활체육지도사">생활체육지도사</option>
+              <option value="유아체육지도사">유아체육지도사</option>
+              <option value="줄넘기지도사">줄넘기지도사</option>
+              <option value="태권도사범자격증">태권도 사범자격증</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="res-intro">자기소개 및 포부</label>
+          <textarea id="res-intro" rows="4" required placeholder="관장님들께 자신을 소개해 주세요."></textarea>
+        </div>
+        <button type="submit" class="btn-submit-dialog">이력서 등록하기</button>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- 4. JOB DETAIL DIALOG -->
+  <dialog id="dialog-job-detail" class="modal-dialog detail-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h2 id="detail-job-gym">도장 정보</h2>
+        <button type="button" class="btn-close-dialog" aria-label="닫기">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="detail-body">
+        <div class="detail-title-block">
+          <span class="detail-badge" id="detail-job-type">정규직</span>
+          <h1 id="detail-job-title">공고 제목</h1>
+          <p class="detail-meta-text" id="detail-job-region-pos">서울 강남구 | 정사범</p>
+        </div>
+        
+        <div class="detail-specs-table">
+          <div class="spec-row">
+            <span class="spec-label">급여조건</span>
+            <span class="spec-value highlight" id="detail-job-salary">월 320만원</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">지원자격</span>
+            <span class="spec-value" id="detail-job-exp">경력 3년↑</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">근무지역</span>
+            <span class="spec-value" id="detail-job-addr">서울특별시 강남구 역삼동 태권도장</span>
+          </div>
+        </div>
+
+        <div class="detail-content-block">
+          <h3>상세 모집 안내</h3>
+          <p id="detail-job-desc" class="desc-content">
+            상세 설명 내용이 여기에 표시됩니다.
+          </p>
+        </div>
+      </div>
+      <div class="detail-footer">
+        <button type="button" class="btn-action-primary" onclick="alert('지원서가 성공적으로 전달되었습니다! 관장님이 검토 후 연락드릴 예정입니다.')">즉시 지원하기</button>
+        <button type="button" class="btn-action-secondary" onclick="alert('관심공고로 저장되었습니다.')">⭐ 스크랩</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 5. TALENT DETAIL DIALOG -->
+  <dialog id="dialog-talent-detail" class="modal-dialog detail-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h2>인재 상세 정보</h2>
+        <button type="button" class="btn-close-dialog" aria-label="닫기">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="detail-body">
+        <div class="detail-profile-header">
+          <div class="detail-avatar-wrapper" id="detail-talent-avatar">
+            <!-- Filled by JS -->
+          </div>
+          <div class="detail-profile-title">
+            <h1 id="detail-talent-name">사범명</h1>
+            <p class="detail-meta-text" id="detail-talent-title">정사범 | 경력 5년</p>
+          </div>
+        </div>
+        
+        <div class="detail-specs-table">
+          <div class="spec-row">
+            <span class="spec-label">희망급여</span>
+            <span class="spec-value highlight" id="detail-talent-salary">희망연봉 320만원</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">희망지역</span>
+            <span class="spec-value" id="detail-talent-region">서울 강남구</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">단수 및 자격</span>
+            <span class="spec-value" id="detail-talent-qual">태권도 4단 | 생활체육지도사</span>
+          </div>
+        </div>
+
+        <div class="detail-content-block">
+          <h3>사범 소개 및 포부</h3>
+          <p id="detail-talent-desc" class="desc-content">
+            자기소개글이 여기에 표시됩니다.
+          </p>
+        </div>
+      </div>
+      <div class="detail-footer">
+        <button type="button" class="btn-action-primary" onclick="alert('사범님께 입사 제안 연락을 보냈습니다. 사범님이 수락할 시 연락처가 서로에게 공개됩니다.')">🥋 면접 제안하기</button>
+        <button type="button" class="btn-action-secondary" onclick="alert('관심인재로 등록되었습니다.')">⭐ 인재 스크랩</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Interactive JavaScript -->
+  <script src="index.js"></script>
+</body>
+</html>

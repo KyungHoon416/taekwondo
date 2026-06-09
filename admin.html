@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>태권잡 관리자 | 어드민 대시보드</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <link rel="stylesheet" href="admin.css">
+  <!-- Firebase SDK (compat v10) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ════ ADMIN LOGIN OVERLAY ════ -->
+<div id="admin-auth-overlay" style="
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#0c2540 0%,#0d3b6e 60%,#1a1a2e 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Pretendard',-apple-system,sans-serif;
+">
+  <div style="
+    background:#fff;border-radius:20px;
+    padding:2.5rem 2rem;width:100%;max-width:420px;margin:1rem;
+    box-shadow:0 30px 80px rgba(0,0,0,0.3);
+  ">
+    <!-- Logo -->
+    <div style="text-align:center;margin-bottom:1.75rem">
+      <svg viewBox="0 0 100 100" width="48" height="48" style="color:#2563eb" aria-hidden="true">
+        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="8"/>
+        <path d="M 30,65 L 45,55 L 40,35 M 45,55 L 70,30 L 80,35 M 45,55 L 40,75" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="45" cy="25" r="7" fill="currentColor"/>
+      </svg>
+      <div style="font-size:1.4rem;font-weight:900;color:#0c2540;margin-top:0.5rem">태권잡</div>
+      <div style="font-size:0.78rem;font-weight:600;color:#64748b;letter-spacing:2px;margin-top:2px">ADMIN CONSOLE</div>
+    </div>
+
+    <!-- Login Form -->
+    <div id="admin-login-form-wrap">
+      <div style="font-size:1rem;font-weight:800;color:#1e293b;margin-bottom:1.25rem">관리자 로그인</div>
+      <div id="admin-login-error" style="display:none;background:#fef2f2;color:#dc2626;padding:0.6rem 0.85rem;border-radius:8px;font-size:0.82rem;font-weight:600;margin-bottom:1rem;border:1px solid #fecaca"></div>
+      <div style="margin-bottom:0.85rem">
+        <label style="display:block;font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:0.35rem">이메일 주소</label>
+        <input id="admin-login-email" type="email" placeholder="example@email.com"
+          style="width:100%;height:42px;padding:0 0.85rem;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;font-family:inherit;outline:none;box-sizing:border-box;transition:border-color 0.15s"
+          onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <div style="margin-bottom:1.25rem">
+        <label style="display:block;font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:0.35rem">비밀번호</label>
+        <input id="admin-login-password" type="password" placeholder="비밀번호를 입력하세요"
+          style="width:100%;height:42px;padding:0 0.85rem;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;font-family:inherit;outline:none;box-sizing:border-box;transition:border-color 0.15s"
+          onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <button id="admin-login-btn" type="button"
+        style="width:100%;height:46px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:0.95rem;font-weight:800;cursor:pointer;font-family:inherit;transition:background 0.15s"
+        onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+        로그인하기
+      </button>
+      <div style="text-align:center;margin-top:1.1rem">
+        <a href="index.html" style="font-size:0.8rem;color:#64748b;text-decoration:none">← 홈페이지로 돌아가기</a>
+      </div>
+    </div>
+
+    <!-- Loading state -->
+    <div id="admin-checking" style="display:none;text-align:center;padding:1rem 0">
+      <div style="width:36px;height:36px;border:3px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 0.75rem"></div>
+      <p style="font-size:0.88rem;color:#64748b;font-weight:600">권한 확인 중...</p>
+    </div>
+  </div>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+</div>
+
+<!-- ════ ACCESS DENIED OVERLAY ════ -->
+<div id="admin-access-denied" style="
+  position:fixed;inset:0;z-index:9998;
+  background:linear-gradient(135deg,#0c2540 0%,#1a1a2e 100%);
+  display:none;align-items:center;justify-content:center;
+  font-family:'Pretendard',-apple-system,sans-serif;
+">
+  <div style="text-align:center;padding:2rem">
+    <div style="font-size:4rem;margin-bottom:1rem">🚫</div>
+    <h2 style="color:#fff;font-size:1.5rem;font-weight:900;margin-bottom:0.75rem">접근 권한이 없습니다</h2>
+    <p style="color:rgba(255,255,255,0.6);font-size:0.9rem;margin-bottom:1.5rem;line-height:1.6">관리자 페이지는 <strong style="color:#60a5fa">도장 회원(관장님)</strong>만 접근할 수 있습니다.<br>사맘(구직자) 계정으로는 접근이 제한됩니다.</p>
+    <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap">
+      <a href="index.html" style="display:inline-flex;align-items:center;gap:0.4rem;background:#2563eb;color:#fff;padding:0.65rem 1.5rem;border-radius:10px;font-weight:700;font-size:0.88rem;text-decoration:none">홈페이지로</a>
+      <button onclick="firebase.auth().signOut().then(()=>location.reload())" style="display:inline-flex;align-items:center;gap:0.4rem;background:rgba(255,255,255,0.1);color:#fff;padding:0.65rem 1.5rem;border-radius:10px;font-weight:700;font-size:0.88rem;border:1px solid rgba(255,255,255,0.2);cursor:pointer;font-family:inherit">다른 계정으로 로그인</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════ SIDEBAR ════════════════════════ -->
+<aside class="admin-sidebar" id="admin-sidebar">
+  <div class="sidebar-logo">
+    <svg viewBox="0 0 100 100" width="34" height="34" aria-hidden="true">
+      <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="8"/>
+      <path d="M 30,65 L 45,55 L 40,35 M 45,55 L 70,30 L 80,35 M 45,55 L 40,75" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="45" cy="25" r="7" fill="currentColor"/>
+    </svg>
+    <span>
+      태권잡
+      <span class="sidebar-logo-sub">ADMIN CONSOLE</span>
+    </span>
+  </div>
+
+  <nav class="sidebar-nav">
+    <!-- 대시보드 -->
+    <div class="nav-group">
+      <div class="nav-item active" data-view="dashboard" onclick="navigateTo('dashboard', this)">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        대시보드
+      </div>
+    </div>
+
+    <!-- 회원 관리 -->
+    <div class="nav-group">
+      <div class="nav-group-label">회원 관리</div>
+      <div class="nav-item" data-view="members" onclick="navigateTo('members', this)">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        회원 목록
+      </div>
+    </div>
+
+    <!-- 채용공고 관리 -->
+    <div class="nav-group">
+      <div class="nav-group-label">채용공고 관리</div>
+      <div class="nav-item" data-view="jobs" onclick="navigateTo('jobs', this)">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        채용공고 목록
+      </div>
+    </div>
+
+    <!-- 이력서 관리 -->
+    <div class="nav-group">
+      <div class="nav-group-label">이력서 관리</div>
+      <div class="nav-item" data-view="resumes" onclick="navigateTo('resumes', this)">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        이력서 목록
+      </div>
+    </div>
+
+    <!-- 지원 관리 -->
+    <div class="nav-group">
+      <div class="nav-group-label">지원 관리</div>
+      <div class="nav-item" data-view="applications" onclick="navigateTo('applications', this)">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        지원 목록
+        <span class="nav-badge" id="pending-badge">12</span>
+      </div>
+    </div>
+
+    <!-- 문의 관리 -->
+    <div class="nav-group">
+      <div class="nav-group-label">문의 관리</div>
+      <div class="nav-item" data-view="inquiries" onclick="navigateTo('inquiries', this)">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의 목록
+        <span class="nav-badge">3</span>
+      </div>
+      <div class="nav-item" data-view="notices" onclick="navigateTo('notices', this)">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        공지사항 관리
+      </div>
+    </div>
+
+    <!-- 통계/분석 -->
+    <div class="nav-group">
+      <div class="nav-group-label">통계 / 분석</div>
+      <div class="nav-item" data-view="analytics" onclick="navigateTo('analytics', this)">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        통계 대시보드
+      </div>
+    </div>
+
+    <!-- 설정 -->
+    <div class="nav-group">
+      <div class="nav-group-label">시스템</div>
+      <div class="nav-item" data-view="settings" onclick="navigateTo('settings', this)">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        설정
+      </div>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="sidebar-admin-info">
+      <div class="sidebar-admin-avatar">관</div>
+      <div>
+        <div style="font-size:0.8rem;font-weight:700;color:#fff">관리자</div>
+        <div style="font-size:0.7rem;color:rgba(255,255,255,0.4)">Super Admin</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+
+<!-- ════════════════════════ MAIN ════════════════════════ -->
+<div class="admin-main">
+
+  <!-- ── Header ── -->
+  <header class="admin-header">
+    <div class="header-left">
+      <div class="header-breadcrumb">
+        <span>태권잡</span>
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        <strong id="breadcrumb-current">대시보드</strong>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="header-icon-btn" onclick="showToast('알림이 없습니다.','')">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-dot"></span>
+      </button>
+      <div class="header-admin-chip">
+        <div class="avatar">관</div>
+        관리자
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Content ── -->
+  <div class="admin-content">
+
+    <!-- ════ DASHBOARD VIEW ════ -->
+    <div id="view-dashboard" class="view active">
+
+      <!-- Stats row -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-card-label">총 회원 수</span>
+            <div class="stat-icon blue">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+          </div>
+          <div class="stat-value">1,248</div>
+          <div class="stat-trend up">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            +12.5% 이전 달 대비
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-card-label">채용공고 수</span>
+            <div class="stat-icon green">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+          </div>
+          <div class="stat-value">128</div>
+          <div class="stat-trend up">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            +8.3% 이전 달 대비
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-card-label">이력서 수</span>
+            <div class="stat-icon purple">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+          </div>
+          <div class="stat-value">58</div>
+          <div class="stat-trend up">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            +15.2% 이전 달 대비
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-card-label">총 지원 수</span>
+            <div class="stat-icon amber">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+          </div>
+          <div class="stat-value">215</div>
+          <div class="stat-trend up">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            +18.7% 이전 달 대비
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-card-label">오늘 신규 가입</span>
+            <div class="stat-icon red">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            </div>
+          </div>
+          <div class="stat-value">23</div>
+          <div class="stat-trend down">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+            -4.2% 이전 날 대비
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="dashboard-grid">
+        <!-- Activity Line Chart -->
+        <div class="panel" style="grid-column: span 2">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">최근 7일간 활동 현황</div>
+              <div class="panel-subtitle">가입자 · 채용공고 · 지원수 추이</div>
+            </div>
+            <span class="panel-action" onclick="navigateTo('analytics', document.querySelector('[data-view=analytics]'))">더보기 &rsaquo;</span>
+          </div>
+          <div class="panel-body">
+            <div class="chart-wrap"><canvas id="activityChart"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Donut Chart -->
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">회원 유형 비율</div>
+              <div class="panel-subtitle">도장(관장) vs 사범(구직자)</div>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="donut-wrap">
+              <div class="donut-canvas-wrap">
+                <canvas id="memberTypeChart" width="160" height="160"></canvas>
+                <div class="donut-center-text">
+                  <span class="donut-center-value">1,248</span>
+                  <span class="donut-center-label">전체 회원</span>
+                </div>
+              </div>
+              <div class="donut-legend">
+                <div class="legend-item">
+                  <span class="legend-dot" style="background:#2563eb"></span>
+                  <span class="legend-name">도장 (관장)</span>
+                  <span class="legend-count">623명</span>
+                  <span class="legend-pct">49.9%</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-dot" style="background:#10b981"></span>
+                  <span class="legend-name">사범 (구직자)</span>
+                  <span class="legend-count">625명</span>
+                  <span class="legend-pct">50.1%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Jobs Table -->
+      <div class="dashboard-grid-row2">
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">최근 등록된 채용공고</div>
+            </div>
+            <span class="panel-action" onclick="navigateTo('jobs', document.querySelector('[data-view=jobs]'))">전체 보기 &rsaquo;</span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>번호</th><th>제목</th><th>도장명</th><th>지역</th><th>급여</th><th>등록일</th><th>상태</th>
+                </tr>
+              </thead>
+              <tbody id="dash-jobs-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Recent Applications -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">최근 지원 현황</div>
+            <span class="panel-action" onclick="navigateTo('applications', document.querySelector('[data-view=applications]'))">전체 보기 &rsaquo;</span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>지원자</th><th>공고</th><th>상태</th></tr></thead>
+              <tbody id="dash-apps-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ════ MEMBERS VIEW ════ -->
+    <div id="view-members" class="view">
+      <div class="page-toolbar">
+        <div class="page-title-block">
+          <h2>회원 목록</h2>
+          <p>플랫폼에 가입된 모든 회원을 관리합니다.</p>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn btn-secondary" onclick="exportCSV('members')">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            내보내기
+          </button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-search-wrap">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="filter-input" type="text" placeholder="이름, 이메일 검색..." id="member-search" oninput="filterMembers()">
+        </div>
+        <select class="filter-select" id="member-type-filter" onchange="filterMembers()">
+          <option value="">전체 유형</option>
+          <option value="gym">도장 (관장)</option>
+          <option value="instructor">사범 (구직자)</option>
+        </select>
+        <select class="filter-select" id="member-status-filter" onchange="filterMembers()">
+          <option value="">전체 상태</option>
+          <option value="active">활성</option>
+          <option value="inactive">비활성</option>
+          <option value="banned">정지</option>
+        </select>
+      </div>
+      <div class="table-panel">
+        <div class="table-panel-header">
+          <div class="results-count" id="member-count">전체 <strong>0</strong>명</div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th><th>이름</th><th>이메일</th><th>연락처</th><th>유형</th><th>가입일</th><th>상태</th><th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="members-tbody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="members-pagination"></div>
+      </div>
+    </div>
+
+
+    <!-- ════ JOBS VIEW ════ -->
+    <div id="view-jobs" class="view">
+      <div class="page-toolbar">
+        <div class="page-title-block">
+          <h2>채용공고 목록</h2>
+          <p>등록된 채용공고를 검토하고 관리합니다.</p>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn btn-primary" onclick="openDialog('job-dialog')">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            채용공고 등록
+          </button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-search-wrap">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="filter-input" type="text" placeholder="제목, 도장명 검색..." id="job-search" oninput="filterJobs()">
+        </div>
+        <select class="filter-select" id="job-region-filter" onchange="filterJobs()">
+          <option value="">전체 지역</option>
+          <option value="서울">서울</option>
+          <option value="경기">경기</option>
+          <option value="인천">인천</option>
+          <option value="대전">대전</option>
+          <option value="부산">부산</option>
+        </select>
+        <select class="filter-select" id="job-status-filter" onchange="filterJobs()">
+          <option value="">전체 상태</option>
+          <option value="게시중">게시중</option>
+          <option value="마감됨">마감됨</option>
+          <option value="검토중">검토중</option>
+        </select>
+      </div>
+      <div class="table-panel">
+        <div class="table-panel-header">
+          <div class="results-count" id="jobs-count">전체 <strong>0</strong>건</div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>번호</th><th>제목</th><th>도장명</th><th>지역</th><th>급여</th><th>직무</th><th>등록일</th><th>조회</th><th>상태</th><th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="jobs-tbody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="jobs-pagination"></div>
+      </div>
+    </div>
+
+
+    <!-- ════ RESUMES VIEW ════ -->
+    <div id="view-resumes" class="view">
+      <div class="page-toolbar">
+        <div class="page-title-block">
+          <h2>이력서 목록</h2>
+          <p>등록된 사범 이력서를 관리합니다.</p>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-search-wrap">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="filter-input" type="text" placeholder="이름, 희망지역 검색..." id="resume-search" oninput="filterResumes()">
+        </div>
+        <select class="filter-select" id="resume-position-filter" onchange="filterResumes()">
+          <option value="">전체 직무</option>
+          <option value="정사범">정사범</option>
+          <option value="보조사범">보조사범</option>
+          <option value="수석사범">수석사범</option>
+          <option value="파트타임">파트타임</option>
+        </select>
+      </div>
+      <div class="table-panel">
+        <div class="table-panel-header">
+          <div class="results-count" id="resumes-count">전체 <strong>0</strong>건</div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th><th>이름</th><th>성별</th><th>희망 직무</th><th>경력</th><th>희망 지역</th><th>희망 급여</th><th>단수</th><th>자격증</th><th>등록일</th><th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="resumes-tbody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="resumes-pagination"></div>
+      </div>
+    </div>
+
+
+    <!-- ════ APPLICATIONS VIEW ════ -->
+    <div id="view-applications" class="view">
+      <div class="page-toolbar">
+        <div class="page-title-block">
+          <h2>지원 목록</h2>
+          <p>사범 지원 현황을 검토하고 처리합니다.</p>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-search-wrap">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="filter-input" type="text" placeholder="지원자명, 공고명 검색..." id="app-search" oninput="filterApplications()">
+        </div>
+        <select class="filter-select" id="app-status-filter" onchange="filterApplications()">
+          <option value="">전체 상태</option>
+          <option value="검토중">검토중</option>
+          <option value="합격">합격</option>
+          <option value="불합격">불합격</option>
+          <option value="면접제안">면접 제안</option>
+        </select>
+      </div>
+      <div class="table-panel">
+        <div class="table-panel-header">
+          <div class="results-count" id="apps-count">전체 <strong>0</strong>건</div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th><th>지원자</th><th>채용공고</th><th>도장명</th><th>지원일</th><th>상태</th><th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="apps-tbody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="apps-pagination"></div>
+      </div>
+    </div>
+
+
+    <!-- ════ INQUIRIES VIEW ════ -->
+    <div id="view-inquiries" class="view">
+      <div class="page-toolbar">
+        <div class="page-title-block">
+          <h2>문의 목록</h2>
+          <p>사용자 문의를 확인하고 답변합니다.</p>
+        </div>
+      </div>
+      <div class="table-panel">
+        <div class="table-panel-header">
+          <div class="results-count">전체 <strong>15</strong>건 (미답변 <strong style="color:var(--red)">3</strong>건)</div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>번호</th><th>유형</th><th>제목</th><th>작성자</th><th>작성일</th><th>상태</th><th>관리</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>15</td>
+                <td><span class="badge badge-amber">일반 문의</span></td>
+                <td>채용공고 등록 방법이 궁금합니다</td>
+                <td>이관장</td>
+                <td>2026-06-08</td>
+                <td><span class="badge badge-red">미답변</span></td>
+                <td><div class="action-btns">
+                  <button class="btn btn-sm btn-primary" onclick="showToast('답변 작성 페이지로 이동합니다.','success')">답변</button>
+                </div></td>
+              </tr>
+              <tr>
+                <td>14</td>
+                <td><span class="badge badge-red">신고</span></td>
+                <td>허위 채용공고 신고합니다</td>
+                <td>김사범</td>
+                <td>2026-06-07</td>
+                <td><span class="badge badge-red">미답변</span></td>
+                <td><div class="action-btns">
+                  <button class="btn btn-sm btn-primary" onclick="showToast('답변 작성 페이지로 이동합니다.','success')">답변</button>
+                </div></td>
+              </tr>
+              <tr>
+                <td>13</td>
+                <td><span class="badge badge-blue">이용 방법</span></td>
+                <td>이력서 수정은 어떻게 하나요?</td>
+                <td>박사범</td>
+                <td>2026-06-06</td>
+                <td><span class="badge badge-red">미답변</span></td>
+                <td><div class="action-btns">
+                  <button class="btn btn-sm btn-primary" onclick="showToast('답변 작성 페이지로 이동합니다.','success')">답변</button>
+                </div></td>
+              </tr>
+              <tr>
+                <td>12</td>
+                <td><span class="badge badge-amber">결제 문의</span></td>
+                <td>프리미엄 결제 취소 요청</td>
+                <td>최관장</td>
+                <td>2026-06-05</td>
+                <td><span class="badge badge-green">답변완료</span></td>
+                <td><div class="action-btns">
+                  <button class="btn btn-sm btn-secondary" onclick="showToast('답변 내용을 확인합니다.','')">보기</button>
+                </div></td>
+              </tr>
+              <tr>
+                <td>11</td>
+                <td><span class="badge badge-blue">일반 문의</span></td>
+                <td>회원 탈퇴 방법 안내 요청</td>
+                <td>정사범</td>
+                <td>2026-06-04</td>
+                <td><span class="badge badge-green">답변완료</span></td>
+                <td><div class="action-btns">
+                  <button class="btn btn-sm btn-secondary" onclick="showToast('답변 내용을 확인합니다.','')">보기</button>
+                </div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ════ NOTICES VIEW ════ -->
+    <div id="view-notices" class="view">
+      <div class="page-toolbar">
+        <div class="page-title-block">
+          <h2>공지사항 관리</h2>
+          <p>플랫폼 공지사항을 작성하고 관리합니다.</p>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn btn-primary" onclick="openDialog('notice-dialog')">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            공지사항 작성
+          </button>
+        </div>
+      </div>
+      <div class="table-panel">
+        <div class="table-panel-header">
+          <div class="results-count">전체 <strong>8</strong>건</div>
+        </div>
+        <div class="notice-list">
+          <div class="notice-row">
+            <svg class="notice-pin" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2l2.5 6H21l-5 3.5 2 6L12 14l-6 3.5 2-6L3 8h6.5z"/></svg>
+            <span class="notice-category"><span class="badge badge-red">필독</span></span>
+            <span class="notice-title">태권잡 서비스 이용약관 개정 안내</span>
+            <span class="notice-date">2026-06-01</span>
+            <span class="notice-views">👁 1,205</span>
+            <div class="action-btns">
+              <button class="btn-icon" onclick="showToast('공지사항 수정','')">✏️</button>
+              <button class="btn-icon danger" onclick="showToast('삭제하였습니다.','error')">🗑️</button>
+            </div>
+          </div>
+          <div class="notice-row">
+            <svg class="notice-pin" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2l2.5 6H21l-5 3.5 2 6L12 14l-6 3.5 2-6L3 8h6.5z"/></svg>
+            <span class="notice-category"><span class="badge badge-blue">공지</span></span>
+            <span class="notice-title">2026년 6월 서버 점검 안내 (06/15 02:00~04:00)</span>
+            <span class="notice-date">2026-05-30</span>
+            <span class="notice-views">👁 892</span>
+            <div class="action-btns">
+              <button class="btn-icon" onclick="showToast('공지사항 수정','')">✏️</button>
+              <button class="btn-icon danger" onclick="showToast('삭제하였습니다.','error')">🗑️</button>
+            </div>
+          </div>
+          <div class="notice-row">
+            <span style="width:14px"></span>
+            <span class="notice-category"><span class="badge badge-green">업데이트</span></span>
+            <span class="notice-title">프리미엄 채용공고 기능 업데이트 안내</span>
+            <span class="notice-date">2026-05-20</span>
+            <span class="notice-views">👁 445</span>
+            <div class="action-btns">
+              <button class="btn-icon" onclick="showToast('공지사항 수정','')">✏️</button>
+              <button class="btn-icon danger" onclick="showToast('삭제하였습니다.','error')">🗑️</button>
+            </div>
+          </div>
+          <div class="notice-row">
+            <span style="width:14px"></span>
+            <span class="notice-category"><span class="badge badge-gray">일반</span></span>
+            <span class="notice-title">개인정보 처리방침 개정 안내</span>
+            <span class="notice-date">2026-05-10</span>
+            <span class="notice-views">👁 312</span>
+            <div class="action-btns">
+              <button class="btn-icon" onclick="showToast('공지사항 수정','')">✏️</button>
+              <button class="btn-icon danger" onclick="showToast('삭제하였습니다.','error')">🗑️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ════ ANALYTICS VIEW ════ -->
+    <div id="view-analytics" class="view">
+      <div class="page-toolbar">
+        <div class="page-title-block">
+          <h2>통계 대시보드</h2>
+          <p>플랫폼 주요 지표와 트렌드를 분석합니다.</p>
+        </div>
+        <div class="toolbar-actions">
+          <select class="filter-select" id="analytics-period">
+            <option>최근 7일</option>
+            <option>최근 30일</option>
+            <option>최근 3개월</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="analytics-grid three" style="margin-bottom:1rem">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">지역별 채용공고</div></div>
+          <div class="panel-body"><div class="chart-wrap"><canvas id="regionChart"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">직무별 공고 분포</div></div>
+          <div class="panel-body"><div class="chart-wrap"><canvas id="positionChart"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">월별 신규 가입 추이</div></div>
+          <div class="panel-body"><div class="chart-wrap"><canvas id="monthlyJoinChart"></canvas></div></div>
+        </div>
+      </div>
+
+      <div class="analytics-grid">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">급여 범위 분포</div></div>
+          <div class="panel-body"><div class="chart-wrap"><canvas id="salaryChart"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">지원 상태 현황</div></div>
+          <div class="panel-body"><div class="chart-wrap"><canvas id="appStatusChart"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ════ SETTINGS VIEW ════ -->
+    <div id="view-settings" class="view">
+      <div class="page-toolbar">
+        <div class="page-title-block">
+          <h2>설정</h2>
+          <p>플랫폼 운영 설정을 관리합니다.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-body">
+          <div class="settings-grid">
+            <nav class="settings-nav">
+              <div class="settings-nav-item active" onclick="switchSettings(this, 'settings-general')">일반 설정</div>
+              <div class="settings-nav-item" onclick="switchSettings(this, 'settings-notify')">알림 설정</div>
+              <div class="settings-nav-item" onclick="switchSettings(this, 'settings-security')">보안 설정</div>
+            </nav>
+
+            <div>
+              <div class="settings-section active" id="settings-general">
+                <h3>일반 설정</h3>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-label">플랫폼 이름</div>
+                    <div class="settings-desc">서비스에 표시되는 플랫폼 명칭입니다.</div>
+                  </div>
+                  <input class="form-control" style="width:200px" value="태권잡 (TaekwonJob)">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-label">채용공고 자동 승인</div>
+                    <div class="settings-desc">활성화 시 등록된 공고가 검토 없이 즉시 게시됩니다.</div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked onchange="showToast('설정이 저장되었습니다.','success')">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-label">회원 이메일 인증 필수</div>
+                    <div class="settings-desc">가입 시 이메일 인증 절차를 강제합니다.</div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked onchange="showToast('설정이 저장되었습니다.','success')">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-label">점검 모드</div>
+                    <div class="settings-desc">활성화 시 관리자 외 사용자 접근이 차단됩니다.</div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" onchange="showToast('점검 모드 상태가 변경되었습니다.','warning')">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div style="margin-top:1.5rem">
+                  <button class="btn btn-primary" onclick="showToast('설정이 저장되었습니다.','success')">변경사항 저장</button>
+                </div>
+              </div>
+
+              <div class="settings-section" id="settings-notify">
+                <h3>알림 설정</h3>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-label">신규 회원 가입 알림</div>
+                    <div class="settings-desc">새 회원 가입 시 관리자에게 이메일을 발송합니다.</div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked onchange="showToast('설정이 저장되었습니다.','success')">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-label">신규 채용공고 등록 알림</div>
+                    <div class="settings-desc">새 공고 등록 시 관리자에게 알림을 보냅니다.</div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" onchange="showToast('설정이 저장되었습니다.','success')">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-label">미답변 문의 리마인더</div>
+                    <div class="settings-desc">24시간 이상 미답변 문의 발생 시 알림을 발송합니다.</div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked onchange="showToast('설정이 저장되었습니다.','success')">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-section" id="settings-security">
+                <h3>보안 설정</h3>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-label">관리자 2단계 인증</div>
+                    <div class="settings-desc">로그인 시 추가 인증 단계를 활성화합니다.</div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked onchange="showToast('2단계 인증 설정이 변경되었습니다.','success')">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-label">관리자 비밀번호 변경</div>
+                  </div>
+                  <button class="btn btn-secondary" onclick="showToast('비밀번호 변경 이메일이 발송되었습니다.','success')">비밀번호 변경</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /admin-content -->
+</div><!-- /admin-main -->
+
+
+<!-- ════ DIALOGS ════ -->
+
+<!-- Job Post Dialog -->
+<dialog id="job-dialog" class="admin-dialog">
+  <div class="dialog-hd">
+    <h3>채용공고 등록</h3>
+    <button class="dialog-close-btn" onclick="closeDialog('job-dialog')">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dialog-bd">
+    <div class="form-row">
+      <div class="form-field">
+        <label>도장 이름</label>
+        <input class="form-control" type="text" placeholder="예: 강남 태권도장" id="dlg-gym-name">
+      </div>
+      <div class="form-field">
+        <label>지역</label>
+        <select class="form-control" id="dlg-job-region">
+          <option>서울 강남구</option><option>서울 송파구</option><option>경기 용인시</option>
+          <option>경기 성남시</option><option>인천 연수구</option><option>대전 서구</option><option>부산 해운대구</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row single">
+      <div class="form-field">
+        <label>공고 제목</label>
+        <input class="form-control" type="text" placeholder="예: 열정 넘치는 정사범님을 모십니다" id="dlg-job-title">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <label>직무</label>
+        <select class="form-control" id="dlg-job-pos">
+          <option>정사범</option><option>보조사범</option><option>수석사범</option><option>파트타임</option><option>유치부 전임</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>급여</label>
+        <input class="form-control" type="text" placeholder="예: 월 320만원" id="dlg-job-salary">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <label>경력 요구사항</label>
+        <input class="form-control" type="text" placeholder="예: 경력 2년↑ 또는 신입가능" id="dlg-job-exp">
+      </div>
+      <div class="form-field">
+        <label>상태</label>
+        <select class="form-control" id="dlg-job-status">
+          <option>게시중</option><option>검토중</option><option>마감됨</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row single">
+      <div class="form-field">
+        <label>상세 내용</label>
+        <textarea class="form-control" rows="4" placeholder="상세 모집 안내를 입력하세요" id="dlg-job-desc"></textarea>
+      </div>
+    </div>
+  </div>
+  <div class="dialog-ft">
+    <button class="btn btn-secondary" onclick="closeDialog('job-dialog')">취소</button>
+    <button class="btn btn-primary" onclick="submitJob()">등록하기</button>
+  </div>
+</dialog>
+
+<!-- Notice Dialog -->
+<dialog id="notice-dialog" class="admin-dialog">
+  <div class="dialog-hd">
+    <h3>공지사항 작성</h3>
+    <button class="dialog-close-btn" onclick="closeDialog('notice-dialog')">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dialog-bd">
+    <div class="form-row">
+      <div class="form-field">
+        <label>분류</label>
+        <select class="form-control">
+          <option>공지</option><option>필독</option><option>업데이트</option><option>일반</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>상단 고정</label>
+        <select class="form-control">
+          <option>고정 안 함</option><option>상단 고정</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row single">
+      <div class="form-field">
+        <label>제목</label>
+        <input class="form-control" type="text" placeholder="공지사항 제목을 입력하세요">
+      </div>
+    </div>
+    <div class="form-row single">
+      <div class="form-field">
+        <label>내용</label>
+        <textarea class="form-control" rows="6" placeholder="공지사항 내용을 입력하세요"></textarea>
+      </div>
+    </div>
+  </div>
+  <div class="dialog-ft">
+    <button class="btn btn-secondary" onclick="closeDialog('notice-dialog')">취소</button>
+    <button class="btn btn-primary" onclick="closeDialog('notice-dialog');showToast('공지사항이 등록되었습니다.','success')">등록하기</button>
+  </div>
+</dialog>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<script src="admin.js"></script>
+</body>
+</html>
