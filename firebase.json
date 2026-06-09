@@ -8,6 +8,9 @@
       "firebase.json",
       "firestore.rules",
       "seed.js",
+      ".git/**",
+      ".firebase/**",
+      "firebase-debug.log",
       "**/.*",
       "**/node_modules/**",
       ".npm-cache/**"

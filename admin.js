@@ -599,6 +599,67 @@ function switchSettings(el, sectionId) {
   document.getElementById(sectionId)?.classList.add('active');
 }
 
+// ─── Region Sync ────────────────────────────────────────────────────────────
+function formatRegionSyncDate(value) {
+  if (!value) return '-';
+  const date = typeof value.toDate === 'function' ? value.toDate() : new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function setRegionSyncMessage(msg, type = '') {
+  const el = document.getElementById('region-sync-message');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.classList.toggle('success', type === 'success');
+  el.classList.toggle('error', type === 'error');
+}
+
+async function refreshRegionMeta() {
+  if (!window.RegionSync) return;
+  try {
+    const meta = await RegionSync.loadMeta();
+    document.getElementById('region-sync-last').textContent = formatRegionSyncDate(meta?.lastSyncedAt);
+    document.getElementById('region-sync-count').textContent = Number(meta?.totalCount || 0).toLocaleString('ko-KR');
+    if (meta?.status === 'failed') setRegionSyncMessage(meta.errorMessage || '최근 갱신에 실패했습니다.', 'error');
+    else if (meta?.status === 'success') setRegionSyncMessage('정상 갱신 상태입니다.', 'success');
+  } catch (err) {
+    setRegionSyncMessage('지역 데이터 상태를 불러오지 못했습니다.', 'error');
+  }
+}
+
+async function loadAdminRegions() {
+  if (!window.RegionSync) return;
+  const regions = await RegionSync.loadRegions();
+  RegionSync.populateSelect(document.getElementById('dlg-job-region'), regions, '지역을 선택하세요');
+}
+
+async function syncRegionsFromAdmin() {
+  if (!window.RegionSync) return;
+  const btn = document.getElementById('btn-region-sync');
+  if (!btn) return;
+
+  btn.disabled = true;
+  btn.textContent = '갱신 중...';
+  setRegionSyncMessage('공공데이터포털에서 지역 데이터를 수집 중입니다.', '');
+  try {
+    const regions = await RegionSync.fetchAllRegions(({ page, pageCount, count }) => {
+      setRegionSyncMessage(`수집 중 ${page}/${pageCount}페이지, ${count.toLocaleString('ko-KR')}개 추출`, '');
+    });
+    await RegionSync.saveRegions(regions);
+    await refreshRegionMeta();
+    await loadAdminRegions();
+    showToast(`지역 데이터 ${regions.length.toLocaleString('ko-KR')}개가 갱신되었습니다.`, 'success');
+  } catch (err) {
+    await RegionSync.markSyncFailed(err.message);
+    await refreshRegionMeta();
+    showToast(err.message || '지역 데이터 갱신에 실패했습니다.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '지역 데이터 갱신';
+  }
+}
+
 // ─── Toast ───────────────────────────────────────────────────────────────────
 function showToast(msg, type = '') {
   const container = document.getElementById('toast-container');
@@ -614,6 +675,12 @@ function showToast(msg, type = '') {
 function exportCSV(type) {
   showToast('CSV 파일을 내보냅니다.', 'success');
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('btn-region-sync')?.addEventListener('click', syncRegionsFromAdmin);
+  refreshRegionMeta();
+  loadAdminRegions();
+});
 
 // ─── Charts ──────────────────────────────────────────────────────────────────
 let activityChartInst = null;

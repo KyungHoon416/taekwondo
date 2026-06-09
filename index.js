@@ -15,14 +15,126 @@ try {
   console.warn('파이어베이스 초기화 오류. firebase-config.js의 설정값을 확인해주세요.', e);
 }
 
+const NTS_BUSINESS_API_KEY = '99546afda95844c23df25ca3cc6c60c4b3b9cc594ba5822a5fa49ecc62391d4e';
+const NTS_BUSINESS_STATUS_URL = 'https://api.odcloud.kr/api/nts-businessman/v1/status';
+const NTS_BUSINESS_VALIDATE_URL = 'https://api.odcloud.kr/api/nts-businessman/v1/validate';
+
 // 에러 토스트 하퍼
 function showAuthError(msg) {
-  let el = document.getElementById('auth-error-msg');
+  let el = document.querySelector('.auth-pane:not(.hidden) .auth-error-msg') || document.querySelector('.auth-error-msg');
   if (el) { el.textContent = msg; el.style.display = 'block'; }
 }
 function clearAuthError() {
-  let el = document.getElementById('auth-error-msg');
-  if (el) { el.textContent = ''; el.style.display = 'none'; }
+  document.querySelectorAll('.auth-error-msg').forEach((el) => {
+    el.textContent = '';
+    el.style.display = 'none';
+  });
+}
+
+function normalizeAccountKey(value) {
+  return String(value || '').trim().replace(/\s+/g, '').toLowerCase();
+}
+
+function maskEmail(email) {
+  const [local, domain] = String(email || '').split('@');
+  if (!local || !domain) return '';
+  const visible = local.length <= 2 ? local[0] : local.slice(0, 2);
+  return `${visible}${'*'.repeat(Math.max(3, local.length - visible.length))}@${domain}`;
+}
+
+function waitForPaint() {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
+function getBusinessNumberDigits(value) {
+  return String(value || '').replace(/\D/g, '');
+}
+
+function formatBusinessNumber(value) {
+  const digits = getBusinessNumberDigits(value).slice(0, 10);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 5) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
+}
+
+function getBusinessDateDigits(value) {
+  return String(value || '').replace(/\D/g, '').slice(0, 8);
+}
+
+function formatBusinessStartDate(value) {
+  const digits = getBusinessDateDigits(value);
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+}
+
+async function checkBusinessStatus(businessNumber) {
+  const response = await fetch(`${NTS_BUSINESS_STATUS_URL}?serviceKey=${NTS_BUSINESS_API_KEY}&returnType=JSON`, {
+    method: 'POST',
+    headers: {
+      accept: '*/*',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ b_no: [businessNumber] })
+  });
+
+  if (!response.ok) {
+    throw new Error(`사업자 상태확인 요청에 실패했습니다. (${response.status})`);
+  }
+
+  const result = await response.json();
+  const business = result?.data?.[0];
+  if (!business) {
+    throw new Error('사업자 상태확인 결과를 받지 못했습니다.');
+  }
+
+  if (business.b_stt_cd !== '01') {
+    const status = business.b_stt || business.tax_type || '정상 사업자가 아닙니다.';
+    throw new Error(`${status}로 확인되었습니다.`);
+  }
+
+  return business;
+}
+
+async function verifyBusinessInfo({ businessNumber, startDate, ownerName, businessName }) {
+  const response = await fetch(`${NTS_BUSINESS_VALIDATE_URL}?serviceKey=${NTS_BUSINESS_API_KEY}&returnType=JSON`, {
+    method: 'POST',
+    headers: {
+      accept: '*/*',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      businesses: [
+        {
+          b_no: businessNumber,
+          start_dt: startDate,
+          p_nm: ownerName,
+          p_nm2: '',
+          b_nm: businessName || '',
+          corp_no: '',
+          b_sector: '',
+          b_type: '',
+          b_adr: ''
+        }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`사업자등록정보 진위확인 요청에 실패했습니다. (${response.status})`);
+  }
+
+  const result = await response.json();
+  const business = result?.data?.[0];
+  if (!business) {
+    throw new Error('사업자등록정보 진위확인 결과를 받지 못했습니다.');
+  }
+
+  if (business.valid !== '01') {
+    throw new Error(business.valid_msg || '사업자등록정보가 일치하지 않습니다.');
+  }
+
+  return business;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -195,8 +307,11 @@ document.addEventListener('DOMContentLoaded', () => {
     communityPosts: [...mockPosts],
     filters: {
       jobs: { region: '', position: '', type: '' },
-      talents: { region: '', position: '' }
-    }
+      talents: { regions: [], position: '' }
+    },
+    regions: [],
+    selectedResumeRegions: [],
+    regionPickers: {}
   };
 
   // Views
@@ -233,6 +348,265 @@ document.addEventListener('DOMContentLoaded', () => {
     jobDetail: document.getElementById('dialog-job-detail'),
     talentDetail: document.getElementById('dialog-talent-detail')
   };
+
+  function populateRegionSelects(regions) {
+    if (!window.RegionSync) return;
+    RegionSync.populateSelect(document.getElementById('job-region'), regions, '지역을 선택하세요');
+  }
+
+  function regionMatchesValue(item, value) {
+    return item.displayName === value || item.fullName === value || value.includes(item.displayName) || value.includes(item.fullName);
+  }
+
+  function createSidoRegion(sido) {
+    return {
+      sidoShort: sido,
+      sigungu: '전체',
+      displayName: sido,
+      fullName: sido,
+      regionCode: `sido-${sido}`
+    };
+  }
+
+  function splitRegionValues(value) {
+    return String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+  }
+
+  function matchesSelectedRegion(targetRegion, selectedRegion) {
+    if (!selectedRegion || selectedRegion === '전국') return true;
+    return targetRegion === selectedRegion || targetRegion.includes(selectedRegion) || selectedRegion.includes(targetRegion);
+  }
+
+  function createDistrictPicker({ rootId, inputId, mode = 'single', onChange }) {
+    const root = document.getElementById(rootId);
+    const input = document.getElementById(inputId);
+    if (!root || !input || !window.RegionSync) return null;
+
+    const grouped = RegionSync.groupBySido(state.regions);
+    const sidoOrder = ['서울', '경기', '인천', '부산', '대구', '광주', '대전', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'];
+    const sidos = sidoOrder.filter((sido) => grouped[sido]?.length);
+    let activeSido = sidos[0] || '';
+    let selected = [];
+
+    root.innerHTML = `
+      <button type="button" class="district-trigger">
+        <span class="district-trigger-label">지역 전체</span>
+        <span class="district-trigger-count"></span>
+        <span class="district-trigger-icon">⌄</span>
+      </button>
+      <div class="district-panel">
+        <div class="district-panel-body">
+          <div class="district-sido-list"></div>
+          <div class="district-list"></div>
+        </div>
+        <div class="district-selected-list"></div>
+        <div class="district-panel-footer">
+          <button type="button" class="district-reset-btn">초기화</button>
+          <button type="button" class="district-apply-btn">적용하기</button>
+        </div>
+      </div>
+    `;
+    const trigger = root.querySelector('.district-trigger');
+    const triggerLabel = root.querySelector('.district-trigger-label');
+    const triggerCount = root.querySelector('.district-trigger-count');
+    const sidoList = root.querySelector('.district-sido-list');
+    const districtList = root.querySelector('.district-list');
+    const selectedList = root.querySelector('.district-selected-list');
+    const resetBtn = root.querySelector('.district-reset-btn');
+    const applyBtn = root.querySelector('.district-apply-btn');
+    const isFilterPicker = root.classList.contains('filter');
+
+    function syncValue() {
+      input.value = selected.map((region) => region.displayName).join(', ');
+      if (!selected.length) {
+        triggerLabel.textContent = isFilterPicker ? '지역' : '지역 전체';
+        triggerCount.textContent = '';
+      } else if (isFilterPicker) {
+        triggerLabel.textContent = '지역';
+        triggerCount.textContent = selected.length;
+      } else if (selected.length === 1) {
+        triggerLabel.textContent = selected[0].displayName;
+        triggerCount.textContent = '';
+      } else {
+        triggerLabel.textContent = '지역';
+        triggerCount.textContent = selected.length;
+      }
+      if (onChange) onChange(selected);
+    }
+
+    function togglePanel(force) {
+      const isOpen = typeof force === 'boolean' ? force : !root.classList.contains('open');
+      root.classList.toggle('open', isOpen);
+      trigger.setAttribute('aria-expanded', String(isOpen));
+    }
+
+    function renderSelected() {
+      selectedList.innerHTML = '';
+      if (!selected.length) return;
+      selected.forEach((region) => {
+        const chip = document.createElement('span');
+        chip.className = 'district-selected-chip';
+        chip.innerHTML = `<span>${region.displayName}</span><button type="button" aria-label="${region.displayName} 삭제">×</button>`;
+        chip.querySelector('button').addEventListener('click', () => {
+          selected = selected.filter((item) => item.regionCode !== region.regionCode);
+          renderDistricts();
+          renderSelected();
+          syncValue();
+        });
+        selectedList.appendChild(chip);
+      });
+    }
+
+    function renderDistricts() {
+      const districts = [...(grouped[activeSido] || [])].sort((a, b) => String(a.regionCode).localeCompare(String(b.regionCode)));
+      districtList.innerHTML = '';
+      if (!districts.length) {
+        districtList.innerHTML = '<p class="district-empty">지역 데이터 갱신 후 시/군/구가 표시됩니다.</p>';
+        return;
+      }
+      const allBtn = document.createElement('button');
+      allBtn.type = 'button';
+      allBtn.className = 'district-item-btn all';
+      allBtn.textContent = '전체';
+      if (selected.some((item) => item.regionCode === `sido-${activeSido}`)) allBtn.classList.add('active');
+      allBtn.addEventListener('click', () => {
+        const sidoRegion = createSidoRegion(activeSido);
+        if (mode === 'single') {
+          selected = [sidoRegion];
+        } else if (selected.some((item) => item.regionCode === sidoRegion.regionCode)) {
+          selected = selected.filter((item) => item.regionCode !== sidoRegion.regionCode);
+        } else {
+          selected = selected.filter((item) => item.sidoShort !== activeSido);
+          selected.push(sidoRegion);
+        }
+        renderDistricts();
+        renderSelected();
+        syncValue();
+      });
+      districtList.appendChild(allBtn);
+      districts.forEach((region) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'district-item-btn';
+        btn.textContent = region.sigungu;
+        if (selected.some((item) => item.regionCode === region.regionCode)) btn.classList.add('active');
+        btn.addEventListener('click', () => {
+          if (mode === 'single') {
+            selected = [region];
+          } else if (selected.some((item) => item.regionCode === region.regionCode)) {
+            selected = selected.filter((item) => item.regionCode !== region.regionCode);
+          } else {
+            selected = selected.filter((item) => item.regionCode !== `sido-${region.sidoShort}`);
+            selected.push(region);
+          }
+          renderDistricts();
+          renderSelected();
+          syncValue();
+        });
+        districtList.appendChild(btn);
+      });
+    }
+
+    function renderSidos() {
+      sidoList.innerHTML = '';
+      const allBtn = document.createElement('button');
+      allBtn.type = 'button';
+      allBtn.className = 'district-sido-btn';
+      allBtn.textContent = '시/도 전체';
+      if (!selected.length) allBtn.classList.add('active');
+      allBtn.addEventListener('click', () => {
+        clear();
+      });
+      sidoList.appendChild(allBtn);
+
+      sidos.forEach((sido) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'district-sido-btn';
+        btn.textContent = sido;
+        if (sido === activeSido) btn.classList.add('active');
+        btn.addEventListener('click', () => {
+          activeSido = sido;
+          renderSidos();
+          renderDistricts();
+        });
+        sidoList.appendChild(btn);
+      });
+    }
+
+    function clear() {
+      selected = [];
+      syncValue();
+      renderDistricts();
+      renderSelected();
+    }
+
+    function setByValue(value) {
+      const values = String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+      selected = values.flatMap((item) => {
+        if (sidos.includes(item)) return [createSidoRegion(item)];
+        return state.regions.filter((region) => regionMatchesValue(region, item));
+      });
+      if (selected[0]) activeSido = selected[0].sidoShort;
+      renderSidos();
+      renderDistricts();
+      renderSelected();
+      syncValue();
+    }
+
+    trigger.addEventListener('click', () => togglePanel());
+    root.addEventListener('click', (event) => event.stopPropagation());
+    applyBtn.addEventListener('click', () => togglePanel(false));
+    resetBtn.addEventListener('click', () => clear());
+    document.addEventListener('click', (event) => {
+      if (!root.contains(event.target)) togglePanel(false);
+    });
+
+    renderSidos();
+    renderDistricts();
+    renderSelected();
+    syncValue();
+
+    return {
+      clear,
+      setByValue,
+      getValues: () => selected.map((region) => region.displayName),
+      getRegions: () => [...selected]
+    };
+  }
+
+  function initRegionPickers() {
+    state.regionPickers.home = createDistrictPicker({
+      rootId: 'home-region-picker',
+      inputId: 'search-region',
+      mode: 'multi'
+    });
+    state.regionPickers.jobFilter = createDistrictPicker({
+      rootId: 'job-filter-region-picker',
+      inputId: 'filter-job-region',
+      mode: 'multi'
+    });
+    state.regionPickers.talentFilter = createDistrictPicker({
+      rootId: 'talent-filter-region-picker',
+      inputId: 'filter-talent-region',
+      mode: 'multi'
+    });
+    state.regionPickers.resume = createDistrictPicker({
+      rootId: 'resume-region-picker',
+      inputId: 'res-region',
+      mode: 'multi',
+      onChange: (selected) => {
+        state.selectedResumeRegions = selected.map((region) => region.displayName);
+      }
+    });
+  }
+
+  async function initRegions() {
+    if (!window.RegionSync) return;
+    state.regions = await RegionSync.loadRegions();
+    populateRegionSelects(state.regions);
+    initRegionPickers();
+  }
 
 
   // ==========================================================================
@@ -479,7 +853,8 @@ document.addEventListener('DOMContentLoaded', () => {
     grid.innerHTML = '';
 
     const filtered = state.jobsList.filter(job => {
-      const regionMatch = !state.filters.jobs.region || job.region === state.filters.jobs.region;
+      const selectedRegions = splitRegionValues(state.filters.jobs.region);
+      const regionMatch = !selectedRegions.length || selectedRegions.some((region) => matchesSelectedRegion(job.region, region));
       const positionMatch = !state.filters.jobs.position || job.title.includes(state.filters.jobs.position) || job.desc.includes(state.filters.jobs.position);
       const typeMatch = !state.filters.jobs.type || job.type === state.filters.jobs.type;
       return regionMatch && positionMatch && typeMatch;
@@ -507,7 +882,8 @@ document.addEventListener('DOMContentLoaded', () => {
     grid.innerHTML = '';
 
     const filtered = state.talentsList.filter(talent => {
-      const regionMatch = !state.filters.talents.region || talent.region === state.filters.talents.region;
+      const selectedRegions = state.filters.talents.regions || [];
+      const regionMatch = !selectedRegions.length || selectedRegions.some((region) => matchesSelectedRegion(talent.region, region));
       const positionMatch = !state.filters.talents.position || talent.role.includes(state.filters.talents.position);
       return regionMatch && positionMatch;
     });
@@ -626,6 +1002,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Sync the Job board form controls visually
       document.getElementById('filter-job-region').value = region;
+      state.regionPickers.jobFilter?.setByValue(region);
       document.getElementById('filter-job-position').value = position;
       document.getElementById('filter-job-type').value = type;
       
@@ -647,6 +1024,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Sync UI controls
       document.getElementById('filter-job-region').value = '';
+      state.regionPickers.jobFilter?.clear();
       document.getElementById('filter-job-type').value = '';
       document.getElementById('filter-job-position').value = keyword === '경력무관' ? '' : keyword; // '경력무관' handles differently
 
@@ -667,6 +1045,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btn-job-filter-reset').addEventListener('click', () => {
       state.filters.jobs = { region: '', position: '', type: '' };
+      state.regionPickers.jobFilter?.clear();
       // Timeout to wait for form default reset behavior to clear value
       setTimeout(renderBoardJobs, 50);
     });
@@ -677,13 +1056,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (talentsFilterForm) {
     talentsFilterForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      state.filters.talents.region = document.getElementById('filter-talent-region').value;
+      state.filters.talents.regions = state.regionPickers.talentFilter?.getValues() || [];
       state.filters.talents.position = document.getElementById('filter-talent-position').value;
       renderBoardTalents();
     });
 
     document.getElementById('btn-talent-filter-reset').addEventListener('click', () => {
-      state.filters.talents = { region: '', position: '' };
+      state.filters.talents = { regions: [], position: '' };
+      state.regionPickers.talentFilter?.clear();
       setTimeout(renderBoardTalents, 50);
     });
   }
@@ -721,22 +1101,107 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabRegister = document.getElementById('tab-register');
   const formLogin = document.getElementById('form-login');
   const formRegister = document.getElementById('form-register');
+  const formFindId = document.getElementById('form-find-id');
+  const formResetPassword = document.getElementById('form-reset-password');
+  const findIdButton = document.getElementById('btn-find-id');
+  const resetPasswordButton = document.getElementById('btn-reset-password');
+  const findIdBackButton = document.getElementById('btn-find-id-back');
+  const resetPasswordBackButton = document.getElementById('btn-reset-password-back');
+  const findIdResult = document.getElementById('find-id-result');
+  const resetPasswordResult = document.getElementById('reset-password-result');
+  const businessVerifyFields = document.querySelectorAll('.business-verify-field');
+  const businessNumberInput = document.getElementById('reg-business-number');
+  const businessStartDateInput = document.getElementById('reg-business-start-date');
+  const businessOwnerNameInput = document.getElementById('reg-business-owner-name');
+  const businessStatusButton = document.getElementById('btn-business-status-check');
+  const businessValidateButton = document.getElementById('btn-business-validate');
+  const businessStatusResult = document.getElementById('business-status-result');
+  const businessValidateResult = document.getElementById('business-validate-result');
+  const roleInputs = document.querySelectorAll('input[name="user-role"]');
+  let businessStatusCheck = null;
+  let businessValidation = null;
 
-  function openAuthDialog(activeTab) {
+  function setBusinessResult(el, msg, type) {
+    if (!el) return;
+    el.textContent = msg || '';
+    el.classList.toggle('success', type === 'success');
+    el.classList.toggle('error', type === 'error');
+  }
+
+  function resetBusinessChecks() {
+    businessStatusCheck = null;
+    businessValidation = null;
+    setBusinessResult(businessStatusResult, '', '');
+    setBusinessResult(businessValidateResult, '', '');
+  }
+
+  function getCurrentBusinessPayload() {
+    return {
+      businessNumber: getBusinessNumberDigits(businessNumberInput?.value),
+      businessStartDate: getBusinessDateDigits(businessStartDateInput?.value),
+      businessOwnerName: businessOwnerNameInput?.value.trim() || ''
+    };
+  }
+
+  function isBusinessStatusChecked(payload) {
+    return businessStatusCheck?.businessNumber === payload.businessNumber &&
+      businessStatusCheck?.statusCode === '01';
+  }
+
+  function isBusinessValidated(payload) {
+    return businessValidation?.businessNumber === payload.businessNumber &&
+      businessValidation?.businessStartDate === payload.businessStartDate &&
+      businessValidation?.businessOwnerName === payload.businessOwnerName &&
+      businessValidation?.valid === '01';
+  }
+
+  function syncBusinessNumberField() {
+    const selectedRole = document.querySelector('input[name="user-role"]:checked')?.value || 'instructor';
+    const isGym = selectedRole === 'gym';
+    businessVerifyFields.forEach((field) => field.classList.toggle('hidden', !isGym));
+    [businessNumberInput, businessStartDateInput, businessOwnerNameInput].forEach((input) => {
+      if (!input) return;
+      input.required = isGym;
+      if (!isGym) input.value = '';
+    });
+    if (!isGym) resetBusinessChecks();
+  }
+
+  function setAuthResult(el, msg, type) {
+    if (!el) return;
+    el.textContent = msg || '';
+    el.classList.toggle('success', type === 'success');
+    el.classList.toggle('error', type === 'error');
+  }
+
+  function showAuthPane(activePane) {
     if (!dialogs.auth) return;
+    clearAuthError();
+    setAuthResult(findIdResult, '', '');
+    setAuthResult(resetPasswordResult, '', '');
+
+    [formLogin, formRegister, formFindId, formResetPassword].forEach((pane) => {
+      if (pane) pane.classList.add('hidden');
+    });
     
-    // Switch active tabs
-    if (activeTab === 'login') {
+    if (activePane === 'login') {
       tabLogin.classList.add('active');
       tabRegister.classList.remove('active');
       formLogin.classList.remove('hidden');
-      formRegister.classList.add('hidden');
-    } else {
+    } else if (activePane === 'register') {
       tabLogin.classList.remove('active');
       tabRegister.classList.add('active');
-      formLogin.classList.add('hidden');
       formRegister.classList.remove('hidden');
+    } else {
+      tabLogin.classList.remove('active');
+      tabRegister.classList.remove('active');
+      if (activePane === 'findId') formFindId?.classList.remove('hidden');
+      if (activePane === 'resetPassword') formResetPassword?.classList.remove('hidden');
     }
+  }
+
+  function openAuthDialog(activePane) {
+    showAuthPane(activePane);
     
     dialogs.auth.showModal();
   }
@@ -747,6 +1212,114 @@ document.addEventListener('DOMContentLoaded', () => {
 
   tabLogin.addEventListener('click', () => openAuthDialog('login'));
   tabRegister.addEventListener('click', () => openAuthDialog('register'));
+  if (findIdButton) findIdButton.addEventListener('click', () => showAuthPane('findId'));
+  if (resetPasswordButton) {
+    resetPasswordButton.addEventListener('click', () => {
+      const currentEmail = document.getElementById('login-email')?.value.trim() || '';
+      const resetEmail = document.getElementById('reset-password-email');
+      if (resetEmail && currentEmail) resetEmail.value = currentEmail;
+      showAuthPane('resetPassword');
+    });
+  }
+  if (findIdBackButton) findIdBackButton.addEventListener('click', () => showAuthPane('login'));
+  if (resetPasswordBackButton) resetPasswordBackButton.addEventListener('click', () => showAuthPane('login'));
+  roleInputs.forEach((input) => input.addEventListener('change', syncBusinessNumberField));
+  if (businessNumberInput) {
+    businessNumberInput.addEventListener('input', () => {
+      businessNumberInput.value = formatBusinessNumber(businessNumberInput.value);
+      resetBusinessChecks();
+    });
+  }
+  if (businessStartDateInput) {
+    businessStartDateInput.addEventListener('input', () => {
+      businessStartDateInput.value = formatBusinessStartDate(businessStartDateInput.value);
+      businessValidation = null;
+      setBusinessResult(businessValidateResult, '', '');
+    });
+  }
+  if (businessOwnerNameInput) {
+    businessOwnerNameInput.addEventListener('input', () => {
+      businessValidation = null;
+      setBusinessResult(businessValidateResult, '', '');
+    });
+  }
+  if (businessStatusButton) {
+    businessStatusButton.addEventListener('click', async () => {
+      clearAuthError();
+      const { businessNumber } = getCurrentBusinessPayload();
+      if (businessNumber.length !== 10) {
+        setBusinessResult(businessStatusResult, '사업자등록번호 10자리를 입력해주세요.', 'error');
+        return;
+      }
+
+      businessStatusButton.disabled = true;
+      businessStatusButton.textContent = '확인 중...';
+      setBusinessResult(businessStatusResult, '상태확인 중입니다.', '');
+      await waitForPaint();
+      try {
+        const statusInfo = await checkBusinessStatus(businessNumber);
+        businessStatusCheck = {
+          businessNumber,
+          status: statusInfo.b_stt || '',
+          statusCode: statusInfo.b_stt_cd || '',
+          taxType: statusInfo.tax_type || ''
+        };
+        setBusinessResult(businessStatusResult, '정상 사업자로 확인되었습니다.', 'success');
+      } catch (err) {
+        businessStatusCheck = null;
+        setBusinessResult(businessStatusResult, err.message || '사업자 상태확인에 실패했습니다.', 'error');
+      } finally {
+        businessStatusButton.disabled = false;
+        businessStatusButton.textContent = '상태확인';
+      }
+    });
+  }
+  if (businessValidateButton) {
+    businessValidateButton.addEventListener('click', async () => {
+      clearAuthError();
+      const { businessNumber, businessStartDate, businessOwnerName } = getCurrentBusinessPayload();
+      if (businessNumber.length !== 10) {
+        setBusinessResult(businessValidateResult, '사업자등록번호 10자리를 입력해주세요.', 'error');
+        return;
+      }
+      if (businessStartDate.length !== 8) {
+        setBusinessResult(businessValidateResult, '개업일자 8자리를 입력해주세요. 예: 20200101', 'error');
+        return;
+      }
+      if (!businessOwnerName) {
+        setBusinessResult(businessValidateResult, '대표자명을 입력해주세요.', 'error');
+        return;
+      }
+
+      businessValidateButton.disabled = true;
+      businessValidateButton.textContent = '진위확인 중...';
+      setBusinessResult(businessValidateResult, '사업자 진위확인 중입니다.', '');
+      await waitForPaint();
+      try {
+        const validationInfo = await verifyBusinessInfo({
+          businessNumber,
+          startDate: businessStartDate,
+          ownerName: businessOwnerName,
+          businessName: document.getElementById('reg-name').value.trim()
+        });
+        businessValidation = {
+          businessNumber,
+          businessStartDate,
+          businessOwnerName,
+          valid: validationInfo.valid || '',
+          validMsg: validationInfo.valid_msg || ''
+        };
+        setBusinessResult(businessValidateResult, '사업자 진위확인이 완료되었습니다.', 'success');
+      } catch (err) {
+        businessValidation = null;
+        setBusinessResult(businessValidateResult, err.message || '사업자 진위확인에 실패했습니다.', 'error');
+      } finally {
+        businessValidateButton.disabled = false;
+        businessValidateButton.textContent = '사업자 진위확인';
+      }
+    });
+  }
+  syncBusinessNumberField();
 
   // ─── 로그인 폼 제출 (Firebase Auth) ─────────────────────────────────────────
   formLogin.addEventListener('submit', async (e) => {
@@ -777,6 +1350,79 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  if (formFindId) {
+    formFindId.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAuthError();
+      setAuthResult(findIdResult, '', '');
+      const name = document.getElementById('find-id-name').value.trim();
+      const type = document.getElementById('find-id-type').value;
+      const submitBtn = formFindId.querySelector('button[type="submit"]');
+      submitBtn.textContent = '조회 중...';
+      submitBtn.disabled = true;
+
+      if (!db) {
+        showAuthError('파이어베이스 설정이 완료되지 않았습니다.');
+        submitBtn.textContent = '아이디 찾기'; submitBtn.disabled = false; return;
+      }
+
+      try {
+        const snap = await db.collection('account_lookup')
+          .where('name_key', '==', normalizeAccountKey(name))
+          .where('type', '==', type)
+          .limit(5)
+          .get();
+
+        if (snap.empty) {
+          setAuthResult(findIdResult, '일치하는 계정을 찾지 못했습니다. 가입 형태와 이름/도장명을 확인해주세요.', 'error');
+          return;
+        }
+
+        const emails = snap.docs
+          .map((doc) => doc.data().masked_email)
+          .filter(Boolean);
+        setAuthResult(findIdResult, `가입 아이디: ${emails.join(', ')}`, 'success');
+      } catch (err) {
+        setAuthResult(findIdResult, '아이디 찾기에 실패했습니다. 잠시 후 다시 시도해주세요.', 'error');
+      } finally {
+        submitBtn.textContent = '아이디 찾기';
+        submitBtn.disabled = false;
+      }
+    });
+  }
+
+  if (formResetPassword) {
+    formResetPassword.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAuthError();
+      setAuthResult(resetPasswordResult, '', '');
+      const email = document.getElementById('reset-password-email').value.trim();
+      const submitBtn = formResetPassword.querySelector('button[type="submit"]');
+      submitBtn.textContent = '발송 중...';
+      submitBtn.disabled = true;
+
+      if (!auth) {
+        showAuthError('파이어베이스 설정이 완료되지 않았습니다. firebase-config.js를 확인해주세요.');
+        submitBtn.textContent = '재설정 메일 보내기'; submitBtn.disabled = false; return;
+      }
+
+      try {
+        await auth.sendPasswordResetEmail(email);
+        setAuthResult(resetPasswordResult, '비밀번호 재설정 메일을 발송했습니다. 메일함을 확인해주세요.', 'success');
+      } catch (err) {
+        const msg = err.code === 'auth/invalid-email'
+          ? '이메일 형식이 올바르지 않습니다.'
+          : err.code === 'auth/user-not-found'
+            ? '해당 이메일로 가입된 계정을 찾지 못했습니다.'
+            : '비밀번호 재설정 메일 발송에 실패했습니다. (' + err.code + ')';
+        setAuthResult(resetPasswordResult, msg, 'error');
+      } finally {
+        submitBtn.textContent = '재설정 메일 보내기';
+        submitBtn.disabled = false;
+      }
+    });
+  }
+
   // ─── 회원가입 폼 제출 (Firebase Auth + Firestore) ─────────────────────────────
   formRegister.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -785,6 +1431,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const email    = document.getElementById('reg-email').value.trim();
     const password = document.getElementById('reg-password').value;
     const type     = document.querySelector('input[name="user-role"]:checked')?.value || 'instructor';
+    const { businessNumber, businessStartDate, businessOwnerName } = getCurrentBusinessPayload();
     const submitBtn = formRegister.querySelector('button[type="submit"]');
     submitBtn.textContent = '가입 중...';
     submitBtn.disabled = true;
@@ -794,25 +1441,75 @@ document.addEventListener('DOMContentLoaded', () => {
       submitBtn.textContent = '회원가입하기'; submitBtn.disabled = false; return;
     }
     try {
+      if (type === 'gym') {
+        if (businessNumber.length !== 10) {
+          showAuthError('사업자등록번호 10자리를 입력해주세요.');
+          return;
+        }
+        if (businessStartDate.length !== 8) {
+          showAuthError('개업일자 8자리를 입력해주세요. 예: 20200101');
+          return;
+        }
+        if (!businessOwnerName) {
+          showAuthError('대표자명을 입력해주세요.');
+          return;
+        }
+        if (!isBusinessStatusChecked({ businessNumber })) {
+          showAuthError('사업자등록번호 상태확인을 먼저 완료해주세요.');
+          return;
+        }
+        if (!isBusinessValidated({ businessNumber, businessStartDate, businessOwnerName })) {
+          showAuthError('사업자 진위확인을 먼저 완료해주세요.');
+          return;
+        }
+      }
+
+      submitBtn.textContent = '가입 중...';
+
       // 1. Firebase Auth 계정 생성
       const cred = await auth.createUserWithEmailAndPassword(email, password);
       const uid  = cred.user.uid;
 
       // 2. Firestore users 콜렉션에 추가 정보 저장
-      await db.collection('users').doc(uid).set({
+      const userData = {
         name,
         email,
         type,                        // 'gym' | 'instructor'
         created_at: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      };
 
+      if (type === 'gym') {
+        userData.business_number = businessNumber;
+        userData.business_start_date = businessStartDate;
+        userData.business_owner_name = businessOwnerName;
+        userData.business_status = businessStatusCheck?.status || '';
+        userData.business_status_code = businessStatusCheck?.statusCode || '';
+        userData.business_valid = businessValidation?.valid || '';
+        userData.business_valid_msg = businessValidation?.validMsg || '';
+        userData.business_verified_at = firebase.firestore.FieldValue.serverTimestamp();
+      }
+
+      await db.collection('users').doc(uid).set(userData);
+      await db.collection('account_lookup').doc(uid).set({
+        uid,
+        name,
+        name_key: normalizeAccountKey(name),
+        type,
+        masked_email: maskEmail(email),
+        created_at: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      
       dialogs.auth.close();
       formRegister.reset();
+      resetBusinessChecks();
+      syncBusinessNumberField();
     } catch (err) {
       const msg = err.code === 'auth/email-already-in-use'
         ? '이미 사용 중인 이메일입니다.'
         : err.code === 'auth/weak-password'
         ? '비밀번호는 6자 이상이어야 합니다.'
+        : err.message
+        ? err.message
         : '회원가입에 실패했습니다. (' + err.code + ')';
       showAuthError(msg);
     } finally {
@@ -925,6 +1622,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const license = document.getElementById('res-license').value;
       const intro = document.getElementById('res-intro').value;
 
+      if (!state.selectedResumeRegions.length) {
+        alert('희망 근무 지역을 1개 이상 선택해주세요.');
+        return;
+      }
+
       const newTalent = {
         id: `talent-${Date.now()}`,
         name,
@@ -943,6 +1645,8 @@ document.addEventListener('DOMContentLoaded', () => {
       
       dialogs.postResume.close();
       formPostResume.reset();
+      state.selectedResumeRegions = [];
+      state.regionPickers.resume?.clear();
 
       alert('이력서가 성공적으로 등록되었습니다!');
       
@@ -1021,6 +1725,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Initialize
+  initRegions();
   handleRoute();
   updateStats();
 

@@ -8,7 +8,7 @@
   
   <!-- Font Preload & stylesheet -->
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
-  <link rel="stylesheet" href="index.css">
+  <link rel="stylesheet" href="index.css?v=20260610-account-recovery">
   
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥋</text></svg>">
@@ -129,18 +129,10 @@
         <div class="search-container">
           <form id="main-search-form" class="search-form" action="#" method="GET">
             <div class="search-fields">
-              <div class="select-wrapper">
+              <div class="select-wrapper region-picker-wrapper">
                 <label for="search-region" class="sr-only">지역</label>
-                <select id="search-region" name="region">
-                  <option value="">지역을 선택하세요</option>
-                  <option value="서울 강남구">서울 강남구</option>
-                  <option value="서울 송파구">서울 송파구</option>
-                  <option value="경기 용인시">경기 용인시</option>
-                  <option value="경기 성남시">경기 성남시</option>
-                  <option value="인천 연수구">인천 연수구</option>
-                  <option value="대전 서구">대전 서구</option>
-                  <option value="부산 해운대구">부산 해운대구</option>
-                </select>
+                <input type="hidden" id="search-region" name="region">
+                <div class="district-picker dropdown home" id="home-region-picker"></div>
               </div>
               
               <div class="select-wrapper">
@@ -351,16 +343,8 @@
               <form id="jobs-filter-form">
                 <div class="filter-group">
                   <label for="filter-job-region">지역</label>
-                  <select id="filter-job-region" name="region">
-                    <option value="">전체 지역</option>
-                    <option value="서울 강남구">서울 강남구</option>
-                    <option value="서울 송파구">서울 송파구</option>
-                    <option value="경기 용인시">경기 용인시</option>
-                    <option value="경기 성남시">경기 성남시</option>
-                    <option value="인천 연수구">인천 연수구</option>
-                    <option value="대전 서구">대전 서구</option>
-                    <option value="부산 해운대구">부산 해운대구</option>
-                  </select>
+                  <input type="hidden" id="filter-job-region" name="region">
+                  <div class="district-picker dropdown filter" id="job-filter-region-picker"></div>
                 </div>
                 <div class="filter-group">
                   <label for="filter-job-position">직무</label>
@@ -416,17 +400,9 @@
               <h3>인재 조건 검색</h3>
               <form id="talents-filter-form">
                 <div class="filter-group">
-                  <label for="filter-talent-region">희망 지역</label>
-                  <select id="filter-talent-region" name="region">
-                    <option value="">전체 지역</option>
-                    <option value="서울 강남구">서울 강남구</option>
-                    <option value="서울 송파구">서울 송파구</option>
-                    <option value="경기 용인시">경기 용인시</option>
-                    <option value="경기 성남시">경기 성남시</option>
-                    <option value="인천 연수구">인천 연수구</option>
-                    <option value="대전 서구">대전 서구</option>
-                    <option value="부산 해운대구">부산 해운대구</option>
-                  </select>
+                  <label>희망 지역</label>
+                  <input type="hidden" id="filter-talent-region" name="region">
+                  <div class="district-picker dropdown filter" id="talent-filter-region-picker"></div>
                 </div>
                 <div class="filter-group">
                   <label for="filter-talent-position">희망 직무</label>
@@ -650,7 +626,7 @@
       
       <!-- Login Pane -->
       <form id="form-login" class="auth-pane">
-        <div id="auth-error-msg" style="display:none;background:#fef2f2;color:#dc2626;padding:0.6rem 0.85rem;border-radius:8px;font-size:0.82rem;font-weight:600;margin-bottom:0.75rem;border:1px solid #fecaca"></div>
+        <div id="auth-login-error-msg" class="auth-error-msg" style="display:none;background:#fef2f2;color:#dc2626;padding:0.6rem 0.85rem;border-radius:8px;font-size:0.82rem;font-weight:600;margin-bottom:0.75rem;border:1px solid #fecaca"></div>
         <div class="form-group">
           <label for="login-email">이메일 주소</label>
           <input type="email" id="login-email" required placeholder="example@email.com">
@@ -660,11 +636,48 @@
           <input type="password" id="login-password" required placeholder="비밀번호를 입력하세요">
         </div>
         <button type="submit" class="btn-submit-dialog">로그인하기</button>
+        <div class="auth-help-actions">
+          <button type="button" id="btn-find-id" class="auth-help-link">아이디 찾기</button>
+          <span aria-hidden="true">|</span>
+          <button type="button" id="btn-reset-password" class="auth-help-link">비밀번호 찾기</button>
+        </div>
+      </form>
+
+      <!-- Find ID Pane -->
+      <form id="form-find-id" class="auth-pane hidden">
+        <div id="auth-find-id-error-msg" class="auth-error-msg" style="display:none;background:#fef2f2;color:#dc2626;padding:0.6rem 0.85rem;border-radius:8px;font-size:0.82rem;font-weight:600;margin-bottom:0.75rem;border:1px solid #fecaca"></div>
+        <div class="form-group">
+          <label for="find-id-name">성명 / 도장명</label>
+          <input type="text" id="find-id-name" required placeholder="가입 시 입력한 이름 또는 도장명">
+        </div>
+        <div class="form-group">
+          <label for="find-id-type">가입 형태</label>
+          <select id="find-id-type" required>
+            <option value="">가입 형태 선택</option>
+            <option value="gym">관장님 (구인)</option>
+            <option value="instructor">사범님 (구직)</option>
+          </select>
+        </div>
+        <p class="auth-help-result" id="find-id-result" aria-live="polite"></p>
+        <button type="submit" class="btn-submit-dialog">아이디 찾기</button>
+        <button type="button" class="btn-auth-back" id="btn-find-id-back">로그인으로 돌아가기</button>
+      </form>
+
+      <!-- Reset Password Pane -->
+      <form id="form-reset-password" class="auth-pane hidden">
+        <div id="auth-reset-password-error-msg" class="auth-error-msg" style="display:none;background:#fef2f2;color:#dc2626;padding:0.6rem 0.85rem;border-radius:8px;font-size:0.82rem;font-weight:600;margin-bottom:0.75rem;border:1px solid #fecaca"></div>
+        <div class="form-group">
+          <label for="reset-password-email">이메일 주소</label>
+          <input type="email" id="reset-password-email" required placeholder="가입한 이메일 주소">
+        </div>
+        <p class="auth-help-result" id="reset-password-result" aria-live="polite"></p>
+        <button type="submit" class="btn-submit-dialog">재설정 메일 보내기</button>
+        <button type="button" class="btn-auth-back" id="btn-reset-password-back">로그인으로 돌아가기</button>
       </form>
       
       <!-- Register Pane -->
       <form id="form-register" class="auth-pane hidden">
-        <div id="auth-error-msg" style="display:none;background:#fef2f2;color:#dc2626;padding:0.6rem 0.85rem;border-radius:8px;font-size:0.82rem;font-weight:600;margin-bottom:0.75rem;border:1px solid #fecaca"></div>
+        <div id="auth-register-error-msg" class="auth-error-msg" style="display:none;background:#fef2f2;color:#dc2626;padding:0.6rem 0.85rem;border-radius:8px;font-size:0.82rem;font-weight:600;margin-bottom:0.75rem;border:1px solid #fecaca"></div>
         <div class="form-group">
           <label for="reg-name">성명 / 도장명</label>
           <input type="text" id="reg-name" required placeholder="홍길동 또는 OO태권도장">
@@ -689,6 +702,26 @@
               사범님 (구직)
             </label>
           </div>
+        </div>
+        <div class="form-group business-verify-field" id="business-number-group">
+          <label for="reg-business-number">사업자등록번호</label>
+          <div class="business-input-row">
+            <input type="text" id="reg-business-number" inputmode="numeric" autocomplete="off" maxlength="12" required placeholder="107-81-83669">
+            <button type="button" class="btn-inline-check" id="btn-business-status-check">상태확인</button>
+          </div>
+          <p class="business-check-result" id="business-status-result" aria-live="polite"></p>
+        </div>
+        <div class="form-group business-verify-field">
+          <label for="reg-business-owner-name">대표자명</label>
+          <input type="text" id="reg-business-owner-name" autocomplete="off" required placeholder="홍길동">
+        </div>
+        <div class="form-group business-verify-field">
+          <label for="reg-business-start-date">개업일자</label>
+          <input type="text" id="reg-business-start-date" inputmode="numeric" autocomplete="off" maxlength="10" required placeholder="20200101">
+        </div>
+        <div class="form-group business-verify-field">
+          <button type="button" class="btn-inline-check btn-business-validate" id="btn-business-validate">사업자 진위확인</button>
+          <p class="business-check-result" id="business-validate-result" aria-live="polite"></p>
         </div>
         <button type="submit" class="btn-submit-dialog">회원가입하기</button>
       </form>
@@ -803,15 +836,8 @@
         <div class="form-grid">
           <div class="form-group">
             <label for="res-region">희망 근무 지역</label>
-            <select id="res-region" required>
-              <option value="서울 강남구">서울 강남구</option>
-              <option value="서울 송파구">서울 송파구</option>
-              <option value="경기 용인시">경기 용인시</option>
-              <option value="경기 성남시">경기 성남시</option>
-              <option value="인천 연수구">인천 연수구</option>
-              <option value="대전 서구">대전 서구</option>
-              <option value="부산 해운대구">부산 해운대구</option>
-            </select>
+            <input type="hidden" id="res-region" required>
+            <div class="district-picker dropdown resume" id="resume-region-picker"></div>
           </div>
           <div class="form-group">
             <label for="res-position">희망 직무</label>
@@ -958,6 +984,7 @@
   </dialog>
 
   <!-- Interactive JavaScript -->
-  <script src="index.js"></script>
+  <script src="region-sync.js?v=20260610-account-recovery"></script>
+  <script src="index.js?v=20260610-account-recovery"></script>
 </body>
 </html>

@@ -917,6 +917,32 @@ select.form-control {
   to { opacity: 1; transform: none; }
 }
 
+.region-sync-row {
+  align-items: flex-start;
+}
+
+.region-sync-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 0.7rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+#region-sync-message {
+  flex-basis: 100%;
+}
+
+#region-sync-message.success {
+  color: var(--green);
+}
+
+#region-sync-message.error {
+  color: var(--red);
+}
+
 /* ==========================================================================
    RESPONSIVE
    ========================================================================== */

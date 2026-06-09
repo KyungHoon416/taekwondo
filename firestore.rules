@@ -8,9 +8,17 @@ rules_version = '2';
 // Document ID: {userId} (matches request.auth.uid)
 // Fields:
 //   - name: string (1-50 chars) - User's name or gym name
-//   - phone: string (10-20 chars) - Contact number
+//   - phone: string (10-20 chars, optional) - Contact number
 //   - email: string (valid email format) - Email address
 //   - type: string (allowed values: 'gym', 'instructor') - User account type
+//   - business_number: string (10 digits, gym only) - Verified business registration number
+//   - business_status: string (gym only) - NTS business status text
+//   - business_status_code: string (gym only) - NTS business status code
+//   - business_start_date: string (8 digits, gym only) - Business opening date
+//   - business_owner_name: string (gym only) - Business representative name
+//   - business_valid: string (gym only) - NTS validation result code
+//   - business_valid_msg: string (gym only) - NTS validation message
+//   - business_verified_at: timestamp (gym only) - Business status verification time
 //   - created_at: timestamp (immutable) - Creation time
 //
 // Collection: jobs
@@ -98,12 +106,37 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return hasOnlyAllowedFields(['name', 'phone', 'email', 'type', 'created_at']) &&
-        hasRequiredFields(['name', 'phone', 'email', 'type', 'created_at']) &&
+      return hasOnlyAllowedFields(['name', 'phone', 'email', 'type', 'business_number', 'business_status', 'business_status_code', 'business_start_date', 'business_owner_name', 'business_valid', 'business_valid_msg', 'business_verified_at', 'created_at']) &&
+        hasRequiredFields(['name', 'email', 'type', 'created_at']) &&
         data.name is string && data.name.size() >= 1 && data.name.size() <= 50 &&
-        data.phone is string && data.phone.size() >= 10 && data.phone.size() <= 20 &&
+        (!data.keys().hasAny(['phone']) || (data.phone is string && data.phone.size() >= 10 && data.phone.size() <= 20)) &&
         data.email is string && isValidEmail(data.email) &&
         data.type is string && (data.type == 'gym' || data.type == 'instructor') &&
+        (
+          (data.type == 'gym' &&
+            data.keys().hasAll(['business_number', 'business_status', 'business_status_code', 'business_start_date', 'business_owner_name', 'business_valid', 'business_valid_msg', 'business_verified_at']) &&
+            data.business_number is string && data.business_number.matches('^[0-9]{10}$') &&
+            data.business_status is string &&
+            data.business_status_code is string && data.business_status_code == '01' &&
+            data.business_start_date is string && data.business_start_date.matches('^[0-9]{8}$') &&
+            data.business_owner_name is string && data.business_owner_name.size() >= 1 && data.business_owner_name.size() <= 50 &&
+            data.business_valid is string && data.business_valid == '01' &&
+            data.business_valid_msg is string &&
+            data.business_verified_at is timestamp) ||
+          (data.type == 'instructor' &&
+            !data.keys().hasAny(['business_number', 'business_status', 'business_status_code', 'business_start_date', 'business_owner_name', 'business_valid', 'business_valid_msg', 'business_verified_at']))
+        ) &&
+        data.created_at is timestamp;
+    }
+
+    function isValidAccountLookup(data) {
+      return hasOnlyAllowedFields(['uid', 'name', 'name_key', 'type', 'masked_email', 'created_at']) &&
+        hasRequiredFields(['uid', 'name', 'name_key', 'type', 'masked_email', 'created_at']) &&
+        data.uid is string && data.uid == request.auth.uid &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 50 &&
+        data.name_key is string && data.name_key.size() >= 1 && data.name_key.size() <= 50 &&
+        data.type is string && (data.type == 'gym' || data.type == 'instructor') &&
+        data.masked_email is string && data.masked_email.matches('^.{1,}\\*{3,}@.{1,}\\..{2,}$') &&
         data.created_at is timestamp;
     }
 
@@ -160,6 +193,24 @@ service cloud.firestore {
       allow create: if isOwner(userId) && isValidUser(request.resource.data) && isRecent(request.resource.data.created_at);
       allow update: if isOwner(userId) && isValidUser(request.resource.data) && areImmutableFieldsUnchanged(['created_at', 'type']);
       allow delete: if isOwner(userId);
+    }
+
+    match /account_lookup/{userId} {
+      allow read: if true;
+      allow create, update: if isOwner(userId) && isValidAccountLookup(request.resource.data) && isRecent(request.resource.data.created_at);
+      allow delete: if isOwner(userId);
+    }
+
+    // Region master data for location pickers
+    match /regions/{regionCode} {
+      allow read: if true;
+      allow create, update, delete: if isAuthenticated() && isUserOfType(request.auth.uid, 'gym');
+    }
+
+    match /region_meta/{docId} {
+      allow read: if true;
+      allow create, update: if isAuthenticated() && isUserOfType(request.auth.uid, 'gym');
+      allow delete: if false;
     }
 
     // 2. Jobs Collection

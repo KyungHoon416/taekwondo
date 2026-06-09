@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>태권잡 관리자 | 어드민 대시보드</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="admin.css?v=20260609-regions">
   <!-- Firebase SDK (compat v10) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -781,6 +781,18 @@
             <div>
               <div class="settings-section active" id="settings-general">
                 <h3>일반 설정</h3>
+                <div class="settings-row region-sync-row">
+                  <div>
+                    <div class="settings-label">지역 데이터</div>
+                    <div class="settings-desc">공공데이터포털 법정동코드에서 시/도, 시/군/구 데이터를 갱신합니다.</div>
+                    <div class="region-sync-status">
+                      <span>마지막 갱신일: <strong id="region-sync-last">-</strong></span>
+                      <span>등록 지역 수: <strong id="region-sync-count">0</strong>개</span>
+                      <span id="region-sync-message"></span>
+                    </div>
+                  </div>
+                  <button class="btn btn-primary" id="btn-region-sync" type="button">지역 데이터 갱신</button>
+                </div>
                 <div class="settings-row">
                   <div>
                     <div class="settings-label">플랫폼 이름</div>
@@ -998,6 +1010,7 @@
 <!-- Toast Container -->
 <div id="toast-container"></div>
 
-<script src="admin.js"></script>
+<script src="region-sync.js?v=20260609-regions"></script>
+<script src="admin.js?v=20260609-regions"></script>
 </body>
 </html>
