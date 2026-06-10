@@ -1254,7 +1254,7 @@ document.addEventListener('DOMContentLoaded', () => {
       resetBusinessChecks();
       const { businessNumber, businessStartDate, businessOwnerName, gymName } = getCurrentBusinessPayload();
       if (!gymName) {
-        setBusinessResult(businessValidateResult, '도장명을 입력해주세요.', 'error');
+        setBusinessResult(businessValidateResult, '상호명을 입력해주세요.', 'error');
         return;
       }
       if (businessNumber.length !== 10) {
@@ -1433,7 +1433,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       if (type === 'gym') {
         if (!gymName) {
-          showAuthError('도장명을 입력해주세요.');
+          showAuthError('상호명을 입력해주세요.');
           return;
         }
         if (businessNumber.length !== 10) {
