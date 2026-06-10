@@ -8,7 +8,7 @@
   
   <!-- Font Preload & stylesheet -->
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
-  <link rel="stylesheet" href="index.css?v=20260610-account-recovery">
+  <link rel="stylesheet" href="index.css?v=20260610-gym-name">
   
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥋</text></svg>">
@@ -647,8 +647,8 @@
       <form id="form-find-id" class="auth-pane hidden">
         <div id="auth-find-id-error-msg" class="auth-error-msg" style="display:none;background:#fef2f2;color:#dc2626;padding:0.6rem 0.85rem;border-radius:8px;font-size:0.82rem;font-weight:600;margin-bottom:0.75rem;border:1px solid #fecaca"></div>
         <div class="form-group">
-          <label for="find-id-name">성명 / 도장명</label>
-          <input type="text" id="find-id-name" required placeholder="가입 시 입력한 이름 또는 도장명">
+          <label for="find-id-name">이름</label>
+          <input type="text" id="find-id-name" required placeholder="가입 시 입력한 이름">
         </div>
         <div class="form-group">
           <label for="find-id-type">가입 형태</label>
@@ -679,8 +679,8 @@
       <form id="form-register" class="auth-pane hidden">
         <div id="auth-register-error-msg" class="auth-error-msg" style="display:none;background:#fef2f2;color:#dc2626;padding:0.6rem 0.85rem;border-radius:8px;font-size:0.82rem;font-weight:600;margin-bottom:0.75rem;border:1px solid #fecaca"></div>
         <div class="form-group">
-          <label for="reg-name">성명 / 도장명</label>
-          <input type="text" id="reg-name" required placeholder="홍길동 또는 OO태권도장">
+          <label for="reg-name">이름</label>
+          <input type="text" id="reg-name" required placeholder="홍길동">
         </div>
         <div class="form-group">
           <label for="reg-email">이메일 주소</label>
@@ -703,13 +703,13 @@
             </label>
           </div>
         </div>
+        <div class="form-group business-verify-field">
+          <label for="reg-gym-name">도장명</label>
+          <input type="text" id="reg-gym-name" autocomplete="off" required placeholder="OO태권도장">
+        </div>
         <div class="form-group business-verify-field" id="business-number-group">
           <label for="reg-business-number">사업자등록번호</label>
-          <div class="business-input-row">
-            <input type="text" id="reg-business-number" inputmode="numeric" autocomplete="off" maxlength="12" required placeholder="107-81-83669">
-            <button type="button" class="btn-inline-check" id="btn-business-status-check">상태확인</button>
-          </div>
-          <p class="business-check-result" id="business-status-result" aria-live="polite"></p>
+          <input type="text" id="reg-business-number" inputmode="numeric" autocomplete="off" maxlength="12" required placeholder="107-81-83669">
         </div>
         <div class="form-group business-verify-field">
           <label for="reg-business-owner-name">대표자명</label>
@@ -720,7 +720,7 @@
           <input type="text" id="reg-business-start-date" inputmode="numeric" autocomplete="off" maxlength="10" required placeholder="20200101">
         </div>
         <div class="form-group business-verify-field">
-          <button type="button" class="btn-inline-check btn-business-validate" id="btn-business-validate">사업자 진위확인</button>
+          <button type="button" class="btn-inline-check btn-business-validate" id="btn-business-validate">사업자 확인</button>
           <p class="business-check-result" id="business-validate-result" aria-live="polite"></p>
         </div>
         <button type="submit" class="btn-submit-dialog">회원가입하기</button>
@@ -984,7 +984,7 @@
   </dialog>
 
   <!-- Interactive JavaScript -->
-  <script src="region-sync.js?v=20260610-account-recovery"></script>
-  <script src="index.js?v=20260610-account-recovery"></script>
+  <script src="region-sync.js?v=20260610-gym-name"></script>
+  <script src="index.js?v=20260610-gym-name"></script>
 </body>
 </html>

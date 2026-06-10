@@ -1110,6 +1110,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const findIdResult = document.getElementById('find-id-result');
   const resetPasswordResult = document.getElementById('reset-password-result');
   const businessVerifyFields = document.querySelectorAll('.business-verify-field');
+  const gymNameInput = document.getElementById('reg-gym-name');
   const businessNumberInput = document.getElementById('reg-business-number');
   const businessStartDateInput = document.getElementById('reg-business-start-date');
   const businessOwnerNameInput = document.getElementById('reg-business-owner-name');
@@ -1139,7 +1140,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return {
       businessNumber: getBusinessNumberDigits(businessNumberInput?.value),
       businessStartDate: getBusinessDateDigits(businessStartDateInput?.value),
-      businessOwnerName: businessOwnerNameInput?.value.trim() || ''
+      businessOwnerName: businessOwnerNameInput?.value.trim() || '',
+      gymName: gymNameInput?.value.trim() || ''
     };
   }
 
@@ -1159,7 +1161,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedRole = document.querySelector('input[name="user-role"]:checked')?.value || 'instructor';
     const isGym = selectedRole === 'gym';
     businessVerifyFields.forEach((field) => field.classList.toggle('hidden', !isGym));
-    [businessNumberInput, businessStartDateInput, businessOwnerNameInput].forEach((input) => {
+    [gymNameInput, businessNumberInput, businessStartDateInput, businessOwnerNameInput].forEach((input) => {
       if (!input) return;
       input.required = isGym;
       if (!isGym) input.value = '';
@@ -1224,6 +1226,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (findIdBackButton) findIdBackButton.addEventListener('click', () => showAuthPane('login'));
   if (resetPasswordBackButton) resetPasswordBackButton.addEventListener('click', () => showAuthPane('login'));
   roleInputs.forEach((input) => input.addEventListener('change', syncBusinessNumberField));
+  if (gymNameInput) {
+    gymNameInput.addEventListener('input', () => {
+      resetBusinessChecks();
+    });
+  }
   if (businessNumberInput) {
     businessNumberInput.addEventListener('input', () => {
       businessNumberInput.value = formatBusinessNumber(businessNumberInput.value);
@@ -1233,66 +1240,38 @@ document.addEventListener('DOMContentLoaded', () => {
   if (businessStartDateInput) {
     businessStartDateInput.addEventListener('input', () => {
       businessStartDateInput.value = formatBusinessStartDate(businessStartDateInput.value);
-      businessValidation = null;
-      setBusinessResult(businessValidateResult, '', '');
+      resetBusinessChecks();
     });
   }
   if (businessOwnerNameInput) {
     businessOwnerNameInput.addEventListener('input', () => {
-      businessValidation = null;
-      setBusinessResult(businessValidateResult, '', '');
-    });
-  }
-  if (businessStatusButton) {
-    businessStatusButton.addEventListener('click', async () => {
-      clearAuthError();
-      const { businessNumber } = getCurrentBusinessPayload();
-      if (businessNumber.length !== 10) {
-        setBusinessResult(businessStatusResult, '사업자등록번호 10자리를 입력해주세요.', 'error');
-        return;
-      }
-
-      businessStatusButton.disabled = true;
-      businessStatusButton.textContent = '확인 중...';
-      setBusinessResult(businessStatusResult, '상태확인 중입니다.', '');
-      await waitForPaint();
-      try {
-        const statusInfo = await checkBusinessStatus(businessNumber);
-        businessStatusCheck = {
-          businessNumber,
-          status: statusInfo.b_stt || '',
-          statusCode: statusInfo.b_stt_cd || '',
-          taxType: statusInfo.tax_type || ''
-        };
-        setBusinessResult(businessStatusResult, '정상 사업자로 확인되었습니다.', 'success');
-      } catch (err) {
-        businessStatusCheck = null;
-        setBusinessResult(businessStatusResult, err.message || '사업자 상태확인에 실패했습니다.', 'error');
-      } finally {
-        businessStatusButton.disabled = false;
-        businessStatusButton.textContent = '상태확인';
-      }
+      resetBusinessChecks();
     });
   }
   if (businessValidateButton) {
     businessValidateButton.addEventListener('click', async () => {
       clearAuthError();
-      const { businessNumber, businessStartDate, businessOwnerName } = getCurrentBusinessPayload();
-      if (businessNumber.length !== 10) {
-        setBusinessResult(businessValidateResult, '사업자등록번호 10자리를 입력해주세요.', 'error');
+      resetBusinessChecks();
+      const { businessNumber, businessStartDate, businessOwnerName, gymName } = getCurrentBusinessPayload();
+      if (!gymName) {
+        setBusinessResult(businessValidateResult, '도장명을 입력해주세요.', 'error');
         return;
       }
-      if (businessStartDate.length !== 8) {
-        setBusinessResult(businessValidateResult, '개업일자 8자리를 입력해주세요. 예: 20200101', 'error');
+      if (businessNumber.length !== 10) {
+        setBusinessResult(businessValidateResult, '사업자등록번호 10자리를 입력해주세요.', 'error');
         return;
       }
       if (!businessOwnerName) {
         setBusinessResult(businessValidateResult, '대표자명을 입력해주세요.', 'error');
         return;
       }
+      if (businessStartDate.length !== 8) {
+        setBusinessResult(businessValidateResult, '개업일자 8자리를 입력해주세요. 예: 20200101', 'error');
+        return;
+      }
 
       businessValidateButton.disabled = true;
-      businessValidateButton.textContent = '진위확인 중...';
+      businessValidateButton.textContent = '확인 중...';
       setBusinessResult(businessValidateResult, '사업자 진위확인 중입니다.', '');
       await waitForPaint();
       try {
@@ -1300,7 +1279,7 @@ document.addEventListener('DOMContentLoaded', () => {
           businessNumber,
           startDate: businessStartDate,
           ownerName: businessOwnerName,
-          businessName: document.getElementById('reg-name').value.trim()
+          businessName: gymName
         });
         businessValidation = {
           businessNumber,
@@ -1309,13 +1288,24 @@ document.addEventListener('DOMContentLoaded', () => {
           valid: validationInfo.valid || '',
           validMsg: validationInfo.valid_msg || ''
         };
-        setBusinessResult(businessValidateResult, '사업자 진위확인이 완료되었습니다.', 'success');
+
+        setBusinessResult(businessValidateResult, '진위확인 완료. 계속사업자 상태조회 중입니다.', '');
+        await waitForPaint();
+        const statusInfo = await checkBusinessStatus(businessNumber);
+        businessStatusCheck = {
+          businessNumber,
+          status: statusInfo.b_stt || '',
+          statusCode: statusInfo.b_stt_cd || '',
+          taxType: statusInfo.tax_type || ''
+        };
+        setBusinessResult(businessValidateResult, '사업자 정보가 일치하고 계속사업자로 확인되었습니다.', 'success');
       } catch (err) {
+        businessStatusCheck = null;
         businessValidation = null;
-        setBusinessResult(businessValidateResult, err.message || '사업자 진위확인에 실패했습니다.', 'error');
+        setBusinessResult(businessValidateResult, err.message || '사업자 확인에 실패했습니다.', 'error');
       } finally {
         businessValidateButton.disabled = false;
-        businessValidateButton.textContent = '사업자 진위확인';
+        businessValidateButton.textContent = '사업자 확인';
       }
     });
   }
@@ -1374,7 +1364,7 @@ document.addEventListener('DOMContentLoaded', () => {
           .get();
 
         if (snap.empty) {
-          setAuthResult(findIdResult, '일치하는 계정을 찾지 못했습니다. 가입 형태와 이름/도장명을 확인해주세요.', 'error');
+          setAuthResult(findIdResult, '일치하는 계정을 찾지 못했습니다. 가입 형태와 이름을 확인해주세요.', 'error');
           return;
         }
 
@@ -1431,7 +1421,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const email    = document.getElementById('reg-email').value.trim();
     const password = document.getElementById('reg-password').value;
     const type     = document.querySelector('input[name="user-role"]:checked')?.value || 'instructor';
-    const { businessNumber, businessStartDate, businessOwnerName } = getCurrentBusinessPayload();
+    const { businessNumber, businessStartDate, businessOwnerName, gymName } = getCurrentBusinessPayload();
     const submitBtn = formRegister.querySelector('button[type="submit"]');
     submitBtn.textContent = '가입 중...';
     submitBtn.disabled = true;
@@ -1442,6 +1432,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     try {
       if (type === 'gym') {
+        if (!gymName) {
+          showAuthError('도장명을 입력해주세요.');
+          return;
+        }
         if (businessNumber.length !== 10) {
           showAuthError('사업자등록번호 10자리를 입력해주세요.');
           return;
@@ -1454,12 +1448,8 @@ document.addEventListener('DOMContentLoaded', () => {
           showAuthError('대표자명을 입력해주세요.');
           return;
         }
-        if (!isBusinessStatusChecked({ businessNumber })) {
-          showAuthError('사업자등록번호 상태확인을 먼저 완료해주세요.');
-          return;
-        }
-        if (!isBusinessValidated({ businessNumber, businessStartDate, businessOwnerName })) {
-          showAuthError('사업자 진위확인을 먼저 완료해주세요.');
+        if (!isBusinessValidated({ businessNumber, businessStartDate, businessOwnerName }) || !isBusinessStatusChecked({ businessNumber })) {
+          showAuthError('사업자 확인을 먼저 완료해주세요. 진위확인과 계속사업자 상태조회가 모두 통과되어야 합니다.');
           return;
         }
       }
@@ -1479,6 +1469,7 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       if (type === 'gym') {
+        userData.gym_name = gymName;
         userData.business_number = businessNumber;
         userData.business_start_date = businessStartDate;
         userData.business_owner_name = businessOwnerName;

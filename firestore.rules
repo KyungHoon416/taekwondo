@@ -106,7 +106,7 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return hasOnlyAllowedFields(['name', 'phone', 'email', 'type', 'business_number', 'business_status', 'business_status_code', 'business_start_date', 'business_owner_name', 'business_valid', 'business_valid_msg', 'business_verified_at', 'created_at']) &&
+      return hasOnlyAllowedFields(['name', 'phone', 'email', 'type', 'gym_name', 'business_number', 'business_status', 'business_status_code', 'business_start_date', 'business_owner_name', 'business_valid', 'business_valid_msg', 'business_verified_at', 'created_at']) &&
         hasRequiredFields(['name', 'email', 'type', 'created_at']) &&
         data.name is string && data.name.size() >= 1 && data.name.size() <= 50 &&
         (!data.keys().hasAny(['phone']) || (data.phone is string && data.phone.size() >= 10 && data.phone.size() <= 20)) &&
@@ -114,7 +114,8 @@ service cloud.firestore {
         data.type is string && (data.type == 'gym' || data.type == 'instructor') &&
         (
           (data.type == 'gym' &&
-            data.keys().hasAll(['business_number', 'business_status', 'business_status_code', 'business_start_date', 'business_owner_name', 'business_valid', 'business_valid_msg', 'business_verified_at']) &&
+            data.keys().hasAll(['gym_name', 'business_number', 'business_status', 'business_status_code', 'business_start_date', 'business_owner_name', 'business_valid', 'business_valid_msg', 'business_verified_at']) &&
+            data.gym_name is string && data.gym_name.size() >= 1 && data.gym_name.size() <= 50 &&
             data.business_number is string && data.business_number.matches('^[0-9]{10}$') &&
             data.business_status is string &&
             data.business_status_code is string && data.business_status_code == '01' &&
@@ -124,7 +125,7 @@ service cloud.firestore {
             data.business_valid_msg is string &&
             data.business_verified_at is timestamp) ||
           (data.type == 'instructor' &&
-            !data.keys().hasAny(['business_number', 'business_status', 'business_status_code', 'business_start_date', 'business_owner_name', 'business_valid', 'business_valid_msg', 'business_verified_at']))
+            !data.keys().hasAny(['gym_name', 'business_number', 'business_status', 'business_status_code', 'business_start_date', 'business_owner_name', 'business_valid', 'business_valid_msg', 'business_verified_at']))
         ) &&
         data.created_at is timestamp;
     }
