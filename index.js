@@ -1616,6 +1616,18 @@ document.addEventListener('DOMContentLoaded', () => {
   if (formPostJob) {
     formPostJob.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      const currentUser = auth ? auth.currentUser : null;
+      if (!currentUser) {
+        alert('채용공고 등록은 로그인 후 이용하실 수 있습니다. 로그인 팝업을 열어드립니다.');
+        if (dialogs.postJob) dialogs.postJob.close();
+        if (dialogs.auth) {
+          document.getElementById('tab-login')?.click();
+          dialogs.auth.showModal();
+        }
+        return;
+      }
+      const userId = currentUser.uid;
       
       const gymName = document.getElementById('job-gym-name').value;
       const title = document.getElementById('job-title').value;
@@ -1632,9 +1644,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      const currentUser = auth ? auth.currentUser : null;
-      const userId = currentUser ? currentUser.uid : `guest-${Date.now()}`;
-
       const newJobData = {
         user_id: userId,
         gymName,
@@ -1649,47 +1658,47 @@ document.addEventListener('DOMContentLoaded', () => {
         created_at: firebase.firestore.FieldValue.serverTimestamp()
       };
 
-      let docId = `job-${Date.now()}`;
       if (db) {
         try {
           const docRef = await db.collection('jobs').add(newJobData);
-          docId = docRef.id;
+          const docId = docRef.id;
+
+          const newJob = {
+            id: docId,
+            gymName,
+            title: `${title} (${position})`,
+            region,
+            address: `${region} 일대 태권도장`,
+            salary,
+            type,
+            exp,
+            hotness,
+            desc
+          };
+
+          // Add to front of database
+          state.jobsList.unshift(newJob);
+
+          // Close dialog & reset form
+          dialogs.postJob.close();
+          formPostJob.reset();
+          state.selectedJobRegions = [];
+          state.regionPickers.job?.clear();
+
+          // Alert & refresh UI lists
+          alert('채용공고가 성공적으로 등록되었습니다!');
+          
+          // Update statistics
+          updateStats();
+          
+          // Re-render
+          renderHomeJobs();
+          renderBoardJobs();
         } catch (err) {
           console.error('채용공고 Firestore 저장 에러:', err);
+          alert('채용공고 저장에 실패했습니다. 권한이 없거나 로그인 세션이 만료되었을 수 있습니다.');
         }
       }
-
-      const newJob = {
-        id: docId,
-        gymName,
-        title: `${title} (${position})`,
-        region,
-        address: `${region} 일대 태권도장`,
-        salary,
-        type,
-        exp,
-        hotness,
-        desc
-      };
-
-      // Add to front of database
-      state.jobsList.unshift(newJob);
-
-      // Close dialog & reset form
-      dialogs.postJob.close();
-      formPostJob.reset();
-      state.selectedJobRegions = [];
-      state.regionPickers.job?.clear();
-
-      // Alert & refresh UI lists
-      alert('채용공고가 성공적으로 등록되었습니다!');
-      
-      // Update statistics
-      updateStats();
-      
-      // Re-render
-      renderHomeJobs();
-      renderBoardJobs();
     });
   }
 
@@ -1698,6 +1707,18 @@ document.addEventListener('DOMContentLoaded', () => {
   if (formPostResume) {
     formPostResume.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      const currentUser = auth ? auth.currentUser : null;
+      if (!currentUser) {
+        alert('이력서 등록은 로그인 후 이용하실 수 있습니다. 로그인 팝업을 열어드립니다.');
+        if (dialogs.postResume) dialogs.postResume.close();
+        if (dialogs.auth) {
+          document.getElementById('tab-login')?.click();
+          dialogs.auth.showModal();
+        }
+        return;
+      }
+      const userId = currentUser.uid;
 
       const name = document.getElementById('res-name').value;
       const gender = document.getElementById('res-gender').value;
@@ -1714,9 +1735,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      const currentUser = auth ? auth.currentUser : null;
-      const userId = currentUser ? currentUser.uid : `guest-${Date.now()}`;
-
       const newTalentData = {
         user_id: userId,
         name,
@@ -1730,43 +1748,43 @@ document.addEventListener('DOMContentLoaded', () => {
         created_at: firebase.firestore.FieldValue.serverTimestamp()
       };
 
-      let docId = `resume-${Date.now()}`;
       if (db) {
         try {
           const docRef = await db.collection('resumes').add(newTalentData);
-          docId = docRef.id;
+          const docId = docRef.id;
+
+          const newTalent = {
+            id: docId,
+            name,
+            gender,
+            role: position,
+            exp,
+            region,
+            salary,
+            dan,
+            license,
+            colorIndex: Math.floor(Math.random() * 5),
+            intro
+          };
+
+          state.talentsList.unshift(newTalent);
+          
+          dialogs.postResume.close();
+          formPostResume.reset();
+          state.selectedResumeRegions = [];
+          state.regionPickers.resume?.clear();
+
+          alert('이력서가 성공적으로 등록되었습니다!');
+          
+          updateStats();
+          
+          renderHomeTalents();
+          renderBoardTalents();
         } catch (err) {
           console.error('이력서 Firestore 저장 에러:', err);
+          alert('이력서 저장에 실패했습니다. 권한이 없거나 로그인 세션이 만료되었을 수 있습니다.');
         }
       }
-
-      const newTalent = {
-        id: docId,
-        name,
-        gender,
-        role: position,
-        exp,
-        region,
-        salary,
-        dan,
-        license,
-        colorIndex: Math.floor(Math.random() * 5),
-        intro
-      };
-
-      state.talentsList.unshift(newTalent);
-      
-      dialogs.postResume.close();
-      formPostResume.reset();
-      state.selectedResumeRegions = [];
-      state.regionPickers.resume?.clear();
-
-      alert('이력서가 성공적으로 등록되었습니다!');
-      
-      updateStats();
-      
-      renderHomeTalents();
-      renderBoardTalents();
     });
   }
 
