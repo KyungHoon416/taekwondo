@@ -1499,7 +1499,7 @@
   outline: none;
   background-color: var(--bg-surface);
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
   
   /* Modern starting style for dialog opening */
   display: none;
@@ -1517,6 +1517,11 @@
   flex-direction: column;
   opacity: 1;
   transform: translateY(0);
+}
+
+#dialog-post-resume,
+#dialog-post-job {
+  max-width: 640px;
 }
 
 @starting-style {
@@ -1547,7 +1552,7 @@
   padding: 2rem;
   width: 100%;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
 }
 
 
@@ -1971,7 +1976,8 @@
 }
 
 .district-picker.resume .district-panel {
-  width: min(760px, calc(100vw - 48px));
+  width: calc(200% + 1rem);
+  left: 0;
 }
 
 .district-panel-body {
@@ -2415,6 +2421,12 @@
 
   .district-picker.filter .district-panel {
     width: calc(100vw - 16px);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .district-picker.resume .district-panel {
+    width: calc(100vw - 40px);
     left: 50%;
     transform: translateX(-50%);
   }
