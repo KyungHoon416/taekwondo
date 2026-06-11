@@ -1981,6 +1981,12 @@
   left: 0;
 }
 
+.district-picker.resume .district-panel-body,
+.district-picker.job .district-panel-body {
+  height: 220px;
+  min-height: 220px;
+}
+
 .district-panel-body {
   display: grid;
   grid-template-columns: 220px 1fr;
@@ -2431,6 +2437,12 @@
     width: calc(100vw - 40px);
     left: 50%;
     transform: translateX(-50%);
+  }
+
+  .district-picker.resume .district-panel-body,
+  .district-picker.job .district-panel-body {
+    height: min(320px, calc(100vh - 300px));
+    min-height: 200px;
   }
 
   .district-panel-body {
