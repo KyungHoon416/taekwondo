@@ -194,7 +194,8 @@ service cloud.firestore {
       // If document contains PII, restrict it. In our case, phone and email are PII,
       // so only the owner can read their full document.
       // For general display, we assume public profiles would be denormalized or separated.
-      allow read: if isOwner(userId) || (isAuthenticated() && isUserOfType(request.auth.uid, 'gym'));
+      allow get: if isOwner(userId) || (isAuthenticated() && isUserOfType(request.auth.uid, 'gym'));
+      allow list: if isAuthenticated();
       allow create: if isOwner(userId) && isValidUser(request.resource.data) && isRecent(request.resource.data.created_at);
       allow update: if isOwner(userId) && isValidUser(request.resource.data) && areImmutableFieldsUnchanged(['created_at', 'type']);
       allow delete: if isOwner(userId);
@@ -251,7 +252,8 @@ service cloud.firestore {
         return request.auth.uid == jobOwner || request.auth.uid == resumeOwner;
       }
 
-      allow read: if isAuthenticated() && (isApplicantOrGymOwner(resource.data.job_id, resource.data.resume_id) || isUserOfType(request.auth.uid, 'gym'));
+      allow get: if isAuthenticated() && (isApplicantOrGymOwner(resource.data.job_id, resource.data.resume_id) || isUserOfType(request.auth.uid, 'gym'));
+      allow list: if isAuthenticated();
       
       // Applicants can apply (create status 'pending')
       allow create: if isAuthenticated() && 
