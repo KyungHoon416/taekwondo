@@ -226,7 +226,7 @@
   }
 
   function populateSelect(select, regions, placeholder) {
-    if (!select) return;
+    if (!select || select.tagName !== 'SELECT') return;
     const current = select.value;
     select.innerHTML = '';
     const empty = document.createElement('option');

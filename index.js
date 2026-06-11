@@ -352,7 +352,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function populateRegionSelects(regions) {
     if (!window.RegionSync) return;
-    RegionSync.populateSelect(document.getElementById('job-region'), regions, '지역을 선택하세요');
+    const select = document.getElementById('job-region');
+    if (select && select.tagName === 'SELECT') {
+      RegionSync.populateSelect(select, regions, '지역을 선택하세요');
+    }
   }
 
   function regionMatchesValue(item, value) {
