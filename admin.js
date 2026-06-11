@@ -271,6 +271,7 @@ async function fetchFirestoreData() {
     }
   } catch (err) {
     console.warn('Firestore 회원 데이터 조회 중 실패 (보안규칙 등):', err);
+    showToast('회원 목록 조회 실패: ' + err.message, 'error');
   }
 
   // 2. 이력서 목록 (resumes 컬렉션)
@@ -299,6 +300,7 @@ async function fetchFirestoreData() {
     }
   } catch (err) {
     console.warn('Firestore 이력서 데이터 조회 중 실패:', err);
+    showToast('이력서 목록 조회 실패: ' + err.message, 'error');
   }
 
   // 3. 채용공고 목록 (jobs 컬렉션)
@@ -331,6 +333,7 @@ async function fetchFirestoreData() {
     }
   } catch (err) {
     console.warn('Firestore 채용공고 데이터 조회 중 실패:', err);
+    showToast('채용공고 목록 조회 실패: ' + err.message, 'error');
   }
 
   // 4. 지원 목록 (apply 컬렉션)
@@ -355,6 +358,7 @@ async function fetchFirestoreData() {
     }
   } catch (err) {
     console.warn('Firestore 지원 데이터 조회 중 실패:', err);
+    showToast('지원 목록 조회 실패: ' + err.message, 'error');
   }
 }
 
