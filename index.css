@@ -1975,7 +1975,8 @@
   top: calc(100% + 0.45rem);
 }
 
-.district-picker.resume .district-panel {
+.district-picker.resume .district-panel,
+.district-picker.job .district-panel {
   width: calc(200% + 1rem);
   left: 0;
 }
@@ -2425,7 +2426,8 @@
     transform: translateX(-50%);
   }
 
-  .district-picker.resume .district-panel {
+  .district-picker.resume .district-panel,
+  .district-picker.job .district-panel {
     width: calc(100vw - 40px);
     left: 50%;
     transform: translateX(-50%);

@@ -750,15 +750,8 @@
         <div class="form-grid">
           <div class="form-group">
             <label for="job-region">지역</label>
-            <select id="job-region" required>
-              <option value="서울 강남구">서울 강남구</option>
-              <option value="서울 송파구">서울 송파구</option>
-              <option value="경기 용인시">경기 용인시</option>
-              <option value="경기 성남시">경기 성남시</option>
-              <option value="인천 연수구">인천 연수구</option>
-              <option value="대전 서구">대전 서구</option>
-              <option value="부산 해운대구">부산 해운대구</option>
-            </select>
+            <input type="hidden" id="job-region" required>
+            <div class="district-picker dropdown job" id="job-region-picker"></div>
           </div>
           <div class="form-group">
             <label for="job-position">직무</label>

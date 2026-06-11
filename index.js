@@ -599,6 +599,11 @@ document.addEventListener('DOMContentLoaded', () => {
         state.selectedResumeRegions = selected.map((region) => region.displayName);
       }
     });
+    state.regionPickers.job = createDistrictPicker({
+      rootId: 'job-region-picker',
+      inputId: 'job-region',
+      mode: 'single'
+    });
   }
 
   async function initRegions() {
@@ -1584,6 +1589,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Close dialog & reset form
       dialogs.postJob.close();
       formPostJob.reset();
+      state.regionPickers.job?.clear();
 
       // Alert & refresh UI lists
       alert('채용공고가 성공적으로 등록되었습니다!');
