@@ -350,6 +350,56 @@ document.addEventListener('DOMContentLoaded', () => {
     talentDetail: document.getElementById('dialog-talent-detail')
   };
 
+  async function initJobsAndTalents() {
+    if (!db) return;
+    try {
+      const jobSnap = await db.collection('jobs').orderBy('created_at', 'desc').get();
+      const dbJobs = [];
+      jobSnap.forEach((doc) => {
+        const j = doc.data();
+        dbJobs.push({
+          id: doc.id,
+          gymName: j.gymName || '도장',
+          title: j.title || '채용공고',
+          region: j.location || '전국',
+          address: j.location ? `${j.location} 일대 태권도장` : '전국 일대 태권도장',
+          salary: j.salary || '월 300만원',
+          type: j.type || '정규직',
+          exp: j.career || '경력무관',
+          hotness: j.status === 'active' ? 'NEW' : '',
+          desc: j.content || ''
+        });
+      });
+      if (dbJobs.length > 0) {
+        state.jobsList = [...dbJobs];
+      }
+
+      const resumeSnap = await db.collection('resumes').orderBy('created_at', 'desc').get();
+      const dbTalents = [];
+      resumeSnap.forEach((doc) => {
+        const r = doc.data();
+        dbTalents.push({
+          id: doc.id,
+          name: r.name || '사범',
+          gender: r.gender || '남성',
+          role: r.hope_position || r.position || '정사범',
+          exp: r.career || '경력무관',
+          region: r.hope_area || '전국',
+          salary: r.hope_salary || '월 280만원',
+          dan: r.certificate ? r.certificate.split(',')[0].trim() : '태권도 3단',
+          license: r.certificate ? r.certificate.split(',').slice(1).join(',').trim() : '태권도 지도자',
+          colorIndex: Math.floor(Math.random() * 5),
+          intro: r.content || ''
+        });
+      });
+      if (dbTalents.length > 0) {
+        state.talentsList = [...dbTalents];
+      }
+    } catch (e) {
+      console.error('Firestore 채용공고/이력서 데이터 로드 에러:', e);
+    }
+  }
+
   function populateRegionSelects(regions) {
     if (!window.RegionSync) return;
     const select = document.getElementById('job-region');
@@ -1564,7 +1614,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Submit Job Post
   const formPostJob = document.getElementById('form-post-job');
   if (formPostJob) {
-    formPostJob.addEventListener('submit', (e) => {
+    formPostJob.addEventListener('submit', async (e) => {
       e.preventDefault();
       
       const gymName = document.getElementById('job-gym-name').value;
@@ -1582,8 +1632,35 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      const currentUser = auth ? auth.currentUser : null;
+      const userId = currentUser ? currentUser.uid : `guest-${Date.now()}`;
+
+      const newJobData = {
+        user_id: userId,
+        gymName,
+        title: `${title} (${position})`,
+        location: region,
+        salary,
+        type,
+        career: exp,
+        position,
+        status: 'active',
+        content: desc,
+        created_at: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      let docId = `job-${Date.now()}`;
+      if (db) {
+        try {
+          const docRef = await db.collection('jobs').add(newJobData);
+          docId = docRef.id;
+        } catch (err) {
+          console.error('채용공고 Firestore 저장 에러:', err);
+        }
+      }
+
       const newJob = {
-        id: `job-${Date.now()}`,
+        id: docId,
         gymName,
         title: `${title} (${position})`,
         region,
@@ -1619,7 +1696,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Submit Resume Post
   const formPostResume = document.getElementById('form-post-resume');
   if (formPostResume) {
-    formPostResume.addEventListener('submit', (e) => {
+    formPostResume.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const name = document.getElementById('res-name').value;
@@ -1637,8 +1714,34 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      const currentUser = auth ? auth.currentUser : null;
+      const userId = currentUser ? currentUser.uid : `guest-${Date.now()}`;
+
+      const newTalentData = {
+        user_id: userId,
+        name,
+        gender,
+        hope_position: position,
+        career: exp,
+        hope_area: region,
+        hope_salary: salary,
+        certificate: `${dan}, ${license}`,
+        content: intro,
+        created_at: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      let docId = `resume-${Date.now()}`;
+      if (db) {
+        try {
+          const docRef = await db.collection('resumes').add(newTalentData);
+          docId = docRef.id;
+        } catch (err) {
+          console.error('이력서 Firestore 저장 에러:', err);
+        }
+      }
+
       const newTalent = {
-        id: `talent-${Date.now()}`,
+        id: docId,
         name,
         gender,
         role: position,
@@ -1736,8 +1839,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize
   initRegions();
+  initJobsAndTalents().then(() => {
+    renderHomeJobs();
+    renderBoardJobs();
+    renderHomeTalents();
+    renderBoardTalents();
+    updateStats();
+  });
   handleRoute();
-  updateStats();
 
   // ==========================================================================
   // 11. Firebase Auth 상태 감지 → 헤더 UI 업데이트

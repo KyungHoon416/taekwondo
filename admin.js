@@ -105,6 +105,17 @@
         const adminNameEl = document.querySelector('.sidebar-admin-info div div:first-child');
         if (adminNameEl) adminNameEl.textContent = data.name || user.email;
 
+        // Firestore 실시간 데이터 로드 및 렌더링
+        await fetchFirestoreData();
+        populateDashboard();
+        updateDashboardStats();
+
+        // 테이블 뷰 갱신
+        filterMembers();
+        filterJobs();
+        filterResumes();
+        filterApplications();
+
         // 로그아웃 버튼 연결
         const logoutArea = document.querySelector('.sidebar-footer');
         if (logoutArea && !logoutArea.querySelector('#sidebar-logout-btn')) {
@@ -232,6 +243,118 @@ function navigateTo(viewId, clickedItem) {
   if (viewId === 'resumes') renderResumes();
   if (viewId === 'applications') renderApplications();
   if (viewId === 'analytics') initAnalyticsCharts();
+}
+
+async function fetchFirestoreData() {
+  if (typeof db === 'undefined' || !db) return;
+  try {
+    // 1. 회원 목록 (users 컬렉션)
+    const userSnap = await db.collection('users').get();
+    const dbMembers = [];
+    userSnap.forEach((doc) => {
+      const u = doc.data();
+      dbMembers.push({
+        id: doc.id.substring(0, 8),
+        name: u.name || '이름 없음',
+        email: u.email || '',
+        phone: u.phone || '010-0000-0000',
+        type: u.type || 'instructor',
+        joinDate: u.created_at ? (u.created_at.toDate ? u.created_at.toDate().toISOString().split('T')[0] : '2026-06-11') : '2026-06-11',
+        status: 'active'
+      });
+    });
+    if (dbMembers.length > 0) {
+      MEMBERS.length = 0;
+      MEMBERS.push(...dbMembers);
+      state.members.filtered = [...MEMBERS];
+    }
+
+    // 2. 이력서 목록 (resumes 컬렉션)
+    const resumeSnap = await db.collection('resumes').get();
+    const dbResumes = [];
+    resumeSnap.forEach((doc) => {
+      const r = doc.data();
+      dbResumes.push({
+        id: doc.id.substring(0, 8),
+        name: r.name || '사범',
+        gender: r.gender || '남성',
+        position: r.hope_position || r.position || '정사범',
+        exp: r.career || '경력무관',
+        area: r.hope_area || '전국',
+        salary: r.hope_salary || '월 280만원↑',
+        grade: r.certificate ? r.certificate.split(',')[0].trim() : '태권도 3단',
+        cert: r.certificate ? r.certificate.split(',').slice(1).join(',').trim() : '태권도 지도자',
+        regDate: r.created_at ? (r.created_at.toDate ? r.created_at.toDate().toISOString().split('T')[0] : '2026-06-11') : '2026-06-11'
+      });
+    });
+    if (dbResumes.length > 0) {
+      RESUMES.length = 0;
+      RESUMES.push(...dbResumes);
+      state.resumes.filtered = [...RESUMES];
+    }
+
+    // 3. 채용공고 목록 (jobs 컬렉션)
+    const jobSnap = await db.collection('jobs').get();
+    const dbJobs = [];
+    jobSnap.forEach((doc) => {
+      const j = doc.data();
+      const parts = String(j.location || '').split(/\s+/);
+      const region = parts[0] || '전국';
+      const district = parts.slice(1).join(' ') || '';
+      dbJobs.push({
+        id: doc.id.substring(0, 8),
+        title: j.title || '채용공고',
+        gym: j.gymName || '태권도장',
+        region: region,
+        district: district,
+        salary: j.salary || '협의',
+        position: j.position || '정사범',
+        exp: j.career || '경력무관',
+        regDate: j.created_at ? (j.created_at.toDate ? j.created_at.toDate().toISOString().split('T')[0] : '2026-06-11') : '2026-06-11',
+        views: j.views || 0,
+        status: j.status === 'active' ? '게시중' : '마감됨'
+      });
+    });
+    if (dbJobs.length > 0) {
+      JOBS.length = 0;
+      JOBS.push(...dbJobs);
+      state.jobs.filtered = [...JOBS];
+    }
+
+    // 4. 지원 목록 (apply 컬렉션)
+    const applySnap = await db.collection('apply').get();
+    const dbApplies = [];
+    applySnap.forEach((doc) => {
+      const a = doc.data();
+      dbApplies.push({
+        id: doc.id.substring(0, 8),
+        applicant: a.applicant_name || '지원자',
+        job: a.job_title || '채용공고',
+        gym: a.gym_name || '도장',
+        applyDate: a.created_at ? (a.created_at.toDate ? a.created_at.toDate().toISOString().split('T')[0] : '2026-06-11') : '2026-06-11',
+        status: a.status === 'pending' ? '검토중' : a.status === 'interview' ? '면접제안' : a.status === 'pass' ? '합격' : '불합격'
+      });
+    });
+    if (dbApplies.length > 0) {
+      APPLICATIONS.length = 0;
+      APPLICATIONS.push(...dbApplies);
+      state.applications.filtered = [...APPLICATIONS];
+    }
+  } catch (err) {
+    console.error('Firestore 데이터 조회 중 에러:', err);
+  }
+}
+
+function updateDashboardStats() {
+  const membersVal = document.getElementById('stat-members-count');
+  const jobsVal = document.getElementById('stat-jobs-count');
+  const resumesVal = document.getElementById('stat-resumes-count');
+  const appsVal = document.getElementById('stat-applications-count');
+
+  if (membersVal) membersVal.textContent = MEMBERS.length.toLocaleString('ko-KR');
+  if (jobsVal) jobsVal.textContent = JOBS.length.toLocaleString('ko-KR');
+  if (resumesVal) resumesVal.textContent = RESUMES.length.toLocaleString('ko-KR');
+  if (appsVal) appsVal.textContent = APPLICATIONS.length.toLocaleString('ko-KR');
 }
 
 // ─── Dashboard Tables ────────────────────────────────────────────────────────
