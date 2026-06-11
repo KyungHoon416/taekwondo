@@ -311,6 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     regions: [],
     selectedResumeRegions: [],
+    selectedJobRegions: [],
     regionPickers: {}
   };
 
@@ -602,7 +603,10 @@ document.addEventListener('DOMContentLoaded', () => {
     state.regionPickers.job = createDistrictPicker({
       rootId: 'job-region-picker',
       inputId: 'job-region',
-      mode: 'single'
+      mode: 'multi',
+      onChange: (selected) => {
+        state.selectedJobRegions = selected.map((region) => region.displayName);
+      }
     });
   }
 
@@ -1570,6 +1574,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const hotness = document.getElementById('job-hotness').value;
       const desc = document.getElementById('job-desc').value;
 
+      if (!state.selectedJobRegions || !state.selectedJobRegions.length) {
+        alert('근무 지역을 1개 이상 선택해주세요.');
+        return;
+      }
+
       const newJob = {
         id: `job-${Date.now()}`,
         gymName,
@@ -1589,6 +1598,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Close dialog & reset form
       dialogs.postJob.close();
       formPostJob.reset();
+      state.selectedJobRegions = [];
       state.regionPickers.job?.clear();
 
       // Alert & refresh UI lists
