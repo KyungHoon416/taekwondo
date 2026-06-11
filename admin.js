@@ -247,8 +247,9 @@ function navigateTo(viewId, clickedItem) {
 
 async function fetchFirestoreData() {
   if (typeof db === 'undefined' || !db) return;
+
+  // 1. 회원 목록 (users 컬렉션)
   try {
-    // 1. 회원 목록 (users 컬렉션)
     const userSnap = await db.collection('users').get();
     const dbMembers = [];
     userSnap.forEach((doc) => {
@@ -268,8 +269,12 @@ async function fetchFirestoreData() {
       MEMBERS.push(...dbMembers);
       state.members.filtered = [...MEMBERS];
     }
+  } catch (err) {
+    console.warn('Firestore 회원 데이터 조회 중 실패 (보안규칙 등):', err);
+  }
 
-    // 2. 이력서 목록 (resumes 컬렉션)
+  // 2. 이력서 목록 (resumes 컬렉션)
+  try {
     const resumeSnap = await db.collection('resumes').get();
     const dbResumes = [];
     resumeSnap.forEach((doc) => {
@@ -292,8 +297,12 @@ async function fetchFirestoreData() {
       RESUMES.push(...dbResumes);
       state.resumes.filtered = [...RESUMES];
     }
+  } catch (err) {
+    console.warn('Firestore 이력서 데이터 조회 중 실패:', err);
+  }
 
-    // 3. 채용공고 목록 (jobs 컬렉션)
+  // 3. 채용공고 목록 (jobs 컬렉션)
+  try {
     const jobSnap = await db.collection('jobs').get();
     const dbJobs = [];
     jobSnap.forEach((doc) => {
@@ -320,8 +329,12 @@ async function fetchFirestoreData() {
       JOBS.push(...dbJobs);
       state.jobs.filtered = [...JOBS];
     }
+  } catch (err) {
+    console.warn('Firestore 채용공고 데이터 조회 중 실패:', err);
+  }
 
-    // 4. 지원 목록 (apply 컬렉션)
+  // 4. 지원 목록 (apply 컬렉션)
+  try {
     const applySnap = await db.collection('apply').get();
     const dbApplies = [];
     applySnap.forEach((doc) => {
@@ -341,7 +354,7 @@ async function fetchFirestoreData() {
       state.applications.filtered = [...APPLICATIONS];
     }
   } catch (err) {
-    console.error('Firestore 데이터 조회 중 에러:', err);
+    console.warn('Firestore 지원 데이터 조회 중 실패:', err);
   }
 }
 
