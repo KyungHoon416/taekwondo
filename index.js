@@ -1912,6 +1912,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // 비로그인 상태
         loggedOut.style.display = 'flex';
         loggedIn.style.display  = 'none';
+        if (adminLink) adminLink.style.display = 'none';
+      }
     });
   }
 
