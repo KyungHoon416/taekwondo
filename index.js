@@ -1796,6 +1796,13 @@ document.addEventListener('DOMContentLoaded', () => {
   function openJobDetails(job) {
     if (!dialogs.jobDetail) return;
     
+    const applyBtn = document.getElementById('btn-apply-job');
+    if (applyBtn) {
+      applyBtn.dataset.jobId = job.id;
+      applyBtn.dataset.jobTitle = job.title;
+      applyBtn.dataset.gymName = job.gymName;
+    }
+    
     document.getElementById('detail-job-gym').textContent = job.gymName;
     document.getElementById('detail-job-type').textContent = job.type;
     document.getElementById('detail-job-title').textContent = job.title;
@@ -1905,7 +1912,89 @@ document.addEventListener('DOMContentLoaded', () => {
         // 비로그인 상태
         loggedOut.style.display = 'flex';
         loggedIn.style.display  = 'none';
-        if (adminLink) adminLink.style.display = 'none';
+    });
+  }
+
+  // ─── 즉시 지원 이벤트 바인딩 ───
+  const btnApplyJob = document.getElementById('btn-apply-job');
+  if (btnApplyJob) {
+    btnApplyJob.addEventListener('click', async () => {
+      const jobId = btnApplyJob.dataset.jobId;
+      const jobTitle = btnApplyJob.dataset.jobTitle;
+      const gymName = btnApplyJob.dataset.gymName;
+      if (!jobId) return;
+
+      const currentUser = auth ? auth.currentUser : null;
+      if (!currentUser) {
+        alert('즉시 지원은 로그인 후 이용하실 수 있습니다. 로그인 팝업을 열어드립니다.');
+        dialogs.jobDetail.close();
+        if (dialogs.auth) {
+          document.getElementById('tab-login')?.click();
+          dialogs.auth.showModal();
+        }
+        return;
+      }
+
+      try {
+        // 1. 유저 정보 조회 및 타입 체크
+        const userSnap = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userSnap.data();
+        if (userData && userData.type === 'gym') {
+          alert('도장(관장님) 계정으로는 즉시 지원하실 수 없습니다. 사범님 계정으로 로그인해 주세요.');
+          return;
+        }
+
+        // 2. 사범님의 이력서 조회
+        const resumeSnap = await db.collection('resumes')
+          .where('user_id', '==', currentUser.uid)
+          .limit(1)
+          .get();
+
+        if (resumeSnap.empty) {
+          alert('등록된 이력서가 없습니다. 먼저 이력서를 등록해 주세요!');
+          dialogs.jobDetail.close();
+          if (dialogs.postResume) {
+            dialogs.postResume.showModal();
+          }
+          return;
+        }
+
+        const resumeDoc = resumeSnap.docs[0];
+        const resumeId = resumeDoc.id;
+
+        // 3. 중복 지원 체크
+        const checkDup = await db.collection('apply')
+          .where('job_id', '==', jobId)
+          .where('resume_id', '==', resumeId)
+          .limit(1)
+          .get();
+
+        if (!checkDup.empty) {
+          alert('이미 이 채용공고에 지원하셨습니다.');
+          return;
+        }
+
+        // 4. 지원 등록 (rules에 맞게 4개 필드만 전송)
+        const applyData = {
+          job_id: jobId,
+          resume_id: resumeId,
+          status: 'pending',
+          created_at: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        btnApplyJob.disabled = true;
+        btnApplyJob.textContent = '지원 중...';
+
+        await db.collection('apply').add(applyData);
+
+        alert('지원서가 성공적으로 전달되었습니다! 관장님이 검토 후 연락드릴 예정입니다.');
+        dialogs.jobDetail.close();
+      } catch (err) {
+        console.error('즉시 지원 에러:', err);
+        alert('지원 처리 중 오류가 발생했습니다: ' + err.message);
+      } finally {
+        btnApplyJob.disabled = false;
+        btnApplyJob.textContent = '즉시 지원하기';
       }
     });
   }

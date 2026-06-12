@@ -282,6 +282,7 @@ async function fetchFirestoreData() {
       const r = doc.data();
       dbResumes.push({
         id: doc.id.substring(0, 8),
+        fullId: doc.id,
         name: r.name || '사범',
         gender: r.gender || '남성',
         position: r.hope_position || r.position || '정사범',
@@ -315,6 +316,7 @@ async function fetchFirestoreData() {
       const district = parts.slice(1).join(' ') || '';
       dbJobs.push({
         id: doc.id.substring(0, 8),
+        fullId: doc.id,
         title: j.title || '채용공고',
         gym: j.gymName || '태권도장',
         region: region,
@@ -344,11 +346,15 @@ async function fetchFirestoreData() {
     const dbApplies = [];
     applySnap.forEach((doc) => {
       const a = doc.data();
+      const matchedResume = RESUMES.find(r => r.fullId === a.resume_id);
+      const matchedJob = JOBS.find(j => j.fullId === a.job_id);
+
       dbApplies.push({
         id: doc.id.substring(0, 8),
-        applicant: a.applicant_name || '지원자',
-        job: a.job_title || '채용공고',
-        gym: a.gym_name || '도장',
+        fullId: doc.id,
+        applicant: matchedResume ? matchedResume.name : '지원자',
+        job: matchedJob ? matchedJob.title : '채용공고',
+        gym: matchedJob ? matchedJob.gym : '도장',
         applyDate: a.created_at ? (a.created_at.toDate ? a.created_at.toDate().toISOString().split('T')[0] : '2026-06-11') : '2026-06-11',
         status: a.status === 'pending' ? '검토중' : a.status === 'interview' ? '면접제안' : a.status === 'pass' ? '합격' : '불합격',
         resumeId: a.resume_id || '',
