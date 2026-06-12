@@ -290,7 +290,8 @@ async function fetchFirestoreData() {
         salary: r.hope_salary || '월 280만원↑',
         grade: r.certificate ? r.certificate.split(',')[0].trim() : '태권도 3단',
         cert: r.certificate ? r.certificate.split(',').slice(1).join(',').trim() : '태권도 지도자',
-        regDate: r.created_at ? (r.created_at.toDate ? r.created_at.toDate().toISOString().split('T')[0] : '2026-06-11') : '2026-06-11'
+        regDate: r.created_at ? (r.created_at.toDate ? r.created_at.toDate().toISOString().split('T')[0] : '2026-06-11') : '2026-06-11',
+        content: r.content || '자기소개 본문이 없습니다.'
       });
     });
     if (dbResumes.length > 0) {
@@ -323,7 +324,8 @@ async function fetchFirestoreData() {
         exp: j.career || '경력무관',
         regDate: j.created_at ? (j.created_at.toDate ? j.created_at.toDate().toISOString().split('T')[0] : '2026-06-11') : '2026-06-11',
         views: j.views || 0,
-        status: j.status === 'active' ? '게시중' : '마감됨'
+        status: j.status === 'active' ? '게시중' : '마감됨',
+        content: j.content || '공고 본문 내용이 없습니다.'
       });
     });
     if (dbJobs.length > 0) {
@@ -348,7 +350,9 @@ async function fetchFirestoreData() {
         job: a.job_title || '채용공고',
         gym: a.gym_name || '도장',
         applyDate: a.created_at ? (a.created_at.toDate ? a.created_at.toDate().toISOString().split('T')[0] : '2026-06-11') : '2026-06-11',
-        status: a.status === 'pending' ? '검토중' : a.status === 'interview' ? '면접제안' : a.status === 'pass' ? '합격' : '불합격'
+        status: a.status === 'pending' ? '검토중' : a.status === 'interview' ? '면접제안' : a.status === 'pass' ? '합격' : '불합격',
+        resumeId: a.resume_id || '',
+        jobId: a.job_id || ''
       });
     });
     if (dbApplies.length > 0) {
@@ -444,10 +448,10 @@ function renderMembers() {
         <td>${memberStatusBadge(m.status)}</td>
         <td>
           <div class="action-btns">
-            <button class="btn-icon" title="상세보기" onclick="showToast('회원 상세 정보','')">
+            <button class="btn-icon" title="상세보기" onclick="showDetail('member', '${m.id}')">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
-            <button class="btn-icon ${m.status === 'banned' ? 'success' : 'danger'}" title="${m.status === 'banned' ? '정지 해제' : '회원 정지'}" onclick="toggleMemberBan(${m.id})">
+            <button class="btn-icon ${m.status === 'banned' ? 'success' : 'danger'}" title="${m.status === 'banned' ? '정지 해제' : '회원 정지'}" onclick="toggleMemberBan('${m.id}')">
               ${m.status === 'banned'
                 ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>'
                 : '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>'
@@ -516,10 +520,10 @@ function renderJobs() {
         <td>${statusBadge(j.status)}</td>
         <td>
           <div class="action-btns">
-            <button class="btn-icon" title="수정" onclick="showToast('공고 수정 페이지로 이동합니다.','')">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <button class="btn-icon" title="상세보기" onclick="showDetail('job', '${j.id}')">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
-            <button class="btn-icon danger" title="삭제" onclick="deleteJob(${j.id})">
+            <button class="btn-icon danger" title="삭제" onclick="deleteJob('${j.id}')">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
             </button>
           </div>
@@ -599,7 +603,7 @@ function renderResumes() {
       <td style="color:var(--muted)">${r.regDate}</td>
       <td>
         <div class="action-btns">
-          <button class="btn-icon" onclick="showToast('이력서 상세 보기','')">
+          <button class="btn-icon" title="상세보기" onclick="showDetail('resume', '${r.id}')">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
           <button class="btn-icon danger" onclick="showToast('이력서가 삭제되었습니다.','error')">
@@ -647,8 +651,11 @@ function renderApplications() {
       <td>${appStatusBadge(a.status)}</td>
       <td>
         <div class="action-btns">
-          <button class="btn btn-sm btn-success" onclick="changeAppStatus(${a.id},'합격')">합격</button>
-          <button class="btn btn-sm btn-danger" onclick="changeAppStatus(${a.id},'불합격')">불합격</button>
+          <button class="btn-icon" title="상세보기" onclick="showDetail('application', '${a.id}')">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          <button class="btn btn-sm btn-success" onclick="changeAppStatus('${a.id}','합격')">합격</button>
+          <button class="btn btn-sm btn-danger" onclick="changeAppStatus('${a.id}','불합격')">불합격</button>
         </div>
       </td>
     </tr>`).join('');
@@ -991,3 +998,93 @@ document.addEventListener('DOMContentLoaded', () => {
   filterResumes();
   filterApplications();
 });
+
+// ─── Detail Modal populator ──────────────────────────────────────────────────
+window.showDetail = function(type, id) {
+  const dialog = document.getElementById('detail-dialog');
+  const titleEl = document.getElementById('detail-dialog-title');
+  const bodyEl = document.getElementById('detail-dialog-body');
+  if (!dialog || !bodyEl) return;
+
+  let title = '';
+  let html = '';
+
+  if (type === 'member') {
+    const m = MEMBERS.find(x => x.id === id);
+    if (!m) { showToast('회원을 찾을 수 없습니다.', 'error'); return; }
+    title = '회원 상세 정보';
+    html = `
+      <div class="detail-grid">
+        <div class="detail-item"><strong>회원 ID</strong><span>${m.id}</span></div>
+        <div class="detail-item"><strong>이름</strong><span>${m.name}</span></div>
+        <div class="detail-item"><strong>이메일</strong><span>${m.email}</span></div>
+        <div class="detail-item"><strong>연락처</strong><span>${m.phone}</span></div>
+        <div class="detail-item"><strong>회원 유형</strong><span>${m.type === 'gym' ? '<span class="badge badge-blue">도장(관장)</span>' : '<span class="badge badge-green">사범(구직자)</span>'}</span></div>
+        <div class="detail-item"><strong>가입일</strong><span>${m.joinDate}</span></div>
+        <div class="detail-item"><strong>상태</strong><span>${m.status === 'banned' ? '<span class="badge badge-red">정지</span>' : '<span class="badge badge-green">정상</span>'}</span></div>
+      </div>
+    `;
+  } else if (type === 'job') {
+    const j = JOBS.find(x => x.id === id);
+    if (!j) { showToast('채용공고를 찾을 수 없습니다.', 'error'); return; }
+    title = '채용공고 상세 정보';
+    html = `
+      <div class="detail-grid">
+        <div class="detail-item"><strong>공고 ID</strong><span>#${j.id}</span></div>
+        <div class="detail-item"><strong>공고 제목</strong><span>${j.title}</span></div>
+        <div class="detail-item"><strong>도장명</strong><span>${j.gym}</span></div>
+        <div class="detail-item"><strong>근무 지역</strong><span>${j.region} ${j.district}</span></div>
+        <div class="detail-item"><strong>급여 정보</strong><span style="color:var(--blue);font-weight:700">${j.salary}</span></div>
+        <div class="detail-item"><strong>모집 직무</strong><span>${j.position}</span></div>
+        <div class="detail-item"><strong>요구 경력</strong><span>${j.exp}</span></div>
+        <div class="detail-item"><strong>등록일</strong><span>${j.regDate}</span></div>
+        <div class="detail-item"><strong>조회수</strong><span>${j.views}회</span></div>
+        <div class="detail-item"><strong>게시 상태</strong><span>${statusBadge(j.status === '게시중' ? 'active' : 'closed')}</span></div>
+        <div class="detail-full">
+          <strong>공고 상세 설명</strong>
+          <div class="detail-desc">${(j.content || '설명 없음').replace(/\n/g, '<br>')}</div>
+        </div>
+      </div>
+    `;
+  } else if (type === 'resume') {
+    const r = RESUMES.find(x => x.id === id);
+    if (!r) { showToast('이력서를 찾을 수 없습니다.', 'error'); return; }
+    title = '이력서 상세 정보';
+    html = `
+      <div class="detail-grid">
+        <div class="detail-item"><strong>이력서 ID</strong><span>${r.id}</span></div>
+        <div class="detail-item"><strong>이름</strong><span>${r.name}</span></div>
+        <div class="detail-item"><strong>성별</strong><span>${r.gender}</span></div>
+        <div class="detail-item"><strong>희망 직무</strong><span><span class="badge badge-purple">${r.position}</span></span></div>
+        <div class="detail-item"><strong>경력 사항</strong><span>${r.exp}</span></div>
+        <div class="detail-item"><strong>희망 근무지역</strong><span>${r.area}</span></div>
+        <div class="detail-item"><strong>희망 급여</strong><span style="color:var(--blue);font-weight:700">${r.salary}</span></div>
+        <div class="detail-item"><strong>태권도 단수</strong><span>${r.grade}</span></div>
+        <div class="detail-item"><strong>보유 자격증</strong><span>${r.cert}</span></div>
+        <div class="detail-item"><strong>등록일</strong><span>${r.regDate}</span></div>
+        <div class="detail-full">
+          <strong>자기소개 및 포부</strong>
+          <div class="detail-desc">${(r.content || '자기소개 없음').replace(/\n/g, '<br>')}</div>
+        </div>
+      </div>
+    `;
+  } else if (type === 'application') {
+    const a = APPLICATIONS.find(x => x.id === id);
+    if (!a) { showToast('지원 내역을 찾을 수 없습니다.', 'error'); return; }
+    title = '입사지원 상세 정보';
+    html = `
+      <div class="detail-grid">
+        <div class="detail-item"><strong>지원 ID</strong><span>${a.id}</span></div>
+        <div class="detail-item"><strong>지원자명</strong><span>${a.applicant}</span></div>
+        <div class="detail-item"><strong>지원 공고</strong><span>${a.job}</span></div>
+        <div class="detail-item"><strong>도장명</strong><span>${a.gym}</span></div>
+        <div class="detail-item"><strong>지원일</strong><span>${a.applyDate}</span></div>
+        <div class="detail-item"><strong>진행 상태</strong><span>${appStatusBadge(a.status === '검토중' ? 'pending' : a.status === '면접제안' ? 'interview' : a.status === '합격' ? 'accepted' : 'rejected')}</span></div>
+      </div>
+    `;
+  }
+
+  if (titleEl) titleEl.textContent = title;
+  if (bodyEl) bodyEl.innerHTML = html;
+  openDialog('detail-dialog');
+};
