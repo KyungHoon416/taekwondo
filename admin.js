@@ -563,26 +563,132 @@ function deleteJob(id) {
   }
 }
 
-function submitJob() {
-  const title = document.getElementById('dlg-job-title')?.value;
-  const gym = document.getElementById('dlg-gym-name')?.value;
-  if (!title || !gym) { showToast('제목과 도장 이름을 입력해주세요.', 'warning'); return; }
-  const newJob = {
-    id: Math.max(...JOBS.map(j => j.id)) + 1,
-    title, gym,
-    region: (document.getElementById('dlg-job-region')?.value || '서울').split(' ')[0],
-    district: (document.getElementById('dlg-job-region')?.value || '서울').split(' ')[1] || '',
-    salary: document.getElementById('dlg-job-salary')?.value || '협의',
-    position: document.getElementById('dlg-job-pos')?.value || '정사범',
-    exp: document.getElementById('dlg-job-exp')?.value || '경력 무관',
-    regDate: new Date().toISOString().split('T')[0],
-    views: 0,
-    status: document.getElementById('dlg-job-status')?.value || '검토중',
-  };
-  JOBS.unshift(newJob);
-  closeDialog('job-dialog');
-  showToast('채용공고가 등록되었습니다.', 'success');
-  filterJobs();
+async function submitJob() {
+  if (typeof db === 'undefined' || !db) {
+    showToast('데이터베이스가 연결되어 있지 않습니다.', 'error');
+    return;
+  }
+
+  const gymName = document.getElementById('dlg-gym-name')?.value?.trim();
+  const title = document.getElementById('dlg-job-title')?.value?.trim();
+  const region = document.getElementById('dlg-job-region')?.value;
+  const position = document.getElementById('dlg-job-pos')?.value || '정사범';
+  const salary = document.getElementById('dlg-job-salary')?.value?.trim() || '협의';
+  const exp = document.getElementById('dlg-job-exp')?.value?.trim() || '경력 무관';
+  const statusStr = document.getElementById('dlg-job-status')?.value || '게시중';
+  const desc = document.getElementById('dlg-job-desc')?.value?.trim() || '상세 모집 안내가 없습니다.';
+  const isPinned = document.getElementById('dlg-job-pinned')?.checked || false;
+
+  if (!gymName || !title) {
+    showToast('도장 이름과 공고 제목을 입력해주세요.', 'warning');
+    return;
+  }
+
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    showToast('로그인이 필요합니다.', 'error');
+    return;
+  }
+
+  try {
+    if (isPinned) {
+      // 1. 이미 상위 노출 중인 다른 공고가 있는지 조회
+      const querySnap = await db.collection('jobs').where('pinned', '==', true).get();
+      let existingPinnedJob = null;
+      querySnap.forEach(doc => {
+        existingPinnedJob = { id: doc.id, ...doc.data() };
+      });
+
+      if (existingPinnedJob) {
+        const confirmMsg = `이미 상위 노출된 공고("${existingPinnedJob.title}")가 있습니다.\n기존 공고를 해제하고 현재 공고로 변경하시겠습니까?`;
+        if (!confirm(confirmMsg)) {
+          // 사용자가 취소를 클릭하면 등록 프로세스 자체를 중단
+          return;
+        }
+
+        showToast('공고를 등록하고 상위 노출을 갱신 중입니다...', 'warning');
+
+        // 기존 상위 노출 해제 + 새 상위 노출 공고 생성 (Batch)
+        const batch = db.batch();
+        batch.update(db.collection('jobs').doc(existingPinnedJob.id), { pinned: false });
+
+        const newJobRef = db.collection('jobs').doc();
+        batch.set(newJobRef, {
+          user_id: currentUser.uid,
+          gymName: gymName,
+          title: title,
+          location: region,
+          salary: salary,
+          type: '정규직',
+          career: exp,
+          position: position,
+          status: statusStr === '게시중' ? 'active' : 'closed',
+          content: desc,
+          pinned: true,
+          views: 0,
+          created_at: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        await batch.commit();
+        showToast('상위 노출 공고가 성공적으로 등록 및 변경되었습니다.', 'success');
+      } else {
+        // 기존 상위 노출 공고가 없는 경우
+        showToast('공고를 등록하는 중입니다...', 'warning');
+        await db.collection('jobs').add({
+          user_id: currentUser.uid,
+          gymName: gymName,
+          title: title,
+          location: region,
+          salary: salary,
+          type: '정규직',
+          career: exp,
+          position: position,
+          status: statusStr === '게시중' ? 'active' : 'closed',
+          content: desc,
+          pinned: true,
+          views: 0,
+          created_at: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast('채용공고가 상위 노출로 등록되었습니다.', 'success');
+      }
+    } else {
+      // 2. 상위 노출이 아닌 일반 등록
+      showToast('공고를 등록하는 중입니다...', 'warning');
+      await db.collection('jobs').add({
+        user_id: currentUser.uid,
+        gymName: gymName,
+        title: title,
+        location: region,
+        salary: salary,
+        type: '정규직',
+        career: exp,
+        position: position,
+        status: statusStr === '게시중' ? 'active' : 'closed',
+        content: desc,
+        pinned: false,
+        views: 0,
+        created_at: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      showToast('채용공고가 성공적으로 등록되었습니다.', 'success');
+    }
+
+    // 폼 인풋 초기화
+    document.getElementById('dlg-gym-name').value = '';
+    document.getElementById('dlg-job-title').value = '';
+    document.getElementById('dlg-job-salary').value = '';
+    document.getElementById('dlg-job-exp').value = '';
+    document.getElementById('dlg-job-desc').value = '';
+    const pinnedCheckbox = document.getElementById('dlg-job-pinned');
+    if (pinnedCheckbox) pinnedCheckbox.checked = false;
+
+    closeDialog('job-dialog');
+    await fetchFirestoreData();
+    filterJobs();
+
+  } catch (err) {
+    console.error('채용공고 등록 실패:', err);
+    showToast('등록 중 오류가 발생했습니다: ' + err.message, 'error');
+  }
 }
 
 // ─── Resumes Table ───────────────────────────────────────────────────────────

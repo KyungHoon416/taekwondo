@@ -955,6 +955,15 @@
     </div>
     <div class="form-row single">
       <div class="form-field">
+        <label>상위 노출 설정</label>
+        <div style="display: flex; align-items: center; gap: 8px; height: 38px; border: 1px solid var(--border); border-radius: 6px; padding: 0 10px; background: var(--bg-card);">
+          <input type="checkbox" id="dlg-job-pinned" style="transform: scale(1.25); cursor: pointer; margin-right: 6px;">
+          <span style="font-weight: 600; font-size: 0.88rem; color: var(--blue);">홈페이지 최상단 고정 노출 (상위 노출은 단 1개만 가능)</span>
+        </div>
+      </div>
+    </div>
+    <div class="form-row single">
+      <div class="form-field">
         <label>상세 내용</label>
         <textarea class="form-control" rows="4" placeholder="상세 모집 안내를 입력하세요" id="dlg-job-desc"></textarea>
       </div>
@@ -1028,6 +1037,6 @@
 <div id="toast-container"></div>
 
 <script src="region-sync.js?v=20260612-v5"></script>
-<script src="admin.js?v=20260615-v3"></script>
+<script src="admin.js?v=20260615-v4"></script>
 </body>
 </html>
