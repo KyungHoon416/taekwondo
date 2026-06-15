@@ -329,6 +329,7 @@ async function fetchFirestoreData() {
         regDate: j.created_at ? (j.created_at.toDate ? j.created_at.toDate().toISOString().split('T')[0] : '2026-06-11') : '2026-06-11',
         views: j.views || 0,
         status: j.status === 'active' ? '게시중' : '마감됨',
+        pinned: j.pinned || false,
         content: j.content || '공고 본문 내용이 없습니다.'
       });
     });
@@ -1118,6 +1119,12 @@ window.showDetail = function(type, id) {
         <div class="detail-item"><strong>등록일</strong><span>${j.regDate}</span></div>
         <div class="detail-item"><strong>조회수</strong><span>${j.views}회</span></div>
         <div class="detail-item"><strong>게시 상태</strong><span>${statusBadge(j.status === '게시중' ? 'active' : 'closed')}</span></div>
+        <div class="detail-item"><strong>상위 노출</strong>
+          <span>
+            <input type="checkbox" id="job-detail-pinned-chk" ${j.pinned ? 'checked' : ''} onchange="toggleJobPinned('${j.fullId || j.id}')" style="transform: scale(1.2); cursor: pointer; vertical-align: middle; margin-right: 6px;">
+            <label for="job-detail-pinned-chk" style="cursor: pointer; font-weight: 500; vertical-align: middle; color: var(--blue);">최상단 고정 노출</label>
+          </span>
+        </div>
         <div class="detail-full">
           <strong>공고 상세 설명</strong>
           <div class="detail-desc">${(j.content || '설명 없음').replace(/\n/g, '<br>')}</div>
@@ -1165,4 +1172,67 @@ window.showDetail = function(type, id) {
   if (titleEl) titleEl.textContent = title;
   if (bodyEl) bodyEl.innerHTML = html;
   openDialog('detail-dialog');
+};
+
+window.toggleJobPinned = async function(jobId) {
+  if (typeof db === 'undefined' || !db) return;
+  const checkbox = document.getElementById('job-detail-pinned-chk');
+  if (!checkbox) return;
+
+  const isChecked = checkbox.checked;
+
+  try {
+    if (isChecked) {
+      // 1. 이미 상위 노출 중인 다른 공고가 있는지 조회
+      const querySnap = await db.collection('jobs').where('pinned', '==', true).get();
+      let existingPinnedJob = null;
+      querySnap.forEach(doc => {
+        if (doc.id !== jobId) {
+          existingPinnedJob = { id: doc.id, ...doc.data() };
+        }
+      });
+
+      if (existingPinnedJob) {
+        // 팝업으로 물어보기
+        const confirmMsg = `이미 상위 노출된 공고("${existingPinnedJob.title}")가 있습니다.\n기존 공고를 해제하고 현재 공고로 변경하시겠습니까?`;
+        if (!confirm(confirmMsg)) {
+          // 취소한 경우 체크박스를 다시 원래대로 해제
+          checkbox.checked = false;
+          return;
+        }
+
+        showToast('상위 노출 정보를 업데이트 중입니다...', 'warning');
+        // 사용자가 수정을 승인한 경우: 기존 상위 노출 해제 + 신규 상위 노출 설정 (Batch 처리)
+        const batch = db.batch();
+        batch.update(db.collection('jobs').doc(existingPinnedJob.id), { pinned: false });
+        batch.update(db.collection('jobs').doc(jobId), { pinned: true });
+        await batch.commit();
+
+        showToast('상위 노출 공고가 변경되었습니다.', 'success');
+      } else {
+        // 기존 상위 노출 공고가 없는 경우: 바로 지정
+        showToast('상위 노출 정보를 업데이트 중입니다...', 'warning');
+        await db.collection('jobs').doc(jobId).update({ pinned: true });
+        showToast('현재 공고가 상위 노출로 설정되었습니다.', 'success');
+      }
+    } else {
+      // 상위 노출 해제
+      showToast('상위 노출 정보를 업데이트 중입니다...', 'warning');
+      await db.collection('jobs').doc(jobId).update({ pinned: false });
+      showToast('상위 노출이 해제되었습니다.', 'success');
+    }
+
+    // 데이터 새로고침 및 UI 업데이트
+    await fetchFirestoreData();
+    filterJobs();
+
+    // 모달 상세 화면 갱신
+    showDetail('job', jobId.substring(0, 8));
+
+  } catch (err) {
+    console.error('상위 노출 설정 실패:', err);
+    showToast('설정 오류가 발생했습니다: ' + err.message, 'error');
+    // 에러 발생 시 원래 상태 복구
+    checkbox.checked = !isChecked;
+  }
 };

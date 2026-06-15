@@ -367,10 +367,16 @@ document.addEventListener('DOMContentLoaded', () => {
           type: j.type || '정규직',
           exp: j.career || '경력무관',
           hotness: j.status === 'active' ? 'NEW' : '',
-          desc: j.content || ''
+          desc: j.content || '',
+          pinned: j.pinned || false
         });
       });
       if (dbJobs.length > 0) {
+        dbJobs.sort((a, b) => {
+          const aPinned = a.pinned ? 1 : 0;
+          const bPinned = b.pinned ? 1 : 0;
+          return bPinned - aPinned;
+        });
         state.jobsList = [...dbJobs];
       }
 

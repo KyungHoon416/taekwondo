@@ -141,17 +141,18 @@ service cloud.firestore {
         data.created_at is timestamp;
     }
 
-    function isValidJob(data) {
-      return hasOnlyAllowedFields(['user_id', 'title', 'salary', 'location', 'career', 'content', 'status', 'created_at']) &&
+    function isValidJob(data, authorId) {
+      return hasOnlyAllowedFields(['user_id', 'title', 'salary', 'location', 'career', 'content', 'status', 'created_at', 'pinned']) &&
         hasRequiredFields(['user_id', 'title', 'salary', 'location', 'career', 'content', 'status', 'created_at']) &&
-        data.user_id is string && data.user_id == request.auth.uid &&
+        data.user_id is string && data.user_id == authorId &&
         data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
         data.salary is string && data.salary.size() >= 1 && data.salary.size() <= 50 &&
         data.location is string && data.location.size() >= 1 && data.location.size() <= 100 &&
         data.career is string && data.career.size() >= 1 && data.career.size() <= 50 &&
         data.content is string && data.content.size() >= 1 && data.content.size() <= 5000 &&
         data.status is string && (data.status == 'active' || data.status == 'closed') &&
-        data.created_at is timestamp;
+        data.created_at is timestamp &&
+        (!data.keys().hasAny(['pinned']) || data.pinned is bool);
     }
 
     function isValidResume(data) {
@@ -224,9 +225,13 @@ service cloud.firestore {
       // Anyone can read jobs (including unauthenticated visitors)
       allow read: if true;
       // Only authenticated users can create jobs
-      allow create: if isAuthenticated() && isValidJob(request.resource.data) && isRecent(request.resource.data.created_at);
-      // Only the gym owner can update or delete their job
-      allow update: if isAuthenticated() && resource.data.user_id == request.auth.uid && isValidJob(request.resource.data) && areImmutableFieldsUnchanged(['user_id', 'created_at']);
+      allow create: if isAuthenticated() && isValidJob(request.resource.data, request.auth.uid) && isRecent(request.resource.data.created_at);
+      // Only the gym owner or an admin (gym type user) can update
+      allow update: if isAuthenticated() && 
+        (
+          (isUserOfType(request.auth.uid, 'gym') && isValidJob(request.resource.data, resource.data.user_id) && areImmutableFieldsUnchanged(['user_id', 'created_at'])) ||
+          (resource.data.user_id == request.auth.uid && isValidJob(request.resource.data, request.auth.uid) && areImmutableFieldsUnchanged(['user_id', 'created_at']))
+        );
       allow delete: if isAuthenticated() && resource.data.user_id == request.auth.uid;
     }
 
