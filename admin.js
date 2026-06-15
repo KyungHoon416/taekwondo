@@ -256,6 +256,7 @@ async function fetchFirestoreData() {
       const u = doc.data();
       dbMembers.push({
         id: doc.id.substring(0, 8),
+        fullId: doc.id,
         name: u.name || '이름 없음',
         email: u.email || '',
         phone: u.phone || '010-0000-0000',
@@ -283,9 +284,10 @@ async function fetchFirestoreData() {
       dbResumes.push({
         id: doc.id.substring(0, 8),
         fullId: doc.id,
+        userId: r.user_id || '',
         name: r.name || '사범',
         gender: r.gender || '남성',
-        position: r.hope_position || r.position || '정사범',
+        position: r.hope_position || r.hope_position || '정사범',
         exp: r.career || '경력무관',
         area: r.hope_area || '전국',
         salary: r.hope_salary || '월 280만원↑',
@@ -349,10 +351,19 @@ async function fetchFirestoreData() {
       const matchedResume = RESUMES.find(r => r.fullId === a.resume_id);
       const matchedJob = JOBS.find(j => j.fullId === a.job_id);
 
+      let applicantEmail = '';
+      if (matchedResume) {
+        const matchedMember = MEMBERS.find(m => m.fullId === matchedResume.userId);
+        if (matchedMember) {
+          applicantEmail = matchedMember.email;
+        }
+      }
+
       dbApplies.push({
         id: doc.id.substring(0, 8),
         fullId: doc.id,
         applicant: matchedResume ? matchedResume.name : '지원자',
+        email: applicantEmail,
         job: matchedJob ? matchedJob.title : '채용공고',
         gym: matchedJob ? matchedJob.gym : '도장',
         applyDate: a.created_at ? (a.created_at.toDate ? a.created_at.toDate().toISOString().split('T')[0] : '2026-06-11') : '2026-06-11',
@@ -674,13 +685,74 @@ function renderApplications() {
   renderPagination('apps-pagination', filtered.length, page, 'applications');
 }
 
-function changeAppStatus(id, newStatus) {
+async function changeAppStatus(id, newStatus) {
   const app = APPLICATIONS.find(a => a.id === id);
-  if (app) {
+  if (!app) return;
+
+  const dbStatus = newStatus === '합격' ? 'accepted' : (newStatus === '불합격' ? 'rejected' : 'pending');
+
+  if (db && app.fullId) {
+    try {
+      await db.collection('apply').doc(app.fullId).update({
+        status: dbStatus
+      });
+      app.status = newStatus;
+      showToast(`${app.applicant}님 상태가 "${newStatus}"로 변경되었습니다.`, newStatus === '합격' ? 'success' : 'error');
+      
+      // 이메일 전송 시도
+      sendEmailNotification(app, newStatus);
+      
+    } catch (err) {
+      console.error('지원 상태 업데이트 실패:', err);
+      showToast('상태 업데이트 중 에러가 발생했습니다: ' + err.message, 'error');
+    }
+  } else {
     app.status = newStatus;
     showToast(`${app.applicant}님 상태가 "${newStatus}"로 변경되었습니다.`, newStatus === '합격' ? 'success' : 'error');
-    filterApplications();
   }
+  filterApplications();
+}
+
+function sendEmailNotification(app, status) {
+  if (typeof emailjs === 'undefined') {
+    console.warn('EmailJS SDK가 로드되지 않았습니다.');
+    return;
+  }
+  if (!EMAILJS_CONFIG || EMAILJS_CONFIG.publicKey === 'YOUR_PUBLIC_KEY') {
+    console.log('EmailJS 설정값이 비어 있어 이메일 발송을 건너뜁니다. (Public Key가 YOUR_PUBLIC_KEY 상태)');
+    return;
+  }
+
+  const toEmail = app.email;
+  if (!toEmail) {
+    console.warn(`${app.applicant}님의 이메일 주소가 없어서 이메일을 발송할 수 없습니다.`);
+    return;
+  }
+
+  emailjs.init(EMAILJS_CONFIG.publicKey);
+
+  const templateParams = {
+    to_email: toEmail,
+    to_name: app.applicant,
+    job_title: app.job,
+    gym_name: app.gym,
+    status: status,
+    result_message: status === '합격' 
+      ? '축하드립니다! 태권도장에 합격하셨습니다. 도장에서 곧 출근 일정 등 추가 안내를 위해 연락드릴 예정입니다.' 
+      : '안타깝게도 이번 채용에는 불합격 소식을 전하게 되었습니다. 지원해 주셔서 대단히 감사드립니다.'
+  };
+
+  showToast('이메일 안내 발송 중...', 'warning');
+
+  emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, templateParams)
+    .then((response) => {
+      console.log('이메일 발송 성공:', response.status, response.text);
+      showToast(`${app.applicant}님께 이메일 안내장이 성공적으로 발송되었습니다!`, 'success');
+    })
+    .catch((err) => {
+      console.error('이메일 발송 실패:', err);
+      showToast('이메일 발송에 실패했습니다: ' + err.message, 'error');
+    });
 }
 
 // ─── Pagination ──────────────────────────────────────────────────────────────
