@@ -536,6 +536,9 @@ function renderJobs() {
         <td style="color:var(--muted)">${j.regDate}</td>
         <td style="color:var(--muted)">${j.views}</td>
         <td>${statusBadge(j.status)}</td>
+        <td style="text-align:center">
+          <input type="checkbox" ${j.pinned ? 'checked' : ''} onchange="toggleJobPinned('${j.fullId || j.id}', this)" style="transform: scale(1.15); cursor: pointer; vertical-align: middle;">
+        </td>
         <td>
           <div class="action-btns">
             <button class="btn-icon" title="상세보기" onclick="showDetail('job', '${j.id}')">
@@ -1174,9 +1177,9 @@ window.showDetail = function(type, id) {
   openDialog('detail-dialog');
 };
 
-window.toggleJobPinned = async function(jobId) {
+window.toggleJobPinned = async function(jobId, element) {
   if (typeof db === 'undefined' || !db) return;
-  const checkbox = document.getElementById('job-detail-pinned-chk');
+  const checkbox = element || document.getElementById('job-detail-pinned-chk');
   if (!checkbox) return;
 
   const isChecked = checkbox.checked;
@@ -1226,8 +1229,11 @@ window.toggleJobPinned = async function(jobId) {
     await fetchFirestoreData();
     filterJobs();
 
-    // 모달 상세 화면 갱신
-    showDetail('job', jobId.substring(0, 8));
+    // 모달이 열려있다면 상세화면도 최신 정보로 갱신
+    const detailDialog = document.getElementById('detail-dialog');
+    if (detailDialog && detailDialog.open) {
+      showDetail('job', jobId.substring(0, 8));
+    }
 
   } catch (err) {
     console.error('상위 노출 설정 실패:', err);
