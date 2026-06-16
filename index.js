@@ -347,7 +347,8 @@ document.addEventListener('DOMContentLoaded', () => {
     postJob: document.getElementById('dialog-post-job'),
     postResume: document.getElementById('dialog-post-resume'),
     jobDetail: document.getElementById('dialog-job-detail'),
-    talentDetail: document.getElementById('dialog-talent-detail')
+    talentDetail: document.getElementById('dialog-talent-detail'),
+    postCommunity: document.getElementById('dialog-post-community')
   };
 
   async function initJobsAndTalents() {
@@ -1805,6 +1806,79 @@ document.addEventListener('DOMContentLoaded', () => {
           alert('이력서 저장에 실패했습니다. 권한이 없거나 로그인 세션이 만료되었을 수 있습니다.');
         }
       }
+    });
+  }
+
+  // Open Community Post Dialog
+  const btnCommunityWrite = document.getElementById('btn-community-write');
+  if (btnCommunityWrite) {
+    btnCommunityWrite.addEventListener('click', () => {
+      const currentUser = auth ? auth.currentUser : null;
+      if (!currentUser) {
+        alert('글쓰기 기능은 로그인 후 이용하실 수 있습니다. 로그인 팝업을 열어드립니다.');
+        if (dialogs.auth) {
+          document.getElementById('tab-login')?.click();
+          dialogs.auth.showModal();
+        }
+        return;
+      }
+      if (dialogs.postCommunity) {
+        dialogs.postCommunity.showModal();
+      }
+    });
+  }
+
+  // Submit Community Post
+  const formPostCommunity = document.getElementById('form-post-community');
+  if (formPostCommunity) {
+    formPostCommunity.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const currentUser = auth ? auth.currentUser : null;
+      if (!currentUser) {
+        alert('글쓰기 기능은 로그인 후 이용하실 수 있습니다.');
+        if (dialogs.postCommunity) dialogs.postCommunity.close();
+        return;
+      }
+
+      const category = document.getElementById('comm-post-category').value;
+      const title = document.getElementById('comm-post-title').value.trim();
+      const content = document.getElementById('comm-post-content').value.trim();
+
+      if (!title || !content) {
+        alert('제목과 내용을 입력해주세요.');
+        return;
+      }
+
+      const nameEl = document.getElementById('auth-user-name');
+      const authorName = (nameEl && nameEl.textContent) ? nameEl.textContent.trim() : (currentUser.email || '익명');
+
+      const dateStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
+        .replace(/\s/g, '').slice(0, -1); // '2026.06.16' 형식
+
+      const newPost = {
+        id: 'post-' + Date.now(),
+        category: category,
+        title: title,
+        author: authorName,
+        date: dateStr,
+        views: 0,
+        content: content
+      };
+
+      state.communityPosts.unshift(newPost);
+      
+      // 등록 완료 후 폼 초기화 및 모달 닫기
+      formPostCommunity.reset();
+      if (dialogs.postCommunity) {
+        dialogs.postCommunity.close();
+      }
+
+      // 작성한 글 카테고리로 탭 갱신 및 해시 이동
+      window.location.hash = `#community?tab=${category}`;
+      setupCommunityTab(category);
+      
+      alert('게시글이 성공적으로 등록되었습니다.');
     });
   }
 
