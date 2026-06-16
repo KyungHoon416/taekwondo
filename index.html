@@ -957,6 +957,17 @@
             상세 설명 내용이 여기에 표시됩니다.
           </p>
         </div>
+
+        <div class="detail-manager-card" style="margin-top: 1.5rem; padding: 1.25rem; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; border: 1.5px solid #e2e8f0; display: flex; flex-direction: column; gap: 0.75rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+          <h4 style="margin: 0; font-size: 0.95rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 6px; font-family: inherit;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2563eb" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            채용 담당자 정보
+          </h4>
+          <div style="display: grid; grid-template-columns: 1fr; gap: 0.6rem; font-size: 0.88rem; color: #475569;">
+            <div><strong>담당 관장님:</strong> <span id="detail-job-manager-name" style="font-weight: 700; color: #0f172a; margin-left: 6px;">-</span></div>
+            <div><strong>연락 이메일:</strong> <span id="detail-job-manager-email" style="font-weight: 600; color: #2563eb; margin-left: 6px;">-</span></div>
+          </div>
+        </div>
       </div>
       <div class="detail-footer">
         <button type="button" id="btn-apply-job" class="btn-action-primary">즉시 지원하기</button>
@@ -1016,6 +1027,6 @@
 
   <!-- Interactive JavaScript -->
   <script src="region-sync.js?v=20260612-v6"></script>
-  <script src="index.js?v=20260616-v5"></script>
+  <script src="index.js?v=20260616-v6"></script>
 </body>
 </html>

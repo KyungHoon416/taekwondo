@@ -353,13 +353,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function initJobsAndTalents() {
     if (!db) return;
+
+    // 1. 회원 정보(이름, 이메일 조인용) 사전 로드
+    let dbUsers = [];
+    try {
+      const userSnap = await db.collection('users').get();
+      userSnap.forEach(doc => {
+        dbUsers.push({ id: doc.id, ...doc.data() });
+      });
+    } catch (e) {
+      console.warn('Firestore users 컬렉션 로드 에러:', e);
+    }
     
-    // 1. 채용공고 데이터 로드
+    // 2. 채용공고 데이터 로드
     try {
       const jobSnap = await db.collection('jobs').orderBy('created_at', 'desc').get();
       const dbJobs = [];
       jobSnap.forEach((doc) => {
         const j = doc.data();
+
+        // 작성자(관장님) 정보 조인
+        const creator = dbUsers.find(u => u.id === j.user_id);
+        const userName = creator ? creator.name : (j.gymName || '관장님');
+        const userEmail = creator ? creator.email : '이메일 정보 없음';
+
         dbJobs.push({
           id: doc.id,
           gymName: j.gymName || '도장',
@@ -373,7 +390,9 @@ document.addEventListener('DOMContentLoaded', () => {
           desc: j.content || '',
           pinned: j.pinned || false,
           views: j.views || 0,
-          viewedUsers: j.viewed_users || []
+          viewedUsers: j.viewed_users || [],
+          userName: userName,
+          userEmail: userEmail
         });
       });
       if (dbJobs.length > 0) {
@@ -1948,6 +1967,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('detail-job-exp').textContent = job.exp;
     document.getElementById('detail-job-addr').textContent = job.address;
     document.getElementById('detail-job-desc').textContent = job.desc;
+
+    // 담당자(등록자) 이름 및 이메일 바인딩
+    const managerNameEl = document.getElementById('detail-job-manager-name');
+    const managerEmailEl = document.getElementById('detail-job-manager-email');
+    if (managerNameEl) managerNameEl.textContent = job.userName || '관장님';
+    if (managerEmailEl) managerEmailEl.textContent = job.userEmail || '이메일 정보 없음';
 
     dialogs.jobDetail.showModal();
 

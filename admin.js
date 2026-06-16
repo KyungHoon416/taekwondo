@@ -356,9 +356,18 @@ async function fetchFirestoreData() {
       const parts = String(j.location || '').split(/\s+/);
       const region = parts[0] || '전국';
       const district = parts.slice(1).join(' ') || '';
+
+      // 작성자(관장님) 정보 조인
+      const creator = MEMBERS.find(m => m.fullId === j.user_id);
+      const userName = creator ? creator.name : (j.gymName || '관장님');
+      const userEmail = creator ? creator.email : '이메일 정보 없음';
+
       dbJobs.push({
         id: doc.id.substring(0, 8),
         fullId: doc.id,
+        userId: j.user_id || '',
+        userName: userName,
+        userEmail: userEmail,
         title: j.title || '채용공고',
         gym: j.gymName || '태권도장',
         region: region,
@@ -1277,6 +1286,16 @@ window.showDetail = function(type, id) {
             <input type="checkbox" id="job-detail-pinned-chk" ${j.pinned ? 'checked' : ''} onchange="toggleJobPinned('${j.fullId || j.id}')" style="transform: scale(1.2); cursor: pointer; vertical-align: middle; margin-right: 6px;">
             <label for="job-detail-pinned-chk" style="cursor: pointer; font-weight: 500; vertical-align: middle; color: var(--blue);">최상단 고정 노출</label>
           </span>
+        </div>
+        <div class="detail-full" style="margin-top: 0.5rem; padding: 1.25rem; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; border: 1.5px solid #e2e8f0; display: flex; flex-direction: column; gap: 0.6rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); box-sizing: border-box;">
+          <strong style="color: var(--blue); font-size: 0.92rem; display: flex; align-items: center; gap: 6px; margin-bottom: 0.2rem; font-family: inherit;">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            채용 담당자 정보
+          </strong>
+          <div style="display: grid; grid-template-columns: 1fr; gap: 0.5rem; font-size: 0.88rem; color: #475569;">
+            <div><strong>담당 관장님:</strong> <span style="font-weight: 700; color: #0f172a; margin-left: 6px;">${j.userName || '관장님'}</span></div>
+            <div><strong>연락 이메일:</strong> <span style="font-weight: 600; color: var(--blue); margin-left: 6px;">${j.userEmail || '이메일 정보 없음'}</span></div>
+          </div>
         </div>
         <div class="detail-full">
           <strong>공고 상세 설명</strong>
