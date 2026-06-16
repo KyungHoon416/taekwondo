@@ -353,6 +353,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function initJobsAndTalents() {
     if (!db) return;
+    
+    // 1. 채용공고 데이터 로드
     try {
       const jobSnap = await db.collection('jobs').orderBy('created_at', 'desc').get();
       const dbJobs = [];
@@ -380,7 +382,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         state.jobsList = [...dbJobs];
       }
+    } catch (e) {
+      console.error('Firestore 채용공고 데이터 로드 에러:', e);
+    }
 
+    // 2. 이력서 데이터 로드
+    try {
       const resumeSnap = await db.collection('resumes').orderBy('created_at', 'desc').get();
       const dbTalents = [];
       resumeSnap.forEach((doc) => {
@@ -403,7 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.talentsList = [...dbTalents];
       }
     } catch (e) {
-      console.error('Firestore 채용공고/이력서 데이터 로드 에러:', e);
+      console.warn('Firestore 이력서 데이터 로드 생략 또는 에러:', e);
     }
   }
 
@@ -755,6 +762,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Set up event listeners for nav
   window.addEventListener('hashchange', handleRoute);
+
+  // 네비게이션 메뉴 클릭 시 동일한 탭이라도 새로고침 동작하도록 처리
+  const navItems = [
+    { id: 'menu-jobs', hash: '#jobs' },
+    { id: 'menu-talents', hash: '#talents' },
+    { id: 'menu-community', hash: '#community' },
+    { id: 'menu-customer-service', hash: '#customer-service' },
+    { id: 'm-menu-jobs', hash: '#jobs' },
+    { id: 'm-menu-talents', hash: '#talents' },
+    { id: 'm-menu-community', hash: '#community' },
+    { id: 'm-menu-customer-service', hash: '#customer-service' }
+  ];
+
+  navItems.forEach(item => {
+    const el = document.getElementById(item.id);
+    if (el) {
+      el.addEventListener('click', () => {
+        // 이미 해당 해시에 있다면 hashchange가 발생하지 않으므로 수동 갱신 실행
+        if (window.location.hash === item.hash || (window.location.hash === '' && item.hash === '#home')) {
+          initJobsAndTalents().then(() => {
+            handleRoute();
+          });
+        }
+      });
+    }
+  });
   
   // Custom click binding for logo
   document.getElementById('header-logo').addEventListener('click', (e) => {
