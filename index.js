@@ -812,9 +812,19 @@ document.addEventListener('DOMContentLoaded', () => {
     card.setAttribute('tabindex', '0');
     card.dataset.id = job.id;
 
-    const badge = job.hotness 
-      ? `<span class="badge-${job.hotness.toLowerCase()}">${job.hotness}</span>` 
-      : '';
+    if (job.pinned) {
+      card.classList.add('pinned-job');
+      card.style.border = '2px solid var(--color-amber-500)';
+      card.style.boxShadow = '0 6px 16px rgba(245, 158, 11, 0.15)';
+      card.style.background = 'linear-gradient(to bottom right, #ffffff, var(--color-amber-50))';
+    }
+
+    let badge = '';
+    if (job.pinned) {
+      badge = `<span class="badge-hot" style="background-color: var(--color-amber-500); color: #ffffff; font-weight: 800; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; display: inline-block; vertical-align: middle; margin-right: 6px;">상위 노출</span>`;
+    } else if (job.hotness) {
+      badge = `<span class="badge-${job.hotness.toLowerCase()}">${job.hotness}</span>`;
+    }
 
     card.innerHTML = `
       <div class="job-card-header">
