@@ -1353,61 +1353,158 @@ window.toggleJobPinned = async function(jobId, element) {
 
   const isChecked = checkbox.checked;
 
-  try {
-    if (isChecked) {
-      // 1. 이미 상위 노출 중인 다른 공고가 있는지 조회
-      const querySnap = await db.collection('jobs').where('pinned', '==', true).get();
-      let existingPinnedJob = null;
-      querySnap.forEach(doc => {
-        if (doc.id !== jobId) {
-          existingPinnedJob = { id: doc.id, ...doc.data() };
-        }
-      });
+  if (isChecked) {
+    // 켜려고 할 때 -> 결제 모달 오픈!
+    // 결제 완료 전까지 체크박스는 일시적으로 원래 상태(off)로 돌려놓음
+    checkbox.checked = false;
 
-      if (existingPinnedJob) {
-        // 팝업으로 물어보기
-        const confirmMsg = `이미 상위 노출된 공고("${existingPinnedJob.title}")가 있습니다.\n기존 공고를 해제하고 현재 공고로 변경하시겠습니까?`;
-        if (!confirm(confirmMsg)) {
-          // 취소한 경우 체크박스를 다시 원래대로 해제
-          checkbox.checked = false;
-          return;
-        }
+    const j = JOBS.find(x => x.id === jobId || x.fullId === jobId);
+    if (!j) { showToast('채용공고를 찾을 수 없습니다.', 'error'); return; }
 
-        showToast('상위 노출 정보를 업데이트 중입니다...', 'warning');
-        // 사용자가 수정을 승인한 경우: 기존 상위 노출 해제 + 신규 상위 노출 설정 (Batch 처리)
-        const batch = db.batch();
-        batch.update(db.collection('jobs').doc(existingPinnedJob.id), { pinned: false });
-        batch.update(db.collection('jobs').doc(jobId), { pinned: true });
-        await batch.commit();
+    currentPaymentJobId = j.fullId || j.id;
 
-        showToast('상위 노출 공고가 변경되었습니다.', 'success');
-      } else {
-        // 기존 상위 노출 공고가 없는 경우: 바로 지정
-        showToast('상위 노출 정보를 업데이트 중입니다...', 'warning');
-        await db.collection('jobs').doc(jobId).update({ pinned: true });
-        showToast('현재 공고가 상위 노출로 설정되었습니다.', 'success');
-      }
-    } else {
-      // 상위 노출 해제
+    // 결제 팝업 내 제목 바인딩
+    const payTitleEl = document.getElementById('payment-job-title');
+    if (payTitleEl) {
+      payTitleEl.textContent = `"${j.title}" 상위 노출 30일권`;
+    }
+
+    openDialog('payment-dialog');
+  } else {
+    // 끄려고 할 때 -> 결제 없이 바로 해제 진행
+    try {
       showToast('상위 노출 정보를 업데이트 중입니다...', 'warning');
       await db.collection('jobs').doc(jobId).update({ pinned: false });
       showToast('상위 노출이 해제되었습니다.', 'success');
+
+      // 데이터 새로고침 및 UI 업데이트
+      await fetchFirestoreData();
+      filterJobs();
+
+      // 모달이 열려있다면 상세화면도 최신 정보로 갱신
+      const detailDialog = document.getElementById('detail-dialog');
+      if (detailDialog && detailDialog.open) {
+        showDetail('job', jobId.substring(0, 8));
+      }
+    } catch (err) {
+      console.error('상위 노출 설정 실패:', err);
+      showToast('설정 오류가 발생했습니다: ' + err.message, 'error');
+      checkbox.checked = true; // 복구
     }
-
-    // 데이터 새로고침 및 UI 업데이트
-    await fetchFirestoreData();
-    filterJobs();
-
-    // 모달이 열려있다면 상세화면도 최신 정보로 갱신
-    const detailDialog = document.getElementById('detail-dialog');
-    if (detailDialog && detailDialog.open) {
-      showDetail('job', jobId.substring(0, 8));
-    }
-
-  } catch (err) {
-    console.error('상위 노출 설정 실패:', err);
-    showToast('설정 오류가 발생했습니다: ' + err.message, 'error');
-    // 에러 발생 시 원래 상태 복구
-    checkbox.checked = !isChecked;
   }
 };
+
+// ─── 결제 모달 탭 변경 및 모의 결제 이벤트 바인딩 ──────────────────────
+let currentPaymentJobId = null;
+
+// 결제수단 선택 스타일 토글 헬퍼
+window.selectPayOption = function(method) {
+  document.querySelectorAll('.pay-option').forEach(el => {
+    el.style.border = '1.5px solid #e2e8f0';
+    el.style.background = '#fff';
+  });
+  const activeLabel = document.getElementById('label-pay-' + method);
+  if (activeLabel) {
+    activeLabel.style.border = '1.5px solid var(--blue)';
+    activeLabel.style.background = '#f0f7ff';
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  // 국내/해외 결제 탭 연동
+  const tabDomestic = document.getElementById('tab-pay-domestic');
+  const tabGlobal = document.getElementById('tab-pay-global');
+  const methodDomestic = document.getElementById('payment-method-domestic');
+  const methodGlobal = document.getElementById('payment-method-global');
+
+  if (tabDomestic && tabGlobal) {
+    tabDomestic.addEventListener('click', () => {
+      tabDomestic.style.background = '#fff';
+      tabDomestic.style.color = '#0f172a';
+      tabDomestic.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+      tabGlobal.style.background = 'transparent';
+      tabGlobal.style.color = '#64748b';
+      tabGlobal.style.boxShadow = 'none';
+
+      if (methodDomestic) methodDomestic.style.display = 'block';
+      if (methodGlobal) methodGlobal.style.display = 'none';
+    });
+
+    tabGlobal.addEventListener('click', () => {
+      tabGlobal.style.background = '#fff';
+      tabGlobal.style.color = '#0f172a';
+      tabGlobal.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+      tabDomestic.style.background = 'transparent';
+      tabDomestic.style.color = '#64748b';
+      tabDomestic.style.boxShadow = 'none';
+
+      if (methodDomestic) methodDomestic.style.display = 'none';
+      if (methodGlobal) methodGlobal.style.display = 'block';
+    });
+  }
+
+  // 모의 결제 실행 리스너
+  const btnPayExecute = document.getElementById('btn-pay-execute');
+  const btnPaypalMock = document.getElementById('btn-paypal-mock');
+  const btnGlobalCardMock = document.getElementById('btn-global-card-mock');
+
+  const executeMockPayment = async () => {
+    if (!currentPaymentJobId) {
+      showToast('결제 대상 채용공고를 찾을 수 없습니다.', 'error');
+      closeDialog('payment-dialog');
+      return;
+    }
+
+    showToast('결제 승인을 요청 중입니다...', 'warning');
+    closeDialog('payment-dialog');
+
+    // 모의 결제 1초 로딩 지연 구현
+    setTimeout(async () => {
+      try {
+        // 실제 Firestore에 pinned 반영 (동일 상위노출 공고 조회 및 중복해제 트랜잭션 적용)
+        const querySnap = await db.collection('jobs').where('pinned', '==', true).get();
+        let existingPinnedJob = null;
+        querySnap.forEach(doc => {
+          if (doc.id !== currentPaymentJobId) {
+            existingPinnedJob = { id: doc.id, ...doc.data() };
+          }
+        });
+
+        if (existingPinnedJob) {
+          // 기존 상위 노출 해제 + 신규 설정
+          const batch = db.batch();
+          batch.update(db.collection('jobs').doc(existingPinnedJob.id), { pinned: false });
+          batch.update(db.collection('jobs').doc(currentPaymentJobId), { pinned: true });
+          await batch.commit();
+        } else {
+          // 신규 설정
+          await db.collection('jobs').doc(currentPaymentJobId).update({ pinned: true });
+        }
+
+        // 데이터 갱신
+        await fetchFirestoreData();
+        filterJobs();
+
+        // 모달 열려있으면 갱신
+        const detailDialog = document.getElementById('detail-dialog');
+        if (detailDialog && detailDialog.open) {
+          showDetail('job', currentPaymentJobId.substring(0, 8));
+        }
+
+        // 결제 완료 모달 띄우기
+        openDialog('payment-success-dialog');
+        showToast('결제가 완료되었습니다.', 'success');
+
+      } catch (err) {
+        console.error('결제 완료 처리 중 에러:', err);
+        showToast('결제 처리 오류: ' + err.message, 'error');
+      } finally {
+        currentPaymentJobId = null;
+      }
+    }, 1000);
+  };
+
+  if (btnPayExecute) btnPayExecute.addEventListener('click', executeMockPayment);
+  if (btnPaypalMock) btnPaypalMock.addEventListener('click', executeMockPayment);
+  if (btnGlobalCardMock) btnGlobalCardMock.addEventListener('click', executeMockPayment);
+});

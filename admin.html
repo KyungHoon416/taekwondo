@@ -1065,10 +1065,116 @@
   </div>
 </dialog>
 
+<!-- Payment Dialog (Mock) -->
+<dialog id="payment-dialog" class="admin-dialog" style="max-width: 460px;">
+  <div class="dialog-hd">
+    <h3 style="display: flex; align-items: center; gap: 8px;">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--blue)" stroke-width="2.5"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="18" x2="12" y2="6"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+      서비스 결제 신청
+    </h3>
+    <button class="dialog-close-btn" onclick="closeDialog('payment-dialog')">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dialog-bd" style="padding: 1.25rem 1.5rem 1.5rem 1.5rem;">
+    <!-- 상품 정보 -->
+    <div style="background: #f8fafc; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; border: 1px solid #e2e8f0; box-sizing: border-box;">
+      <div style="font-size: 0.78rem; font-weight: 700; color: #64748b; margin-bottom: 0.3rem;">신청 서비스</div>
+      <div style="font-size: 1rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;" id="payment-job-title">채용공고 상위 노출 30일권</div>
+      <div style="display: flex; align-items: baseline; gap: 4px;">
+        <span style="font-size: 1.35rem; font-weight: 900; color: var(--blue);">₩30,000</span>
+        <span style="font-size: 0.78rem; color: #94a3b8;">/ $25.00 USD</span>
+      </div>
+    </div>
+
+    <!-- 결제 국가 탭 -->
+    <div style="display: flex; gap: 8px; margin-bottom: 1.25rem; background: #f1f5f9; padding: 4px; border-radius: 8px;">
+      <button type="button" id="tab-pay-domestic" style="flex: 1; height: 34px; font-size: 0.85rem; font-weight: 700; border: none; border-radius: 6px; cursor: pointer; transition: all 0.15s; background: #fff; color: #0f172a; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">국내 결제</button>
+      <button type="button" id="tab-pay-global" style="flex: 1; height: 34px; font-size: 0.85rem; font-weight: 700; border: none; border-radius: 6px; cursor: pointer; transition: all 0.15s; background: transparent; color: #64748b;">해외 결제</button>
+    </div>
+
+    <!-- 국내 결제수단 그리드 -->
+    <div id="payment-method-domestic">
+      <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.6rem;">결제 수단 선택</label>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.5rem;">
+        <!-- 신용카드 -->
+        <label style="border: 1.5px solid var(--blue); border-radius: 10px; padding: 0.8rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s; background: #f0f7ff;" class="pay-option" id="label-pay-card">
+          <input type="radio" name="pay-method" value="card" checked style="accent-color: var(--blue);" onclick="selectPayOption('card')">
+          <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b;">신용/체크카드</span>
+        </label>
+        <!-- 카카오페이 -->
+        <label style="border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.8rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s;" class="pay-option" id="label-pay-kakao">
+          <input type="radio" name="pay-method" value="kakaopay" style="accent-color: #ffeb00;" onclick="selectPayOption('kakao')">
+          <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 4px;">
+            <span style="background: #ffeb00; color: #3c1e1e; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem; font-weight: 900; line-height: 1;">talk</span>카카오페이
+          </span>
+        </label>
+        <!-- 네이버페이 -->
+        <label style="border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.8rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s;" class="pay-option" id="label-pay-naver">
+          <input type="radio" name="pay-method" value="naverpay" style="accent-color: #03c75a;" onclick="selectPayOption('naver')">
+          <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 4px;">
+            <span style="background: #03c75a; color: #fff; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem; font-weight: 900; line-height: 1;">N</span>네이버페이
+          </span>
+        </label>
+        <!-- 토스페이 -->
+        <label style="border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.8rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s;" class="pay-option" id="label-pay-toss">
+          <input type="radio" name="pay-method" value="tosspay" style="accent-color: #0064ff;" onclick="selectPayOption('toss')">
+          <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 4px;">
+            <span style="color: #0064ff; font-weight: 900; font-style: italic; font-size: 0.85rem;">toss</span>페이
+          </span>
+        </label>
+      </div>
+      <button type="button" id="btn-pay-execute" class="btn btn-primary" style="width: 100%; height: 42px; font-size: 0.92rem; font-weight: 800;">30,000원 결제하기</button>
+    </div>
+
+    <!-- 해외 결제수단 영역 (기본 숨김) -->
+    <div id="payment-method-global" style="display: none;">
+      <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.6rem;">글로벌 결제 방식</label>
+      
+      <!-- 페이팔 황금색 버튼 목업 -->
+      <div id="btn-paypal-mock" style="
+        background: #ffc439; border-radius: 10px; height: 42px; 
+        display: flex; align-items: center; justify-content: center; 
+        cursor: pointer; gap: 6px; box-shadow: 0 1.5px 3px rgba(0,0,0,0.08);
+        transition: background 0.15s; margin-bottom: 0.75rem;
+      " onmouseover="this.style.background='#f2ba36'" onmouseout="this.style.background='#ffc439'">
+        <span style="color: #003087; font-weight: 900; font-style: italic; font-size: 1.1rem; letter-spacing: -1px; font-family: sans-serif;">Pay<span style="color: #0079c1;">Pal</span></span>
+        <span style="color: #003087; font-size: 0.82rem; font-weight: 700; font-family: inherit;">결제하기</span>
+      </div>
+
+      <!-- 해외 신용카드 버튼 -->
+      <div id="btn-global-card-mock" style="
+        border: 1.5px solid #cbd5e1; border-radius: 10px; height: 42px; 
+        display: flex; align-items: center; justify-content: center; 
+        cursor: pointer; gap: 8px; background: #fff;
+        transition: background 0.15s;
+      " onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#475569" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        <span style="color: #475569; font-size: 0.85rem; font-weight: 700; font-family: inherit;">해외 신용카드 (Visa, MasterCard)</span>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<!-- Payment Success Dialog (Mock) -->
+<dialog id="payment-success-dialog" class="admin-dialog" style="max-width: 380px; text-align: center;">
+  <div class="dialog-bd" style="padding: 2.25rem 1.5rem 2rem 1.5rem;">
+    <div style="width: 52px; height: 52px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#16a34a" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <h3 style="font-size: 1.2rem; font-weight: 900; color: #0f172a; margin-bottom: 0.5rem; margin-top: 0;">결제 완료!</h3>
+    <p style="font-size: 0.85rem; color: #64748b; line-height: 1.6; margin-bottom: 1.5rem; margin-top: 0;">
+      서비스 결제가 정상적으로 완료되었습니다.<br>
+      해당 채용공고의 <strong style="color: #d97706;">상위 노출</strong>이 활성화되었습니다.
+    </p>
+    <button type="button" class="btn btn-primary" onclick="closeDialog('payment-success-dialog')" style="width: 100%; height: 38px; font-weight: 700;">확인</button>
+  </div>
+</dialog>
+
 <!-- Toast Container -->
 <div id="toast-container"></div>
 
 <script src="region-sync.js?v=20260612-v5"></script>
-<script src="admin.js?v=20260616-v3"></script>
+<script src="admin.js?v=20260616-v4"></script>
 </body>
 </html>
