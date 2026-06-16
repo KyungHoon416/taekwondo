@@ -142,7 +142,7 @@ service cloud.firestore {
     }
 
     function isValidJob(data, authorId) {
-      return hasOnlyAllowedFields(['user_id', 'gymName', 'title', 'location', 'salary', 'type', 'career', 'position', 'status', 'content', 'created_at', 'pinned', 'views']) &&
+      return hasOnlyAllowedFields(['user_id', 'gymName', 'title', 'location', 'salary', 'type', 'career', 'position', 'status', 'content', 'created_at', 'pinned', 'views', 'viewed_users']) &&
         hasRequiredFields(['user_id', 'gymName', 'title', 'location', 'salary', 'career', 'position', 'status', 'content', 'created_at']) &&
         data.user_id is string && data.user_id == authorId &&
         data.gymName is string && data.gymName.size() >= 1 && data.gymName.size() <= 50 &&
@@ -156,7 +156,8 @@ service cloud.firestore {
         data.status is string && (data.status == 'active' || data.status == 'closed') &&
         data.created_at is timestamp &&
         (!data.keys().hasAny(['pinned']) || data.pinned is bool) &&
-        (!data.keys().hasAny(['views']) || data.views is int);
+        (!data.keys().hasAny(['views']) || data.views is int) &&
+        (!data.keys().hasAny(['viewed_users']) || data.viewed_users is list);
     }
 
     function isValidResume(data) {
@@ -230,11 +231,19 @@ service cloud.firestore {
       allow read: if true;
       // Only authenticated users can create jobs
       allow create: if isAuthenticated() && isValidJob(request.resource.data, request.auth.uid) && isRecent(request.resource.data.created_at);
-      // Only the gym owner or an admin (gym type user) can update
-      allow update: if isAuthenticated() && 
-        (
-          (isUserOfType(request.auth.uid, 'gym') && isValidJob(request.resource.data, resource.data.user_id) && areImmutableFieldsUnchanged(['user_id', 'created_at'])) ||
-          (resource.data.user_id == request.auth.uid && isValidJob(request.resource.data, request.auth.uid) && areImmutableFieldsUnchanged(['user_id', 'created_at']))
+      // Only the gym owner, admin (gym type user), or anyone incrementing views can update
+      allow update: if (
+          // Case 1: Anyone (including unauthenticated) incrementing view counts
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'viewed_users']) &&
+           (!request.resource.data.keys().hasAny(['views']) || request.resource.data.views is int) &&
+           (!request.resource.data.keys().hasAny(['viewed_users']) || request.resource.data.viewed_users is list))
+        ) || (
+          // Case 2: Author or Admin updates the whole job
+          isAuthenticated() && 
+          (
+            (isUserOfType(request.auth.uid, 'gym') && isValidJob(request.resource.data, resource.data.user_id) && areImmutableFieldsUnchanged(['user_id', 'created_at'])) ||
+            (resource.data.user_id == request.auth.uid && isValidJob(request.resource.data, request.auth.uid) && areImmutableFieldsUnchanged(['user_id', 'created_at']))
+          )
         );
       allow delete: if isAuthenticated() && resource.data.user_id == request.auth.uid;
     }

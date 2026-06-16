@@ -841,6 +841,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="18" x2="12" y2="6"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
           ${job.salary}
         </span>
+        <span class="job-views" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--text-muted); margin-left: auto;">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          ${job.views || 0}
+        </span>
       </div>
       <div class="job-card-footer">
         <span class="badge-type">${job.type}</span>
@@ -1812,6 +1816,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function openJobDetails(job) {
     if (!dialogs.jobDetail) return;
     
+    // Increment views locally first
+    job.views = (job.views || 0) + 1;
+    
+    const viewsEl = document.getElementById('detail-job-views');
+    if (viewsEl) {
+      viewsEl.textContent = job.views;
+    }
+    
     const applyBtn = document.getElementById('btn-apply-job');
     if (applyBtn) {
       applyBtn.dataset.jobId = job.id;
@@ -1829,6 +1841,34 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('detail-job-desc').textContent = job.desc;
 
     dialogs.jobDetail.showModal();
+
+    // Asynchronously update Firestore views
+    if (db && job.id) {
+      (async () => {
+        try {
+          let viewerId = '';
+          if (auth && auth.currentUser) {
+            viewerId = auth.currentUser.uid;
+          } else {
+            viewerId = localStorage.getItem('taekwondo_client_id');
+            if (!viewerId) {
+              viewerId = 'client_' + Math.random().toString(36).substring(2, 15);
+              localStorage.setItem('taekwondo_client_id', viewerId);
+            }
+          }
+
+          await db.collection('jobs').doc(job.id).update({
+            views: firebase.firestore.FieldValue.increment(1),
+            viewed_users: firebase.firestore.FieldValue.arrayUnion(viewerId)
+          });
+          
+          renderHomeJobs();
+          renderBoardJobs();
+        } catch (err) {
+          console.error('Failed to update views count in Firestore:', err);
+        }
+      })();
+    }
   }
 
   function openTalentDetails(talent) {

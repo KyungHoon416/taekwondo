@@ -328,6 +328,8 @@ async function fetchFirestoreData() {
         exp: j.career || '경력무관',
         regDate: j.created_at ? (j.created_at.toDate ? j.created_at.toDate().toISOString().split('T')[0] : '2026-06-11') : '2026-06-11',
         views: j.views || 0,
+        uniqueViews: j.viewed_users ? j.viewed_users.length : 0,
+        viewedUsers: j.viewed_users || [],
         status: j.status === 'active' ? '게시중' : '마감됨',
         pinned: j.pinned || false,
         content: j.content || '공고 본문 내용이 없습니다.'
@@ -523,7 +525,7 @@ function renderJobs() {
   if (!tbody) return;
 
   if (items.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><p>검색 결과가 없습니다.</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state"><p>검색 결과가 없습니다.</p></div></td></tr>`;
   } else {
     tbody.innerHTML = items.map(j => `
       <tr>
@@ -534,7 +536,8 @@ function renderJobs() {
         <td style="color:var(--blue);font-weight:700">${j.salary}</td>
         <td><span class="badge badge-gray">${j.position}</span></td>
         <td style="color:var(--muted)">${j.regDate}</td>
-        <td style="color:var(--muted)">${j.views}</td>
+        <td style="color:var(--muted)">${j.views}회</td>
+        <td style="color:var(--muted);font-weight:600">${j.uniqueViews}회</td>
         <td>${statusBadge(j.status)}</td>
         <td style="text-align:center">
           <input type="checkbox" ${j.pinned ? 'checked' : ''} onchange="toggleJobPinned('${j.fullId || j.id}', this)" style="transform: scale(1.15); cursor: pointer; vertical-align: middle;">
@@ -1226,7 +1229,8 @@ window.showDetail = function(type, id) {
         <div class="detail-item"><strong>모집 직무</strong><span>${j.position}</span></div>
         <div class="detail-item"><strong>요구 경력</strong><span>${j.exp}</span></div>
         <div class="detail-item"><strong>등록일</strong><span>${j.regDate}</span></div>
-        <div class="detail-item"><strong>조회수</strong><span>${j.views}회</span></div>
+        <div class="detail-item"><strong>누적 조회수</strong><span>${j.views}회</span></div>
+        <div class="detail-item"><strong>실제 조회수</strong><span style="font-weight:600">${j.uniqueViews}회</span></div>
         <div class="detail-item"><strong>게시 상태</strong><span>${statusBadge(j.status === '게시중' ? 'active' : 'closed')}</span></div>
         <div class="detail-item"><strong>상위 노출</strong>
           <span>
