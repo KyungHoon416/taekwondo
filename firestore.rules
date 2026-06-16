@@ -142,17 +142,21 @@ service cloud.firestore {
     }
 
     function isValidJob(data, authorId) {
-      return hasOnlyAllowedFields(['user_id', 'title', 'salary', 'location', 'career', 'content', 'status', 'created_at', 'pinned']) &&
-        hasRequiredFields(['user_id', 'title', 'salary', 'location', 'career', 'content', 'status', 'created_at']) &&
+      return hasOnlyAllowedFields(['user_id', 'gymName', 'title', 'location', 'salary', 'type', 'career', 'position', 'status', 'content', 'created_at', 'pinned', 'views']) &&
+        hasRequiredFields(['user_id', 'gymName', 'title', 'location', 'salary', 'career', 'position', 'status', 'content', 'created_at']) &&
         data.user_id is string && data.user_id == authorId &&
+        data.gymName is string && data.gymName.size() >= 1 && data.gymName.size() <= 50 &&
         data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
-        data.salary is string && data.salary.size() >= 1 && data.salary.size() <= 50 &&
         data.location is string && data.location.size() >= 1 && data.location.size() <= 100 &&
+        data.salary is string && data.salary.size() >= 1 && data.salary.size() <= 50 &&
+        (!data.keys().hasAny(['type']) || (data.type is string && data.type.size() >= 1 && data.type.size() <= 50)) &&
         data.career is string && data.career.size() >= 1 && data.career.size() <= 50 &&
+        data.position is string && data.position.size() >= 1 && data.position.size() <= 50 &&
         data.content is string && data.content.size() >= 1 && data.content.size() <= 5000 &&
         data.status is string && (data.status == 'active' || data.status == 'closed') &&
         data.created_at is timestamp &&
-        (!data.keys().hasAny(['pinned']) || data.pinned is bool);
+        (!data.keys().hasAny(['pinned']) || data.pinned is bool) &&
+        (!data.keys().hasAny(['views']) || data.views is int);
     }
 
     function isValidResume(data) {
