@@ -371,7 +371,9 @@ document.addEventListener('DOMContentLoaded', () => {
           exp: j.career || '경력무관',
           hotness: j.status === 'active' ? 'NEW' : '',
           desc: j.content || '',
-          pinned: j.pinned || false
+          pinned: j.pinned || false,
+          views: j.views || 0,
+          viewedUsers: j.viewed_users || []
         });
       });
       if (dbJobs.length > 0) {
