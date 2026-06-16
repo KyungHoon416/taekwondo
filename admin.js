@@ -223,7 +223,7 @@ const VIEW_TITLES = {
   settings: '설정',
 };
 
-function navigateTo(viewId, clickedItem) {
+async function navigateTo(viewId, clickedItem) {
   // Update views
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + viewId)?.classList.add('active');
@@ -237,13 +237,53 @@ function navigateTo(viewId, clickedItem) {
   const el = document.getElementById('breadcrumb-current');
   if (el) el.textContent = title;
 
-  // Init view if first visit
-  if (viewId === 'members') renderMembers();
-  if (viewId === 'jobs') renderJobs();
-  if (viewId === 'resumes') renderResumes();
-  if (viewId === 'applications') renderApplications();
+  // 탭 이동 시 최신 Firestore 데이터를 자동으로 동기화(새로 가져오기)
+  if (['dashboard', 'members', 'jobs', 'resumes', 'applications'].includes(viewId)) {
+    try {
+      await fetchFirestoreData();
+    } catch (e) {
+      console.error('탭 데이터 자동 로드 실패:', e);
+    }
+  }
+
+  // Init/Refresh view
+  if (viewId === 'dashboard') {
+    populateDashboard();
+    updateDashboardStats();
+  }
+  if (viewId === 'members') filterMembers();
+  if (viewId === 'jobs') filterJobs();
+  if (viewId === 'resumes') filterResumes();
+  if (viewId === 'applications') filterApplications();
   if (viewId === 'analytics') initAnalyticsCharts();
 }
+
+// 수동 새로고침 함수
+window.refreshAdminData = async function(viewId) {
+  showToast('데이터를 새로고침하는 중...', 'warning');
+  try {
+    await fetchFirestoreData();
+
+    // 현재 뷰 갱신
+    if (viewId === 'dashboard') {
+      populateDashboard();
+      updateDashboardStats();
+    } else if (viewId === 'members') {
+      filterMembers();
+    } else if (viewId === 'jobs') {
+      filterJobs();
+    } else if (viewId === 'resumes') {
+      filterResumes();
+    } else if (viewId === 'applications') {
+      filterApplications();
+    }
+
+    showToast('데이터 새로고침 완료', 'success');
+  } catch (err) {
+    console.error('데이터 새로고침 중 오류:', err);
+    showToast('새로고침 실패: ' + err.message, 'error');
+  }
+};
 
 async function fetchFirestoreData() {
   if (typeof db === 'undefined' || !db) return;

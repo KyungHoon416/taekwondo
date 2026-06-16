@@ -226,6 +226,18 @@
 
     <!-- ════ DASHBOARD VIEW ════ -->
     <div id="view-dashboard" class="view active">
+      <!-- ── Dashboard Header Toolbar ── -->
+      <div class="page-toolbar" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+        <div class="page-title-block">
+          <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0; color: var(--text-main);">대시보드 요약</h2>
+        </div>
+        <div>
+          <button class="btn btn-secondary" onclick="refreshAdminData('dashboard')" style="display: inline-flex; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            새로고침
+          </button>
+        </div>
+      </div>
 
       <!-- Stats row -->
       <div class="stats-row">
@@ -393,7 +405,11 @@
           <h2>회원 목록</h2>
           <p>플랫폼에 가입된 모든 회원을 관리합니다.</p>
         </div>
-        <div class="toolbar-actions">
+        <div class="toolbar-actions" style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" onclick="refreshAdminData('members')" style="display: inline-flex; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            새로고침
+          </button>
           <button class="btn btn-secondary" onclick="exportCSV('members')">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             내보내기
@@ -443,7 +459,11 @@
           <h2>채용공고 목록</h2>
           <p>등록된 채용공고를 검토하고 관리합니다.</p>
         </div>
-        <div class="toolbar-actions">
+        <div class="toolbar-actions" style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" onclick="refreshAdminData('jobs')" style="display: inline-flex; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            새로고침
+          </button>
           <button class="btn btn-primary" onclick="openDialog('job-dialog')">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             채용공고 등록
@@ -496,6 +516,12 @@
           <h2>이력서 목록</h2>
           <p>등록된 사범 이력서를 관리합니다.</p>
         </div>
+        <div class="toolbar-actions">
+          <button class="btn btn-secondary" onclick="refreshAdminData('resumes')" style="display: inline-flex; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            새로고침
+          </button>
+        </div>
       </div>
       <div class="filter-bar">
         <div class="filter-search-wrap">
@@ -535,6 +561,12 @@
         <div class="page-title-block">
           <h2>지원 목록</h2>
           <p>사범 지원 현황을 검토하고 처리합니다.</p>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn btn-secondary" onclick="refreshAdminData('applications')" style="display: inline-flex; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            새로고침
+          </button>
         </div>
       </div>
       <div class="filter-bar">
@@ -1037,6 +1069,6 @@
 <div id="toast-container"></div>
 
 <script src="region-sync.js?v=20260612-v5"></script>
-<script src="admin.js?v=20260616-v1"></script>
+<script src="admin.js?v=20260616-v2"></script>
 </body>
 </html>
