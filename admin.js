@@ -150,21 +150,21 @@ let auth, db;
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 const MEMBERS = [
-  { id: 1, name: '이강남', email: 'leegangnam@gmail.com', phone: '010-1234-5678', type: 'gym', joinDate: '2026-05-01', status: 'active' },
-  { id: 2, name: '김사범', email: 'kimsabum@naver.com', phone: '010-2345-6789', type: 'instructor', joinDate: '2026-05-03', status: 'active' },
-  { id: 3, name: '박관장', email: 'parkgj@kakao.com', phone: '010-3456-7890', type: 'gym', joinDate: '2026-05-05', status: 'active' },
-  { id: 4, name: '최사범', email: 'choijabum@naver.com', phone: '010-4567-8901', type: 'instructor', joinDate: '2026-05-07', status: 'active' },
-  { id: 5, name: '정관장', email: 'junggj@gmail.com', phone: '010-5678-9012', type: 'gym', joinDate: '2026-05-09', status: 'inactive' },
-  { id: 6, name: '한사범', email: 'hansabum@naver.com', phone: '010-6789-0123', type: 'instructor', joinDate: '2026-05-10', status: 'active' },
-  { id: 7, name: '조관장', email: 'jodojang@kakao.com', phone: '010-7890-1234', type: 'gym', joinDate: '2026-05-12', status: 'active' },
-  { id: 8, name: '윤사범', email: 'yoonsabum@gmail.com', phone: '010-8901-2345', type: 'instructor', joinDate: '2026-05-13', status: 'banned' },
-  { id: 9, name: '강관장', email: 'kangdojang@naver.com', phone: '010-9012-3456', type: 'gym', joinDate: '2026-05-14', status: 'active' },
-  { id: 10, name: '임사범', email: 'yimsabum@gmail.com', phone: '010-0123-4567', type: 'instructor', joinDate: '2026-05-15', status: 'active' },
-  { id: 11, name: '신관장', email: 'shingj@naver.com', phone: '010-1111-2222', type: 'gym', joinDate: '2026-05-16', status: 'active' },
-  { id: 12, name: '오사범', email: 'ohsabum@kakao.com', phone: '010-2222-3333', type: 'instructor', joinDate: '2026-05-17', status: 'active' },
-  { id: 13, name: '서관장', email: 'seogj@gmail.com', phone: '010-3333-4444', type: 'gym', joinDate: '2026-05-18', status: 'inactive' },
-  { id: 14, name: '권사범', email: 'kwonsabum@naver.com', phone: '010-4444-5555', type: 'instructor', joinDate: '2026-05-19', status: 'active' },
-  { id: 15, name: '황관장', email: 'hwanggj@kakao.com', phone: '010-5555-6666', type: 'gym', joinDate: '2026-05-20', status: 'active' },
+  { id: 1, name: '이강남', email: 'leegangnam@gmail.com', businessNumber: '107-81-83669', type: 'gym', joinDate: '2026-05-01', status: 'active' },
+  { id: 2, name: '김사범', email: 'kimsabum@naver.com', businessNumber: '-', type: 'instructor', joinDate: '2026-05-03', status: 'active' },
+  { id: 3, name: '박관장', email: 'parkgj@kakao.com', businessNumber: '214-82-01928', type: 'gym', joinDate: '2026-05-05', status: 'active' },
+  { id: 4, name: '최사범', email: 'choijabum@naver.com', businessNumber: '-', type: 'instructor', joinDate: '2026-05-07', status: 'active' },
+  { id: 5, name: '정관장', email: 'junggj@gmail.com', businessNumber: '110-23-45678', type: 'gym', joinDate: '2026-05-09', status: 'inactive' },
+  { id: 6, name: '한사범', email: 'hansabum@naver.com', businessNumber: '-', type: 'instructor', joinDate: '2026-05-10', status: 'active' },
+  { id: 7, name: '조관장', email: 'jodojang@kakao.com', businessNumber: '120-11-22334', type: 'gym', joinDate: '2026-05-12', status: 'active' },
+  { id: 8, name: '윤사범', email: 'yoonsabum@gmail.com', businessNumber: '-', type: 'instructor', joinDate: '2026-05-13', status: 'banned' },
+  { id: 9, name: '강관장', email: 'kangdojang@naver.com', businessNumber: '220-44-55667', type: 'gym', joinDate: '2026-05-14', status: 'active' },
+  { id: 10, name: '임사범', email: 'yimsabum@gmail.com', businessNumber: '-', type: 'instructor', joinDate: '2026-05-15', status: 'active' },
+  { id: 11, name: '신관장', email: 'shingj@naver.com', businessNumber: '105-07-88990', type: 'gym', joinDate: '2026-05-16', status: 'active' },
+  { id: 12, name: '오사범', email: 'ohsabum@kakao.com', businessNumber: '-', type: 'instructor', joinDate: '2026-05-17', status: 'active' },
+  { id: 13, name: '서관장', email: 'seogj@gmail.com', businessNumber: '113-14-15161', type: 'gym', joinDate: '2026-05-18', status: 'inactive' },
+  { id: 14, name: '권사범', email: 'kwonsabum@naver.com', businessNumber: '-', type: 'instructor', joinDate: '2026-05-19', status: 'active' },
+  { id: 15, name: '황관장', email: 'hwanggj@kakao.com', businessNumber: '101-12-34567', type: 'gym', joinDate: '2026-05-20', status: 'active' },
 ];
 
 const JOBS = [
@@ -299,7 +299,10 @@ async function fetchFirestoreData() {
         fullId: doc.id,
         name: u.name || '이름 없음',
         email: u.email || '',
-        phone: u.phone || '010-0000-0000',
+        businessNumber: u.business_number || '-',
+        businessStatus: u.business_status || '',
+        businessStatusCode: u.business_status_code || '',
+        businessValid: u.business_valid || '',
         type: u.type || 'instructor',
         joinDate: u.created_at ? (u.created_at.toDate ? u.created_at.toDate().toISOString().split('T')[0] : '2026-06-11') : '2026-06-11',
         status: 'active'
@@ -511,10 +514,17 @@ function renderMembers() {
         <td style="color:var(--muted);font-size:0.78rem">${m.id}</td>
         <td style="font-weight:700">${m.name}</td>
         <td style="color:var(--muted)">${m.email}</td>
-        <td style="color:var(--muted)">${m.phone}</td>
+        <td style="color:var(--muted)">${m.businessNumber}</td>
         <td>${m.type === 'gym' ? '<span class="badge badge-blue">도장(관장)</span>' : '<span class="badge badge-green">사범(구직자)</span>'}</td>
         <td style="color:var(--muted)">${m.joinDate}</td>
-        <td>${memberStatusBadge(m.status)}</td>
+        <td>
+          ${memberStatusBadge(m.status)}
+          ${m.type === 'gym' ? (
+            m.businessValid === '01' && m.businessStatusCode === '01'
+              ? '<span class="badge badge-blue" style="margin-left:4px">검증완료</span>'
+              : '<span class="badge badge-amber" style="margin-left:4px">확인중</span>'
+          ) : ''}
+        </td>
         <td>
           <div class="action-btns">
             <button class="btn-icon" title="상세보기" onclick="showDetail('member', '${m.id}')">
@@ -1258,8 +1268,17 @@ window.showDetail = function(type, id) {
         <div class="detail-item"><strong>회원 ID</strong><span>${m.id}</span></div>
         <div class="detail-item"><strong>이름</strong><span>${m.name}</span></div>
         <div class="detail-item"><strong>이메일</strong><span>${m.email}</span></div>
-        <div class="detail-item"><strong>연락처</strong><span>${m.phone}</span></div>
+        <div class="detail-item"><strong>사업자등록번호</strong><span>${m.businessNumber || '-'}</span></div>
         <div class="detail-item"><strong>회원 유형</strong><span>${m.type === 'gym' ? '<span class="badge badge-blue">도장(관장)</span>' : '<span class="badge badge-green">사범(구직자)</span>'}</span></div>
+        ${m.type === 'gym' ? `
+          <div class="detail-item"><strong>사업자 검증</strong>
+            <span>
+              ${m.businessValid === '01' && m.businessStatusCode === '01'
+                ? '<span class="badge badge-blue">검증완료</span>'
+                : '<span class="badge badge-amber">확인중</span>'}
+            </span>
+          </div>
+        ` : ''}
         <div class="detail-item"><strong>가입일</strong><span>${m.joinDate}</span></div>
         <div class="detail-item"><strong>상태</strong><span>${m.status === 'banned' ? '<span class="badge badge-red">정지</span>' : '<span class="badge badge-green">정상</span>'}</span></div>
       </div>
