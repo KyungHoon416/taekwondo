@@ -1437,9 +1437,20 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         setBusinessResult(businessValidateResult, '사업자 정보가 일치하고 계속사업자로 확인되었습니다.', 'success');
       } catch (err) {
-        businessStatusCheck = null;
-        businessValidation = null;
-        setBusinessResult(businessValidateResult, err.message || '사업자 확인에 실패했습니다.', 'error');
+        businessStatusCheck = {
+          businessNumber,
+          status: '조회 실패',
+          statusCode: '00',
+          taxType: '조회 실패'
+        };
+        businessValidation = {
+          businessNumber,
+          businessStartDate,
+          businessOwnerName,
+          valid: '00',
+          validMsg: err.message || '조회 실패'
+        };
+        setBusinessResult(businessValidateResult, `조회에 실패했습니다 (${err.message || '정보 불일치'}). 조회 실패 시에도 가입은 가능합니다.`, 'error');
       } finally {
         businessValidateButton.disabled = false;
         businessValidateButton.textContent = '사업자 확인';
@@ -1585,10 +1596,6 @@ document.addEventListener('DOMContentLoaded', () => {
           showAuthError('대표자명을 입력해주세요.');
           return;
         }
-        if (!isBusinessValidated({ businessNumber, businessStartDate, businessOwnerName }) || !isBusinessStatusChecked({ businessNumber })) {
-          showAuthError('사업자 확인을 먼저 완료해주세요. 진위확인과 계속사업자 상태조회가 모두 통과되어야 합니다.');
-          return;
-        }
       }
 
       submitBtn.textContent = '가입 중...';
@@ -1610,10 +1617,10 @@ document.addEventListener('DOMContentLoaded', () => {
         userData.business_number = businessNumber;
         userData.business_start_date = businessStartDate;
         userData.business_owner_name = businessOwnerName;
-        userData.business_status = businessStatusCheck?.status || '';
-        userData.business_status_code = businessStatusCheck?.statusCode || '';
-        userData.business_valid = businessValidation?.valid || '';
-        userData.business_valid_msg = businessValidation?.validMsg || '';
+        userData.business_status = businessStatusCheck?.status || '미확인';
+        userData.business_status_code = businessStatusCheck?.statusCode || '00';
+        userData.business_valid = businessValidation?.valid || '00';
+        userData.business_valid_msg = businessValidation?.validMsg || '조회 안됨';
         userData.business_verified_at = firebase.firestore.FieldValue.serverTimestamp();
       }
 

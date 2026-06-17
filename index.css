@@ -2788,3 +2788,45 @@
     grid-column: span 2;
   }
 }
+
+/* ==========================================================================
+   Desktop Dialog Auto Scroll Layout
+   ========================================================================== */
+@media (min-width: 769px) {
+  .modal-dialog {
+    max-height: 90vh;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  
+  .modal-dialog[open] {
+    display: flex;
+  }
+
+  .dialog-content {
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .dialog-header {
+    flex-shrink: 0;
+  }
+
+  .detail-footer {
+    flex-shrink: 0;
+  }
+
+  .dialog-content form,
+  .dialog-content .auth-pane,
+  .dialog-content .detail-body {
+    overflow-y: auto;
+    min-height: 0;
+    flex: 1;
+    padding-right: 4px;
+  }
+}
+
