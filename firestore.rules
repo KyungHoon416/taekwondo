@@ -118,10 +118,10 @@ service cloud.firestore {
             data.gym_name is string && data.gym_name.size() >= 1 && data.gym_name.size() <= 50 &&
             data.business_number is string && data.business_number.matches('^[0-9]{10}$') &&
             data.business_status is string &&
-            data.business_status_code is string && data.business_status_code == '01' &&
+            data.business_status_code is string && (data.business_status_code == '01' || data.business_status_code == '00') &&
             data.business_start_date is string && data.business_start_date.matches('^[0-9]{8}$') &&
             data.business_owner_name is string && data.business_owner_name.size() >= 1 && data.business_owner_name.size() <= 50 &&
-            data.business_valid is string && data.business_valid == '01' &&
+            data.business_valid is string && (data.business_valid == '01' || data.business_valid == '00') &&
             data.business_valid_msg is string &&
             data.business_verified_at is timestamp) ||
           (data.type == 'instructor' &&
