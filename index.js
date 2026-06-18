@@ -323,7 +323,8 @@ document.addEventListener('DOMContentLoaded', () => {
     community: document.getElementById('view-community'),
     customerService: document.getElementById('view-customer-service'),
     privacyPolicy: document.getElementById('view-privacy-policy'),
-    termsOfUse: document.getElementById('view-terms-of-use')
+    termsOfUse: document.getElementById('view-terms-of-use'),
+    userGuide: document.getElementById('view-user-guide')
   };
 
   // Nav menu links
@@ -774,6 +775,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
     }
+    if (pathname === '/User_Guide') {
+      if (rawHash && cleanHash !== '#user-guide' && cleanHash !== '#userGuide') {
+        window.history.replaceState({}, '', '/' + rawHash);
+      } else {
+        navigateToView('userGuide');
+        window.scrollTo(0, 0);
+        return;
+      }
+    }
     if (pathname === '/Customer_Service') {
       if (rawHash && cleanHash !== '#customer-service' && cleanHash !== '#customerService') {
         window.history.replaceState({}, '', '/' + rawHash);
@@ -812,6 +822,10 @@ document.addEventListener('DOMContentLoaded', () => {
         navigateToView('termsOfUse');
         window.scrollTo(0, 0);
         break;
+      case '#user-guide':
+        navigateToView('userGuide');
+        window.scrollTo(0, 0);
+        break;
       case '#home':
       default:
         navigateToView('home');
@@ -828,7 +842,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // SPA routing click handler for direct path link
   document.addEventListener('click', (e) => {
     const link = e.target.closest('a');
-    if (link && (link.getAttribute('href') === '/Privacy_Policy' || link.getAttribute('href') === '/Terms_of_Use' || link.getAttribute('href') === '/Customer_Service')) {
+    if (link && (link.getAttribute('href') === '/Privacy_Policy' || link.getAttribute('href') === '/Terms_of_Use' || link.getAttribute('href') === '/Customer_Service' || link.getAttribute('href') === '/User_Guide')) {
       e.preventDefault();
       const href = link.getAttribute('href');
       window.history.pushState({}, '', href);
