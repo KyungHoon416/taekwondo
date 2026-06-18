@@ -3010,4 +3010,48 @@
   font-weight: 600;
 }
 
+/* ==========================================================================
+   Terms of Use Styles
+   ========================================================================== */
+.policy-badge {
+  display: inline-block;
+  color: white;
+  border-radius: 4px;
+  padding: 2px 6.5px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.policy-badge.blue {
+  background-color: var(--accent-blue);
+}
+
+.policy-badge.orange {
+  background-color: #f97316;
+}
+
+.policy-badge.red {
+  background-color: var(--accent-red);
+}
+
+.policy-card.gold-card {
+  border-left: 4px solid #eab308;
+  background-color: rgba(234, 179, 8, 0.03);
+}
+
+.policy-card.gold-card h4 {
+  color: #ca8a04;
+}
+
+.policy-card.red-border {
+  border-top: 3px solid var(--accent-red);
+}
+
+.policy-card.red-border h4 {
+  color: var(--accent-red);
+}
+
+
+
 

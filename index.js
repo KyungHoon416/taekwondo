@@ -322,7 +322,8 @@ document.addEventListener('DOMContentLoaded', () => {
     talents: document.getElementById('view-talents'),
     community: document.getElementById('view-community'),
     customerService: document.getElementById('view-customer-service'),
-    privacyPolicy: document.getElementById('view-privacy-policy')
+    privacyPolicy: document.getElementById('view-privacy-policy'),
+    termsOfUse: document.getElementById('view-terms-of-use')
   };
 
   // Nav menu links
@@ -755,6 +756,11 @@ document.addEventListener('DOMContentLoaded', () => {
       window.scrollTo(0, 0);
       return;
     }
+    if (window.location.pathname === '/Terms_of_Use') {
+      navigateToView('termsOfUse');
+      window.scrollTo(0, 0);
+      return;
+    }
 
     const hash = window.location.hash || '#home';
     const cleanHash = hash.split('?')[0];
@@ -783,6 +789,10 @@ document.addEventListener('DOMContentLoaded', () => {
         navigateToView('privacyPolicy');
         window.scrollTo(0, 0);
         break;
+      case '#terms-of-use':
+        navigateToView('termsOfUse');
+        window.scrollTo(0, 0);
+        break;
       case '#home':
       default:
         navigateToView('home');
@@ -799,9 +809,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // SPA routing click handler for direct path link
   document.addEventListener('click', (e) => {
     const link = e.target.closest('a');
-    if (link && link.getAttribute('href') === '/Privacy_Policy') {
+    if (link && (link.getAttribute('href') === '/Privacy_Policy' || link.getAttribute('href') === '/Terms_of_Use')) {
       e.preventDefault();
-      window.history.pushState({}, '', '/Privacy_Policy');
+      const href = link.getAttribute('href');
+      window.history.pushState({}, '', href);
       handleRoute();
     }
   });
