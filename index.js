@@ -321,7 +321,8 @@ document.addEventListener('DOMContentLoaded', () => {
     jobs: document.getElementById('view-jobs'),
     talents: document.getElementById('view-talents'),
     community: document.getElementById('view-community'),
-    customerService: document.getElementById('view-customer-service')
+    customerService: document.getElementById('view-customer-service'),
+    privacyPolicy: document.getElementById('view-privacy-policy')
   };
 
   // Nav menu links
@@ -749,6 +750,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function handleRoute() {
+    if (window.location.pathname === '/Privacy_Policy') {
+      navigateToView('privacyPolicy');
+      window.scrollTo(0, 0);
+      return;
+    }
+
     const hash = window.location.hash || '#home';
     const cleanHash = hash.split('?')[0];
 
@@ -772,6 +779,10 @@ document.addEventListener('DOMContentLoaded', () => {
       case '#customer-service':
         navigateToView('customerService');
         break;
+      case '#privacy-policy':
+        navigateToView('privacyPolicy');
+        window.scrollTo(0, 0);
+        break;
       case '#home':
       default:
         navigateToView('home');
@@ -783,6 +794,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Set up event listeners for nav
   window.addEventListener('hashchange', handleRoute);
+  window.addEventListener('popstate', handleRoute);
+
+  // SPA routing click handler for direct path link
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('a');
+    if (link && link.getAttribute('href') === '/Privacy_Policy') {
+      e.preventDefault();
+      window.history.pushState({}, '', '/Privacy_Policy');
+      handleRoute();
+    }
+  });
 
   // 네비게이션 메뉴 클릭 시 동일한 탭이라도 새로고침 동작하도록 처리
   const navItems = [
