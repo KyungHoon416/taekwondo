@@ -1373,22 +1373,52 @@ window.toggleJobPinned = async function(jobId, element) {
   const isChecked = checkbox.checked;
 
   if (isChecked) {
-    // 켜려고 할 때 -> 결제 모달 오픈!
-    // 결제 완료 전까지 체크박스는 일시적으로 원래 상태(off)로 돌려놓음
-    checkbox.checked = false;
+    try {
+      showToast('상위 노출 정보를 업데이트 중입니다...', 'warning');
 
-    const j = JOBS.find(x => x.id === jobId || x.fullId === jobId);
-    if (!j) { showToast('채용공고를 찾을 수 없습니다.', 'error'); return; }
+      // 1. 이미 상위 노출된 다른 공고가 있는지 조회
+      const querySnap = await db.collection('jobs').where('pinned', '==', true).get();
+      let existingPinnedJob = null;
+      querySnap.forEach(doc => {
+        if (doc.id !== jobId) {
+          existingPinnedJob = { id: doc.id, ...doc.data() };
+        }
+      });
 
-    currentPaymentJobId = j.fullId || j.id;
+      if (existingPinnedJob) {
+        // 이미 노출 중인 공고가 있다면 사용자에게 변경 동의를 물어봅니다.
+        const confirmMsg = `이미 상위 노출된 공고("${existingPinnedJob.title}")가 있습니다.\n기존 공고를 해제하고 현재 공고로 변경하시겠습니까?`;
+        if (!confirm(confirmMsg)) {
+          checkbox.checked = false; // 체크 복구(취소)
+          return;
+        }
 
-    // 결제 팝업 내 제목 바인딩
-    const payTitleEl = document.getElementById('payment-job-title');
-    if (payTitleEl) {
-      payTitleEl.textContent = `"${j.title}" 상위 노출 30일권`;
+        // 기존 상위 노출 해제 + 신규 설정 (배치 트랜잭션)
+        const batch = db.batch();
+        batch.update(db.collection('jobs').doc(existingPinnedJob.id), { pinned: false });
+        batch.update(db.collection('jobs').doc(jobId), { pinned: true });
+        await batch.commit();
+      } else {
+        // 단독 설정
+        await db.collection('jobs').doc(jobId).update({ pinned: true });
+      }
+
+      showToast('상위 노출 설정이 완료되었습니다.', 'success');
+
+      // 데이터 새로고침 및 UI 업데이트
+      await fetchFirestoreData();
+      filterJobs();
+
+      // 모달이 열려있다면 상세화면도 최신 정보로 갱신
+      const detailDialog = document.getElementById('detail-dialog');
+      if (detailDialog && detailDialog.open) {
+        showDetail('job', jobId.substring(0, 8));
+      }
+    } catch (err) {
+      console.error('상위 노출 설정 실패:', err);
+      showToast('설정 오류가 발생했습니다: ' + err.message, 'error');
+      checkbox.checked = false; // 오류 시 원래 상태(off) 복구
     }
-
-    openDialog('payment-dialog');
   } else {
     // 끄려고 할 때 -> 결제 없이 바로 해제 진행
     try {
