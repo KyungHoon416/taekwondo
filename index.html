@@ -1520,8 +1520,58 @@
     </div>
   </dialog>
 
+  <!-- 6. COMMUNITY DETAIL DIALOG -->
+  <dialog id="dialog-community-detail" class="modal-dialog detail-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h2 id="detail-post-category">자유게시판</h2>
+        <button type="button" class="btn-close-dialog" aria-label="닫기">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="detail-body">
+        <div class="detail-title-block">
+          <h1 id="detail-post-title">게시글 제목</h1>
+          <p class="detail-meta-text" id="detail-post-meta">작성자: 홍길동 | 작성일: 2026-06-18</p>
+          <p class="detail-meta-text" style="font-size: 0.82rem; color: var(--text-muted); margin-top: 6px; display: inline-flex; align-items: center; gap: 4px;">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            조회수 <span id="detail-post-views">0</span>회
+          </p>
+        </div>
+
+        <div class="detail-content-block">
+          <p id="detail-post-desc" class="desc-content" style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.8; color: var(--text-main);">
+            게시글 본문 내용이 여기에 표시됩니다.
+          </p>
+        </div>
+
+        <!-- 댓글 섹션 -->
+        <div class="detail-content-block" style="margin-top: 2rem; border-top: 1.5px dashed var(--border-main); padding-top: 1.5rem;">
+          <h3 style="font-size: 1rem; font-weight: 800; color: var(--brand-primary-dark); margin-bottom: 1rem; display: flex; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            댓글 (<span id="detail-post-comments-count">0</span>)
+          </h3>
+          
+          <!-- 댓글 목록 -->
+          <div id="detail-post-comments-list" style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+            <!-- 댓글이 동적으로 렌더링됨 -->
+          </div>
+
+          <!-- 댓글 입력 폼 -->
+          <form id="form-post-comment" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+            <input type="text" id="comment-input" placeholder="따뜻한 댓글을 남겨주세요." required style="flex: 1; padding: 0.6rem 0.8rem; border: 1.5px solid var(--border-main); border-radius: var(--radius-md); font-size: 0.88rem; outline: none;" onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border-main)'">
+            <button type="submit" class="btn-action-primary" style="padding: 0.6rem 1.2rem; font-size: 0.88rem; border-radius: var(--radius-md); width: auto;">등록</button>
+          </form>
+        </div>
+      </div>
+      <div class="detail-footer">
+        <button type="button" class="btn-action-secondary" onclick="this.closest('dialog').close();" style="margin: 0 auto; max-width: 200px;">닫기</button>
+      </div>
+    </div>
+  </dialog>
+
   <!-- Interactive JavaScript -->
   <script src="region-sync.js?v=20260612-v6"></script>
-  <script src="index.js?v=20260618-v8"></script>
+  <script src="index.js?v=20260618-v9"></script>
 </body>
 </html>

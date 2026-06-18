@@ -275,16 +275,121 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
 
   const mockPosts = [
-    { id: 'post-1', category: 'recruit', title: '강남 지역 사범님 구인 현황 어떤가요?', author: '대호관장', date: '2026.06.07', views: 124 },
-    { id: 'post-2', category: 'recruit', title: '초보 사범 면접 시 질문 팁 공유드립니다.', author: '정통관장', date: '2026.06.06', views: 245 },
-    { id: 'post-3', category: 'knowhow', title: '원생 150명 돌파한 방학 특강 프로그램 기획서', author: '스마트태권', date: '2026.06.05', views: 412 },
-    { id: 'post-4', category: 'knowhow', title: '학부모 소통 앱(클래스업) 연동 팁 공유', author: '혁신관장', date: '2026.06.03', views: 301 },
-    { id: 'post-5', category: 'news', title: '세계태권도연맹, 새로운 룰 도입 발표', author: '태권뉴스', date: '2026.06.02', views: 520 },
-    { id: 'post-6', category: 'news', title: '제50회 전국태권도대회 일정 확정 안내', author: '협회소식', date: '2026.06.01', views: 388 },
-    { id: 'post-7', category: 'free', title: '오늘 수련시간에 너무 감동적인 일이 있었습니다.', author: '해피사범', date: '2026.06.08', views: 89 },
-    { id: 'post-8', category: 'free', title: '주말 당직 서시는 사범님들 힘내세요!', author: '의리사범', date: '2026.06.07', views: 110 },
-    { id: 'post-9', category: 'archive', title: '[자료] 신입 관원 입학원서 양식 (한글파일)', author: '태권도잡', date: '2026.06.05', views: 615 },
-    { id: 'post-10', category: 'archive', title: '[자료] 줄넘기 급수표 및 심사 서식 공유', author: '체육자료', date: '2026.05.28', views: 803 }
+    { 
+      id: 'post-1', 
+      category: 'recruit', 
+      title: '강남 지역 사범님 구인 현황 어떤가요?', 
+      author: '대호관장', 
+      date: '2026.06.07', 
+      views: 124,
+      content: '요즘 강남 쪽에서 정사범님 구하기가 하늘의 별 따기네요. 조건은 월 330에 주 5일, 식사 제공인데도 문의전화 한 통 받기가 어렵습니다. 다른 지역 관장님들은 구인 어떠신가요? 혹시 채용공고 올릴 때 특별히 어필하면 좋은 팁이 있을까요?',
+      comments: [
+        { author: '의리사범', content: '요즘 젊은 사범들은 급여도 중요하지만 퇴근 시간 준수를 더 중요하게 보는 것 같습니다.', date: '2026.06.07' },
+        { author: '강남태권', content: '강남은 주거비가 비싸서 타지에서 오는 사범님들을 위해 숙소를 지원해 주면 연락이 좀 오는 편입니다.', date: '2026.06.08' }
+      ]
+    },
+    { 
+      id: 'post-2', 
+      category: 'recruit', 
+      title: '초보 사범 면접 시 질문 팁 공유드립니다.', 
+      author: '정통관장', 
+      date: '2026.06.06', 
+      views: 245,
+      content: '신입 사범님 면접 보실 때 단수나 시범 기술도 중요하지만, 무엇보다 아이들을 대하는 태도와 인성을 보셔야 합니다. 저 같은 경우는 "가장 통제하기 힘든 관원이 있을 때 어떻게 대처할 것인가?" 라는 상황 질문을 던집니다. 꼬리 질문을 던지면 평소 생각이나 태도가 잘 드러납니다.',
+      comments: [
+        { author: '열혈관장', content: '공감합니다. 기술은 도장 와서 배울 수 있지만 아이들을 사랑하는 마음은 가르칠 수 없으니까요.', date: '2026.06.06' }
+      ]
+    },
+    { 
+      id: 'post-3', 
+      category: 'knowhow', 
+      title: '원생 150명 돌파한 방학 특강 프로그램 기획서', 
+      author: '스마트태권', 
+      date: '2026.06.05', 
+      views: 412,
+      content: '올해 겨울방학 특강으로 성공했던 음악 줄넘기와 쌍절곤 연계 특강 기획안을 공유합니다. 학부모님들은 방학 동안 아이들의 기초 체력 증진과 흥미 유발을 원합니다. 특강 마지막 주에 부모님들을 초청하여 작은 발표회를 가진 것이 원생 재등록률을 95% 이상 끌어올린 핵심 비결이었습니다.',
+      comments: [
+        { author: '새싹관장', content: '특강 발표회 기획서 정보 감사합니다! 이번 여름방학 때 꼭 벤치마킹해서 시도해보고 싶네요.', date: '2026.06.05' }
+      ]
+    },
+    { 
+      id: 'post-4', 
+      category: 'knowhow', 
+      title: '학부모 소통 앱(클래스업) 연동 팁 공유', 
+      author: '혁신관장', 
+      date: '2026.06.03', 
+      views: 301,
+      content: '수련 모습을 매일 사진과 짧은 영상으로 학부모 앱에 공유하고 있습니다. 처음에는 일이 많아서 힘들었지만 사범님들과 요일을 나누어 분담하니 정착되었습니다. 부모님들의 신뢰도가 크게 올라가고 추천 입관률이 눈에 띄게 증가했습니다. 소통 앱을 적극 활용해 보세요.',
+      comments: [
+        { author: '소통사범', content: '사범 입장에서도 학부모 피드백이 실시간으로 오니 보람을 더 느끼는 것 같습니다.', date: '2026.06.04' }
+      ]
+    },
+    { 
+      id: 'post-5', 
+      category: 'news', 
+      title: '세계태권도연맹, 새로운 룰 도입 발표', 
+      author: '태권뉴스', 
+      date: '2026.06.02', 
+      views: 520,
+      content: '세계태권도연맹(WT)이 경기력 향상과 관중 친화적인 시합을 위해 회전 발차기 점수 배점과 감점 요소를 보완한 새로운 경기 규정을 발표했습니다. 이번 규정은 하반기 국제 대회부터 공식 적용될 예정이며, 일선 도장의 겨루기 선수반 지도 방식에도 변화가 필요해 보입니다.',
+      comments: []
+    },
+    { 
+      id: 'post-6', 
+      category: 'news', 
+      title: '제50회 전국태권도대회 일정 확정 안내', 
+      author: '협회소식', 
+      date: '2026.06.01', 
+      views: 388,
+      content: '대한태권도협회가 주최하는 제50회 전국태권도대회의 개최 일정이 오는 9월 15일부터 5일간으로 확정되었습니다. 신청 접수는 8월 1일부터 개시되며 전국 선수 및 동호인들의 많은 참여 바랍니다.',
+      comments: []
+    },
+    { 
+      id: 'post-7', 
+      category: 'free', 
+      title: '오늘 수련시간에 너무 감동적인 일이 있었습니다.', 
+      author: '해피사범', 
+      date: '2026.06.08', 
+      views: 89,
+      content: '평소에 장난기가 심해서 지도가 어려웠던 8살 수련생이 오늘 수련이 끝나고 수줍게 사탕 하나를 주면서 "사범님 늘 재밌게 가르쳐 주셔서 감사해요" 하고 뛰어가네요. 이 맛에 힘들어도 사범 생활을 계속하게 되는 것 같습니다. 마음이 참 따뜻해집니다.',
+      comments: [
+        { author: '동감관장', content: '그 사탕 하나가 사범님껜 보약이네요. 힘내세요!', date: '2026.06.08' }
+      ]
+    },
+    { 
+      id: 'post-8', 
+      category: 'free', 
+      title: '주말 당직 서시는 사범님들 힘내세요!', 
+      author: '의리사범', 
+      date: '2026.06.07', 
+      views: 110,
+      content: '주말에도 특강차량 운행이나 야외 체험 학습 때문에 당직 서시는 사범님들 많으실 텐데 힘냅시다! 날씨가 더우니 건강 챙기시면서 수고하십시오. 화이팅입니다!',
+      comments: [
+        { author: '겨루기왕', content: '사범님도 힘내세요! 주말 보강 수업 가는 길인데 힘이 나네요.', date: '2026.06.07' }
+      ]
+    },
+    { 
+      id: 'post-9', 
+      category: 'archive', 
+      title: '[자료] 신입 관원 입학원서 양식 (한글파일)', 
+      author: '태권도잡', 
+      date: '2026.06.05', 
+      views: 615,
+      content: '일선 도장에서 편리하게 수정하여 사용할 수 있는 신입 관원 입학원서 한글(HWP) 서식입니다. 기본적인 동의서(개인정보 제공 및 초상권 등) 문항도 깔끔하게 정돈되어 있습니다. 도장 상황에 맞추어 상호와 로고를 넣어 유용하게 사용하시기 바랍니다.',
+      comments: [
+        { author: '초보관장', content: '마침 새로 만들려고 했는데 소중한 자료 공유 너무 감사합니다!', date: '2026.06.06' }
+      ]
+    },
+    { 
+      id: 'post-10', 
+      category: 'archive', 
+      title: '[자료] 줄넘기 급수표 및 심사 서식 공유', 
+      author: '체육자료', 
+      date: '2026.05.28', 
+      views: 803,
+      content: '급수별 줄넘기 미션과 평가 기준이 담긴 심사 서식 파일입니다. 기초 줄넘기부터 이중 뛰기까지 단계별로 체계적으로 구성되어 있어 학부모님께 심사 결과 전달용으로 쓰시기 좋습니다.',
+      comments: []
+    }
   ];
 
   const avatarGradients = [
@@ -352,7 +457,8 @@ document.addEventListener('DOMContentLoaded', () => {
     postResume: document.getElementById('dialog-post-resume'),
     jobDetail: document.getElementById('dialog-job-detail'),
     talentDetail: document.getElementById('dialog-talent-detail'),
-    postCommunity: document.getElementById('dialog-post-community')
+    postCommunity: document.getElementById('dialog-post-community'),
+    communityDetail: document.getElementById('dialog-community-detail')
   };
 
   async function initJobsAndTalents() {
@@ -1177,7 +1283,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
 
       row.addEventListener('click', () => {
-        alert(`게시물 상세 보기:\n"${post.title}"\n(이 기능은 프로토타입 범위 이외입니다.)`);
+        openCommunityDetails(post);
       });
 
       container.appendChild(row);
@@ -2022,7 +2128,8 @@ document.addEventListener('DOMContentLoaded', () => {
         author: authorName,
         date: dateStr,
         views: 0,
-        content: content
+        content: content,
+        comments: []
       };
 
       state.communityPosts.unshift(newPost);
@@ -2046,6 +2153,99 @@ document.addEventListener('DOMContentLoaded', () => {
   // 9. Details Dialog Fillers
   // ==========================================================================
   
+  function openCommunityDetails(post) {
+    if (!dialogs.communityDetail) return;
+
+    // Increment views locally
+    post.views = (post.views || 0) + 1;
+
+    const categoryNames = {
+      recruit: '사범 구인구직',
+      knowhow: '도장 운영 노하우',
+      news: '태권도 뉴스',
+      free: '자유게시판',
+      archive: '자료실'
+    };
+
+    document.getElementById('detail-post-category').textContent = categoryNames[post.category] || '커뮤니티';
+    document.getElementById('detail-post-title').textContent = post.title;
+    document.getElementById('detail-post-meta').textContent = `작성자: ${post.author} | 작성일: ${post.date}`;
+    document.getElementById('detail-post-views').textContent = post.views;
+    document.getElementById('detail-post-desc').textContent = post.content || '본문 내용이 없습니다.';
+
+    // Bind Comments
+    renderPostComments(post);
+
+    // Comment submission handler
+    const commentForm = document.getElementById('form-post-comment');
+    if (commentForm) {
+      const newCommentForm = commentForm.cloneNode(true);
+      commentForm.parentNode.replaceChild(newCommentForm, commentForm);
+      
+      newCommentForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const commentInput = document.getElementById('comment-input');
+        if (!commentInput) return;
+        const commentContent = commentInput.value.trim();
+        if (!commentContent) return;
+
+        const currentUser = auth ? auth.currentUser : null;
+        if (!currentUser) {
+          alert('댓글은 로그인 후 작성하실 수 있습니다.');
+          return;
+        }
+
+        const nameEl = document.getElementById('auth-user-name');
+        const authorName = (nameEl && nameEl.textContent) ? nameEl.textContent.trim() : (currentUser.email || '익명');
+
+        const dateStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
+          .replace(/\s/g, '').slice(0, -1);
+
+        const newComment = {
+          author: authorName,
+          content: commentContent,
+          date: dateStr
+        };
+
+        if (!post.comments) post.comments = [];
+        post.comments.push(newComment);
+        
+        commentInput.value = '';
+        renderPostComments(post);
+      });
+    }
+
+    dialogs.communityDetail.showModal();
+  }
+
+  function renderPostComments(post) {
+    const listContainer = document.getElementById('detail-post-comments-list');
+    const countEl = document.getElementById('detail-post-comments-count');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = '';
+    const comments = post.comments || [];
+    countEl.textContent = comments.length;
+
+    if (comments.length === 0) {
+      listContainer.innerHTML = '<div style="font-size: 0.85rem; color: var(--text-muted); text-align: center; padding: 1rem 0;">등록된 댓글이 없습니다. 첫 댓글을 남겨보세요!</div>';
+      return;
+    }
+
+    comments.forEach(c => {
+      const commentRow = document.createElement('div');
+      commentRow.style.cssText = 'padding: 0.75rem; background: var(--bg-main); border: 1px solid var(--border-main); border-radius: var(--radius-md); font-size: 0.85rem;';
+      commentRow.innerHTML = `
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-weight: 700; color: var(--brand-primary-dark);">
+          <span>${c.author}</span>
+          <span style="font-size: 0.75rem; color: var(--text-light); font-weight: 400;">${c.date}</span>
+        </div>
+        <div style="color: var(--text-main); line-height: 1.5; white-space: pre-wrap;">${c.content}</div>
+      `;
+      listContainer.appendChild(commentRow);
+    });
+  }
+
   function openJobDetails(job) {
     if (!dialogs.jobDetail) return;
     
