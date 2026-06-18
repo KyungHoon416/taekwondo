@@ -324,7 +324,8 @@ document.addEventListener('DOMContentLoaded', () => {
     customerService: document.getElementById('view-customer-service'),
     privacyPolicy: document.getElementById('view-privacy-policy'),
     termsOfUse: document.getElementById('view-terms-of-use'),
-    userGuide: document.getElementById('view-user-guide')
+    userGuide: document.getElementById('view-user-guide'),
+    about: document.getElementById('view-about')
   };
 
   // Nav menu links
@@ -757,6 +758,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const hash = rawHash || '#home';
     const cleanHash = hash.split('?')[0];
 
+    if (pathname === '/About') {
+      if (rawHash && cleanHash !== '#about' && cleanHash !== '#aboutUs') {
+        window.history.replaceState({}, '', '/' + rawHash);
+      } else {
+        navigateToView('about');
+        window.scrollTo(0, 0);
+        return;
+      }
+    }
     if (pathname === '/Privacy_Policy') {
       if (rawHash && cleanHash !== '#privacy-policy' && cleanHash !== '#privacyPolicy') {
         window.history.replaceState({}, '', '/' + rawHash);
@@ -826,6 +836,10 @@ document.addEventListener('DOMContentLoaded', () => {
         navigateToView('userGuide');
         window.scrollTo(0, 0);
         break;
+      case '#about':
+        navigateToView('about');
+        window.scrollTo(0, 0);
+        break;
       case '#home':
       default:
         navigateToView('home');
@@ -842,7 +856,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // SPA routing click handler for direct path link
   document.addEventListener('click', (e) => {
     const link = e.target.closest('a');
-    if (link && (link.getAttribute('href') === '/Privacy_Policy' || link.getAttribute('href') === '/Terms_of_Use' || link.getAttribute('href') === '/Customer_Service' || link.getAttribute('href') === '/User_Guide')) {
+    if (link && (link.getAttribute('href') === '/Privacy_Policy' || link.getAttribute('href') === '/Terms_of_Use' || link.getAttribute('href') === '/Customer_Service' || link.getAttribute('href') === '/User_Guide' || link.getAttribute('href') === '/About')) {
       e.preventDefault();
       const href = link.getAttribute('href');
       window.history.pushState({}, '', href);
