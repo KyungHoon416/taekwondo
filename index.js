@@ -1320,7 +1320,10 @@ document.addEventListener('DOMContentLoaded', () => {
     setAuthResult(resetPasswordResult, '', '');
 
     [formLogin, formRegister, formFindId, formResetPassword].forEach((pane) => {
-      if (pane) pane.classList.add('hidden');
+      if (pane) {
+        pane.classList.add('hidden');
+        pane.scrollTop = 0;
+      }
     });
     
     if (activePane === 'login') {
@@ -1337,6 +1340,23 @@ document.addEventListener('DOMContentLoaded', () => {
       if (activePane === 'findId') formFindId?.classList.remove('hidden');
       if (activePane === 'resetPassword') formResetPassword?.classList.remove('hidden');
     }
+
+    // 포커스 자동 지정 및 첫 인풋으로 스크롤 고정
+    setTimeout(() => {
+      if (activePane === 'login') {
+        const emailInput = document.getElementById('login-email');
+        if (emailInput) {
+          emailInput.focus();
+          formLogin.scrollTop = 0;
+        }
+      } else if (activePane === 'register') {
+        const nameInput = document.getElementById('reg-name');
+        if (nameInput) {
+          nameInput.focus();
+          formRegister.scrollTop = 0;
+        }
+      }
+    }, 50);
   }
 
   function openAuthDialog(activePane) {
