@@ -751,19 +751,29 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function handleRoute() {
-    if (window.location.pathname === '/Privacy_Policy') {
-      navigateToView('privacyPolicy');
-      window.scrollTo(0, 0);
-      return;
-    }
-    if (window.location.pathname === '/Terms_of_Use') {
-      navigateToView('termsOfUse');
-      window.scrollTo(0, 0);
-      return;
-    }
-
-    const hash = window.location.hash || '#home';
+    const pathname = window.location.pathname;
+    const rawHash = window.location.hash;
+    const hash = rawHash || '#home';
     const cleanHash = hash.split('?')[0];
+
+    if (pathname === '/Privacy_Policy') {
+      if (rawHash && cleanHash !== '#privacy-policy' && cleanHash !== '#privacyPolicy') {
+        window.history.replaceState({}, '', '/' + rawHash);
+      } else {
+        navigateToView('privacyPolicy');
+        window.scrollTo(0, 0);
+        return;
+      }
+    }
+    if (pathname === '/Terms_of_Use') {
+      if (rawHash && cleanHash !== '#terms-of-use' && cleanHash !== '#termsOfUse') {
+        window.history.replaceState({}, '', '/' + rawHash);
+      } else {
+        navigateToView('termsOfUse');
+        window.scrollTo(0, 0);
+        return;
+      }
+    }
 
     switch (cleanHash) {
       case '#jobs':
