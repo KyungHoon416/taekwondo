@@ -774,6 +774,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
     }
+    if (pathname === '/Customer_Service') {
+      if (rawHash && cleanHash !== '#customer-service' && cleanHash !== '#customerService') {
+        window.history.replaceState({}, '', '/' + rawHash);
+      } else {
+        navigateToView('customerService');
+        window.scrollTo(0, 0);
+        return;
+      }
+    }
 
     switch (cleanHash) {
       case '#jobs':
@@ -819,7 +828,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // SPA routing click handler for direct path link
   document.addEventListener('click', (e) => {
     const link = e.target.closest('a');
-    if (link && (link.getAttribute('href') === '/Privacy_Policy' || link.getAttribute('href') === '/Terms_of_Use')) {
+    if (link && (link.getAttribute('href') === '/Privacy_Policy' || link.getAttribute('href') === '/Terms_of_Use' || link.getAttribute('href') === '/Customer_Service')) {
       e.preventDefault();
       const href = link.getAttribute('href');
       window.history.pushState({}, '', href);
@@ -832,11 +841,9 @@ document.addEventListener('DOMContentLoaded', () => {
     { id: 'menu-jobs', hash: '#jobs' },
     { id: 'menu-talents', hash: '#talents' },
     { id: 'menu-community', hash: '#community' },
-    { id: 'menu-customer-service', hash: '#customer-service' },
     { id: 'm-menu-jobs', hash: '#jobs' },
     { id: 'm-menu-talents', hash: '#talents' },
-    { id: 'm-menu-community', hash: '#community' },
-    { id: 'm-menu-customer-service', hash: '#customer-service' }
+    { id: 'm-menu-community', hash: '#community' }
   ];
 
   navItems.forEach(item => {
