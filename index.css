@@ -1373,6 +1373,213 @@
   line-height: 1.6;
 }
 
+/* ==========================================================================
+   1:1 Inquiry Form Styles
+   ========================================================================== */
+.inquiry-section {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-lg);
+  padding: 3rem;
+  margin-top: 4rem;
+  box-shadow: var(--shadow-md);
+}
+
+.inquiry-header {
+  margin-bottom: 2.5rem;
+  text-align: left;
+}
+
+.inquiry-header h2 {
+  font-size: 1.6rem;
+  font-weight: 850;
+  color: var(--brand-primary-dark);
+  margin-bottom: 0.5rem;
+}
+
+.inquiry-header p {
+  font-size: 1rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.inquiry-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.inquiry-form .form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .inquiry-form .form-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  .inquiry-section {
+    padding: 2rem 1.5rem;
+    margin-top: 2.5rem;
+  }
+}
+
+.inquiry-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inquiry-form .form-group.full-width {
+  grid-column: span 2;
+}
+
+@media (max-width: 768px) {
+  .inquiry-form .form-group.full-width {
+    grid-column: span 1;
+  }
+}
+
+.inquiry-form label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--brand-primary-dark);
+}
+
+.inquiry-form label .required {
+  color: var(--red, #ef4444);
+  margin-left: 2px;
+}
+
+.inquiry-form input[type="text"],
+.inquiry-form input[type="email"],
+.inquiry-form input[type="tel"],
+.inquiry-form select,
+.inquiry-form textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  border: 1.5px solid var(--border-main);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.inquiry-form input:focus,
+.inquiry-form select:focus,
+.inquiry-form textarea:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.inquiry-form select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234b5563'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.2rem;
+  padding-right: 2.5rem;
+}
+
+.inquiry-form textarea {
+  resize: vertical;
+}
+
+.form-agree-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+  padding: 1rem;
+  background-color: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-main);
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  user-select: none;
+}
+
+.checkbox-label input {
+  display: none;
+}
+
+.checkbox-custom {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--border-main);
+  border-radius: 4px;
+  position: relative;
+  transition: background-color 0.2s, border-color 0.2s;
+  background-color: #fff;
+}
+
+.checkbox-label input:checked + .checkbox-custom {
+  background-color: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.checkbox-label input:checked + .checkbox-custom::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.btn-agree-detail {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-agree-detail:hover {
+  color: var(--accent-blue);
+}
+
+.form-submit-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.btn-inquiry-submit {
+  padding: 0.9rem 2.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.btn-inquiry-submit:hover {
+  transform: translateY(-1px);
+}
+
+.btn-inquiry-submit:active {
+  transform: translateY(1px);
+}
+
 
 /* ==========================================================================
    Footer Styles

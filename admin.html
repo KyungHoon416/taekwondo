@@ -611,69 +611,15 @@
       </div>
       <div class="table-panel">
         <div class="table-panel-header">
-          <div class="results-count">전체 <strong>15</strong>건 (미답변 <strong style="color:var(--red)">3</strong>건)</div>
+          <div class="results-count">전체 <strong id="inquiries-total-count">0</strong>건 (미답변 <strong id="inquiries-pending-count" style="color:var(--red)">0</strong>건)</div>
         </div>
         <div class="table-wrap">
           <table class="data-table">
             <thead>
               <tr><th>번호</th><th>유형</th><th>제목</th><th>작성자</th><th>작성일</th><th>상태</th><th>관리</th></tr>
             </thead>
-            <tbody>
-              <tr>
-                <td>15</td>
-                <td><span class="badge badge-amber">일반 문의</span></td>
-                <td>채용공고 등록 방법이 궁금합니다</td>
-                <td>이관장</td>
-                <td>2026-06-08</td>
-                <td><span class="badge badge-red">미답변</span></td>
-                <td><div class="action-btns">
-                  <button class="btn btn-sm btn-primary" onclick="showToast('답변 작성 페이지로 이동합니다.','success')">답변</button>
-                </div></td>
-              </tr>
-              <tr>
-                <td>14</td>
-                <td><span class="badge badge-red">신고</span></td>
-                <td>허위 채용공고 신고합니다</td>
-                <td>김사범</td>
-                <td>2026-06-07</td>
-                <td><span class="badge badge-red">미답변</span></td>
-                <td><div class="action-btns">
-                  <button class="btn btn-sm btn-primary" onclick="showToast('답변 작성 페이지로 이동합니다.','success')">답변</button>
-                </div></td>
-              </tr>
-              <tr>
-                <td>13</td>
-                <td><span class="badge badge-blue">이용 방법</span></td>
-                <td>이력서 수정은 어떻게 하나요?</td>
-                <td>박사범</td>
-                <td>2026-06-06</td>
-                <td><span class="badge badge-red">미답변</span></td>
-                <td><div class="action-btns">
-                  <button class="btn btn-sm btn-primary" onclick="showToast('답변 작성 페이지로 이동합니다.','success')">답변</button>
-                </div></td>
-              </tr>
-              <tr>
-                <td>12</td>
-                <td><span class="badge badge-amber">결제 문의</span></td>
-                <td>프리미엄 결제 취소 요청</td>
-                <td>최관장</td>
-                <td>2026-06-05</td>
-                <td><span class="badge badge-green">답변완료</span></td>
-                <td><div class="action-btns">
-                  <button class="btn btn-sm btn-secondary" onclick="showToast('답변 내용을 확인합니다.','')">보기</button>
-                </div></td>
-              </tr>
-              <tr>
-                <td>11</td>
-                <td><span class="badge badge-blue">일반 문의</span></td>
-                <td>회원 탈퇴 방법 안내 요청</td>
-                <td>정사범</td>
-                <td>2026-06-04</td>
-                <td><span class="badge badge-green">답변완료</span></td>
-                <td><div class="action-btns">
-                  <button class="btn btn-sm btn-secondary" onclick="showToast('답변 내용을 확인합니다.','')">보기</button>
-                </div></td>
-              </tr>
+            <tbody id="inquiries-tbody">
+              <!-- 동적 데이터 렌더링 -->
             </tbody>
           </table>
         </div>
@@ -1062,6 +1008,45 @@
   </div>
   <div class="dialog-ft">
     <button class="btn btn-secondary" onclick="closeDialog('detail-dialog')">닫기</button>
+  </div>
+</dialog>
+
+<!-- Inquiry Detail/Answer Dialog -->
+<dialog id="inquiry-dialog" class="admin-dialog" style="max-width: 600px;">
+  <div class="dialog-hd">
+    <h3>1:1 문의 상세 및 답변</h3>
+    <button class="dialog-close-btn" onclick="closeDialog('inquiry-dialog')">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dialog-bd" style="padding: 1.25rem 1.5rem 1.5rem 1.5rem;">
+    <!-- 문의 원본 내용 -->
+    <div style="background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 1.25rem; margin-bottom: 1.5rem;">
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+        <span class="badge" id="inquiry-dialog-type" style="font-size: 0.8rem;">일반 문의</span>
+        <span class="badge" id="inquiry-dialog-status" style="font-size: 0.8rem;">미답변</span>
+      </div>
+      <h4 id="inquiry-dialog-title" style="font-size: 1.1rem; font-weight: 800; color: var(--text-title); margin-bottom: 0.75rem;">문의 제목</h4>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px dashed var(--border);">
+        <div><strong>작성자:</strong> <span id="inquiry-dialog-name">이름</span></div>
+        <div><strong>연락처:</strong> <span id="inquiry-dialog-phone">연락처</span></div>
+        <div><strong>이메일:</strong> <span id="inquiry-dialog-email">이메일</span></div>
+        <div><strong>작성일:</strong> <span id="inquiry-dialog-date">작성일</span></div>
+      </div>
+      <div id="inquiry-dialog-content" style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; color: var(--text-main); max-height: 200px; overflow-y: auto;">
+        문의 내용이 들어갑니다.
+      </div>
+    </div>
+    
+    <!-- 답변 입력 폼 -->
+    <div class="form-field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+      <label for="inquiry-dialog-answer" style="font-size: 0.92rem; font-weight: 700; color: var(--text-title);">답변 내용 <span style="color:var(--red)">*</span></label>
+      <textarea id="inquiry-dialog-answer" class="form-control" rows="5" placeholder="문의 사항에 대한 성실하고 명확한 답변을 작성해 주세요."></textarea>
+    </div>
+  </div>
+  <div class="dialog-ft" style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+    <button class="btn btn-secondary" onclick="closeDialog('inquiry-dialog')">취소</button>
+    <button class="btn btn-primary" id="btn-save-inquiry-answer">답변 저장하기</button>
   </div>
 </dialog>
 

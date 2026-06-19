@@ -517,6 +517,65 @@
               </details>
             </div>
           </div>
+
+          <!-- 1:1 문의하기 섹션 -->
+          <div class="inquiry-section">
+            <div class="inquiry-header">
+              <h2>1:1 문의하기</h2>
+              <p>이용 중에 궁금하신 점이나 제안/신고 사항이 있으시면 남겨주세요. 신속하고 성실하게 답변해 드리겠습니다.</p>
+            </div>
+            
+            <form id="form-customer-inquiry" class="inquiry-form" novalidate>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="inquiry-name">성함 / 담당자명 <span class="required">*</span></label>
+                  <input type="text" id="inquiry-name" placeholder="이름을 입력해주세요" required>
+                </div>
+                <div class="form-group">
+                  <label for="inquiry-email">답변받을 이메일 <span class="required">*</span></label>
+                  <input type="email" id="inquiry-email" placeholder="example@email.com" required>
+                </div>
+                <div class="form-group">
+                  <label for="inquiry-phone">연락처 <span class="required">*</span></label>
+                  <input type="tel" id="inquiry-phone" placeholder="010-0000-0000" required>
+                </div>
+                <div class="form-group">
+                  <label for="inquiry-type">문의 유형 <span class="required">*</span></label>
+                  <select id="inquiry-type" required>
+                    <option value="" disabled selected>선택해 주세요</option>
+                    <option value="일반 문의">일반 문의</option>
+                    <option value="이용 방법">이용 방법</option>
+                    <option value="결제 문의">결제 문의</option>
+                    <option value="신고">신고</option>
+                    <option value="기타">기타</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="form-group full-width">
+                <label for="inquiry-title">문의 제목 <span class="required">*</span></label>
+                <input type="text" id="inquiry-title" placeholder="제목을 입력해주세요 (100자 이내)" required maxlength="100">
+              </div>
+              
+              <div class="form-group full-width">
+                <label for="inquiry-content">문의 내용 <span class="required">*</span></label>
+                <textarea id="inquiry-content" rows="6" placeholder="문의하실 내용을 상세히 적어주세요. 개인정보 보호를 위해 주민등록번호 등 민감정보 기재는 지양해주세요." required maxlength="5000"></textarea>
+              </div>
+              
+              <div class="form-agree-wrap">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="inquiry-agree" required>
+                  <span class="checkbox-custom"></span>
+                  <span>(필수) 개인정보 수집 및 이용에 동의합니다.</span>
+                </label>
+                <button type="button" class="btn-agree-detail" onclick="alert('개인정보 수집 및 이용 안내\n\n1. 수집 항목: 이름, 이메일, 연락처\n2. 수집 목적: 1:1 고객 문의에 대한 식별 및 답변 처리\n3. 보유 및 이용 기간: 문의 접수일로부터 3년간 보관 후 파기 (관련 법령에 의거)')">상세보기</button>
+              </div>
+              
+              <div class="form-submit-wrap">
+                <button type="submit" class="btn btn-primary btn-inquiry-submit">문의 접수하기</button>
+              </div>
+            </form>
+          </div>
         </div>
       </section>
     </div>
@@ -1572,6 +1631,6 @@
 
   <!-- Interactive JavaScript -->
   <script src="region-sync.js?v=20260612-v6"></script>
-  <script src="index.js?v=20260619-v2"></script>
+  <script src="index.js?v=20260619-v3"></script>
 </body>
 </html>

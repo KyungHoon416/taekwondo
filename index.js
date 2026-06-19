@@ -2411,6 +2411,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const nameEl    = document.getElementById('auth-user-name');
       const adminLink = document.getElementById('btn-admin-link');
 
+      const inqName = document.getElementById('inquiry-name');
+      const inqEmail = document.getElementById('inquiry-email');
+      const inqPhone = document.getElementById('inquiry-phone');
+
       if (user) {
         // 로그인 상태: 유저 이름 + 버튼 표시
         loggedOut.style.display = 'none';
@@ -2428,19 +2432,37 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
               adminLink.style.display = 'none';
             }
+
+            // 1:1 문의 폼 자동 입력
+            if (inqName) inqName.value = data.name || '';
+            if (inqEmail) inqEmail.value = data.email || user.email || '';
+            if (inqPhone) inqPhone.value = data.phone || '';
           } else {
             nameEl.textContent = user.email;
             adminLink.style.display = 'none';
+
+            if (inqName) inqName.value = '';
+            if (inqEmail) inqEmail.value = user.email || '';
+            if (inqPhone) inqPhone.value = '';
           }
         } catch (e) {
           nameEl.textContent = user.email;
           adminLink.style.display = 'none';
+
+          if (inqName) inqName.value = '';
+          if (inqEmail) inqEmail.value = user.email || '';
+          if (inqPhone) inqPhone.value = '';
         }
       } else {
         // 비로그인 상태
         loggedOut.style.display = 'flex';
         loggedIn.style.display  = 'none';
         if (adminLink) adminLink.style.display = 'none';
+
+        // 1:1 문의 폼 초기화
+        if (inqName) inqName.value = '';
+        if (inqEmail) inqEmail.value = '';
+        if (inqPhone) inqPhone.value = '';
       }
     });
   }
@@ -2525,6 +2547,110 @@ document.addEventListener('DOMContentLoaded', () => {
       } finally {
         btnApplyJob.disabled = false;
         btnApplyJob.textContent = '즉시 지원하기';
+      }
+    });
+  }
+
+  // ─── 1:1 문의 접수 핸들러 ───
+  const formInquiry = document.getElementById('form-customer-inquiry');
+  if (formInquiry) {
+    formInquiry.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('inquiry-name')?.value?.trim();
+      const email = document.getElementById('inquiry-email')?.value?.trim();
+      const phone = document.getElementById('inquiry-phone')?.value?.trim();
+      const type = document.getElementById('inquiry-type')?.value;
+      const title = document.getElementById('inquiry-title')?.value?.trim();
+      const content = document.getElementById('inquiry-content')?.value?.trim();
+      const agree = document.getElementById('inquiry-agree')?.checked;
+
+      // 간단한 유효성 검사
+      if (!name || !email || !phone || !type || !title || !content) {
+        alert('필수 입력 필드를 모두 작성해 주세요.');
+        return;
+      }
+      
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(email)) {
+        alert('올바른 이메일 형식을 입력해 주세요.');
+        return;
+      }
+
+      if (!agree) {
+        alert('개인정보 수집 및 이용 동의는 필수사항입니다.');
+        return;
+      }
+
+      const submitBtn = formInquiry.querySelector('.btn-inquiry-submit');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '접수 중...';
+      }
+
+      try {
+        const inquiryData = {
+          name: name,
+          email: email,
+          phone: phone,
+          type: type,
+          title: title,
+          content: content,
+          status: 'pending',
+          created_at: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        // 1. Firestore 저장
+        let docId = '';
+        if (db) {
+          const docRef = await db.collection('inquiries').add(inquiryData);
+          docId = docRef.id;
+        }
+
+        // 2. LocalStorage 백업 저장
+        try {
+          const localInquiries = JSON.parse(localStorage.getItem('taekwondo_inquiries') || '[]');
+          localInquiries.push({
+            id: docId || Math.random().toString(36).substring(2, 9),
+            name: name,
+            email: email,
+            phone: phone,
+            type: type,
+            title: title,
+            content: content,
+            status: 'pending',
+            created_at: new Date().toISOString()
+          });
+          localStorage.setItem('taekwondo_inquiries', JSON.stringify(localInquiries));
+        } catch (storageErr) {
+          console.warn('LocalStorage 저장 실패:', storageErr);
+        }
+
+        alert('문의가 정상적으로 접수되었습니다. 최대한 신속하게 답변해 드리겠습니다.');
+        formInquiry.reset();
+        
+        // 로그인 상태인 경우 입력 정보 다시 세팅
+        const currentUser = auth ? auth.currentUser : null;
+        if (currentUser && db) {
+          const snap = await db.collection('users').doc(currentUser.uid).get();
+          const data = snap.data();
+          if (data) {
+            const inqName = document.getElementById('inquiry-name');
+            const inqEmail = document.getElementById('inquiry-email');
+            const inqPhone = document.getElementById('inquiry-phone');
+            if (inqName) inqName.value = data.name || '';
+            if (inqEmail) inqEmail.value = data.email || currentUser.email || '';
+            if (inqPhone) inqPhone.value = data.phone || '';
+          }
+        }
+      } catch (err) {
+        console.error('문의 접수 에러:', err);
+        alert('문의 접수 중 오류가 발생했습니다: ' + err.message);
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = '문의 접수하기';
+        }
       }
     });
   }

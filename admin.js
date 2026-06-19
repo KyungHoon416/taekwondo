@@ -201,6 +201,8 @@ const APPLICATIONS = [
   { id: 208, applicant: '윤사범', job: '분당 태권도장 정사범 모집', gym: '분당 태권도장', applyDate: '2026-05-12', status: '면접제안' },
 ];
 
+const INQUIRIES = [];
+
 // ─── Pagination State ────────────────────────────────────────────────────────
 const PAGE_SIZE = 7;
 const state = {
@@ -238,7 +240,7 @@ async function navigateTo(viewId, clickedItem) {
   if (el) el.textContent = title;
 
   // 탭 이동 시 최신 Firestore 데이터를 자동으로 동기화(새로 가져오기)
-  if (['dashboard', 'members', 'jobs', 'resumes', 'applications'].includes(viewId)) {
+  if (['dashboard', 'members', 'jobs', 'resumes', 'applications', 'inquiries'].includes(viewId)) {
     try {
       await fetchFirestoreData();
     } catch (e) {
@@ -255,6 +257,7 @@ async function navigateTo(viewId, clickedItem) {
   if (viewId === 'jobs') filterJobs();
   if (viewId === 'resumes') filterResumes();
   if (viewId === 'applications') filterApplications();
+  if (viewId === 'inquiries') populateInquiries();
   if (viewId === 'analytics') initAnalyticsCharts();
 }
 
@@ -276,6 +279,8 @@ window.refreshAdminData = async function(viewId) {
       filterResumes();
     } else if (viewId === 'applications') {
       filterApplications();
+    } else if (viewId === 'inquiries') {
+      populateInquiries();
     }
 
     showToast('데이터 새로고침 완료', 'success');
@@ -435,6 +440,35 @@ async function fetchFirestoreData() {
   } catch (err) {
     console.warn('Firestore 지원 데이터 조회 중 실패:', err);
     showToast('지원 목록 조회 실패: ' + err.message, 'error');
+  }
+
+  // 5. 문의 목록 (inquiries 컬렉션)
+  try {
+    const inquirySnap = await db.collection('inquiries').get();
+    const dbInquiries = [];
+    inquirySnap.forEach((doc) => {
+      const i = doc.data();
+      dbInquiries.push({
+        id: doc.id,
+        name: i.name || '이름 없음',
+        email: i.email || '',
+        phone: i.phone || '',
+        type: i.type || '일반 문의',
+        title: i.title || '',
+        content: i.content || '',
+        status: i.status || 'pending',
+        answer: i.answer || '',
+        created_at: i.created_at ? (i.created_at.toDate ? i.created_at.toDate().toISOString() : '2026-06-11T00:00:00Z') : '2026-06-11T00:00:00Z',
+        answered_at: i.answered_at ? (i.answered_at.toDate ? i.answered_at.toDate().toISOString() : '') : ''
+      });
+    });
+    // 정렬 (timestamp 기준 내림차순 정렬)
+    dbInquiries.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    INQUIRIES.length = 0;
+    INQUIRIES.push(...dbInquiries);
+  } catch (err) {
+    console.warn('Firestore 문의 데이터 조회 중 실패:', err);
+    showToast('문의 목록 조회 실패: ' + err.message, 'error');
   }
 }
 
@@ -884,6 +918,144 @@ async function changeAppStatus(id, newStatus) {
   }
   filterApplications();
 }
+
+// ─── Inquiries (1:1 문의) ───────────────────────────────────────────────────
+function populateInquiries() {
+  const totalCountEl = document.getElementById('inquiries-total-count');
+  const pendingCountEl = document.getElementById('inquiries-pending-count');
+  const tbody = document.getElementById('inquiries-tbody');
+  
+  if (totalCountEl) totalCountEl.textContent = INQUIRIES.length;
+  const pendingCount = INQUIRIES.filter(i => i.status === 'pending').length;
+  if (pendingCountEl) pendingCountEl.textContent = pendingCount;
+  
+  if (!tbody) return;
+  
+  if (INQUIRIES.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">등록된 1:1 문의사항이 없습니다.</td></tr>`;
+    return;
+  }
+  
+  tbody.innerHTML = INQUIRIES.map((i, index) => {
+    const num = INQUIRIES.length - index;
+    const typeBadge = i.type === '신고' ? 'badge-red' : 
+                      i.type === '결제 문의' ? 'badge-amber' : 
+                      i.type === '이용 방법' ? 'badge-blue' : 'badge-amber';
+    
+    const statusBadge = i.status === 'pending' ? '<span class="badge badge-red">미답변</span>' : '<span class="badge badge-green">답변완료</span>';
+    
+    const actionBtn = i.status === 'pending' ? 
+      `<button class="btn btn-sm btn-primary" onclick="openInquiryDetailDialog('${i.id}')">답변</button>` :
+      `<button class="btn btn-sm btn-secondary" onclick="openInquiryDetailDialog('${i.id}')">보기</button>`;
+      
+    const dateStr = i.created_at ? i.created_at.split('T')[0] : '2026-06-11';
+    
+    return `
+      <tr>
+        <td>${num}</td>
+        <td><span class="badge ${typeBadge}">${i.type}</span></td>
+        <td style="font-weight:700; text-align:left; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${i.title}</td>
+        <td>${i.name}</td>
+        <td>${dateStr}</td>
+        <td>${statusBadge}</td>
+        <td>
+          <div class="action-btns">
+            ${actionBtn}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+let activeInquiryId = null;
+
+window.openInquiryDetailDialog = function(id) {
+  const inq = INQUIRIES.find(x => x.id === id);
+  if (!inq) return;
+  
+  activeInquiryId = id;
+  
+  const typeEl = document.getElementById('inquiry-dialog-type');
+  const statusEl = document.getElementById('inquiry-dialog-status');
+  const titleEl = document.getElementById('inquiry-dialog-title');
+  const nameEl = document.getElementById('inquiry-dialog-name');
+  const phoneEl = document.getElementById('inquiry-dialog-phone');
+  const emailEl = document.getElementById('inquiry-dialog-email');
+  const dateEl = document.getElementById('inquiry-dialog-date');
+  const contentEl = document.getElementById('inquiry-dialog-content');
+  const answerInput = document.getElementById('inquiry-dialog-answer');
+  const saveBtn = document.getElementById('btn-save-inquiry-answer');
+  
+  if (typeEl) {
+    typeEl.textContent = inq.type;
+    typeEl.className = 'badge ' + (inq.type === '신고' ? 'badge-red' : 
+                                   inq.type === '결제 문의' ? 'badge-amber' : 
+                                   inq.type === '이용 방법' ? 'badge-blue' : 'badge-amber');
+  }
+  
+  if (statusEl) {
+    statusEl.textContent = inq.status === 'pending' ? '미답변' : '답변완료';
+    statusEl.className = 'badge ' + (inq.status === 'pending' ? 'badge-red' : 'badge-green');
+  }
+  
+  if (titleEl) titleEl.textContent = inq.title;
+  if (nameEl) nameEl.textContent = inq.name;
+  if (phoneEl) phoneEl.textContent = inq.phone;
+  if (emailEl) emailEl.textContent = inq.email;
+  
+  const dateStr = inq.created_at ? inq.created_at.replace('T', ' ').substring(0, 16) : '2026-06-11';
+  if (dateEl) dateEl.textContent = dateStr;
+  if (contentEl) contentEl.textContent = inq.content;
+  
+  if (answerInput) {
+    answerInput.value = inq.answer || '';
+  }
+  
+  // 저장 버튼 핸들러 설정
+  if (saveBtn) {
+    const newSaveBtn = saveBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+    
+    newSaveBtn.addEventListener('click', async () => {
+      const answerVal = answerInput.value.trim();
+      if (!answerVal) {
+        alert('답변 내용을 입력해 주세요.');
+        return;
+      }
+      
+      newSaveBtn.disabled = true;
+      newSaveBtn.textContent = '저장 중...';
+      
+      try {
+        if (db) {
+          await db.collection('inquiries').doc(activeInquiryId).update({
+            status: 'answered',
+            answer: answerVal,
+            answered_at: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          
+          showToast('답변이 등록되었습니다.', 'success');
+          closeDialog('inquiry-dialog');
+          
+          // 데이터 리로드 및 갱신
+          await fetchFirestoreData();
+          populateInquiries();
+        } else {
+          showToast('Firestore 데이터베이스에 연결할 수 없습니다.', 'error');
+        }
+      } catch (err) {
+        console.error('답변 저장 실패:', err);
+        showToast('답변 저장 실패: ' + err.message, 'error');
+      } finally {
+        newSaveBtn.disabled = false;
+        newSaveBtn.textContent = '답변 저장하기';
+      }
+    });
+  }
+  
+  openDialog('inquiry-dialog');
+};
 
 function sendEmailNotification(app, status) {
   if (typeof emailjs === 'undefined') {
