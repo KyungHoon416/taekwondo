@@ -185,11 +185,10 @@ service cloud.firestore {
     }
 
     function isValidInquiry(data) {
-      return hasOnlyAllowedFields(['name', 'email', 'phone', 'type', 'title', 'content', 'created_at', 'status', 'answer', 'answered_at']) &&
-        hasRequiredFields(['name', 'email', 'phone', 'type', 'title', 'content', 'created_at', 'status']) &&
+      return hasOnlyAllowedFields(['name', 'email', 'type', 'title', 'content', 'created_at', 'status', 'answer', 'answered_at']) &&
+        hasRequiredFields(['name', 'email', 'type', 'title', 'content', 'created_at', 'status']) &&
         data.name is string && data.name.size() >= 1 && data.name.size() <= 50 &&
         data.email is string && isValidEmail(data.email) &&
-        data.phone is string && data.phone.size() >= 10 && data.phone.size() <= 20 &&
         data.type is string && (data.type == '일반 문의' || data.type == '이용 방법' || data.type == '결제 문의' || data.type == '신고' || data.type == '기타') &&
         data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
         data.content is string && data.content.size() >= 1 && data.content.size() <= 5000 &&

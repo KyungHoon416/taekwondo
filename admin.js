@@ -980,7 +980,6 @@ window.openInquiryDetailDialog = function(id) {
   const statusEl = document.getElementById('inquiry-dialog-status');
   const titleEl = document.getElementById('inquiry-dialog-title');
   const nameEl = document.getElementById('inquiry-dialog-name');
-  const phoneEl = document.getElementById('inquiry-dialog-phone');
   const emailEl = document.getElementById('inquiry-dialog-email');
   const dateEl = document.getElementById('inquiry-dialog-date');
   const contentEl = document.getElementById('inquiry-dialog-content');
@@ -1001,7 +1000,6 @@ window.openInquiryDetailDialog = function(id) {
   
   if (titleEl) titleEl.textContent = inq.title;
   if (nameEl) nameEl.textContent = inq.name;
-  if (phoneEl) phoneEl.textContent = inq.phone;
   if (emailEl) emailEl.textContent = inq.email;
   
   const dateStr = inq.created_at ? inq.created_at.replace('T', ' ').substring(0, 16) : '2026-06-11';
