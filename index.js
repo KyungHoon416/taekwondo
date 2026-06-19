@@ -405,11 +405,26 @@ document.addEventListener('DOMContentLoaded', () => {
   // 2. DOM Elements & State
   // ==========================================================================
   
+  // Load community posts from localStorage or fallback to mockPosts
+  let initialPosts = [];
+  try {
+    const savedPosts = localStorage.getItem('taekwondo_community_posts');
+    if (savedPosts) {
+      initialPosts = JSON.parse(savedPosts);
+    } else {
+      initialPosts = [...mockPosts];
+      localStorage.setItem('taekwondo_community_posts', JSON.stringify(initialPosts));
+    }
+  } catch (e) {
+    console.warn("Failed to load community posts from localStorage", e);
+    initialPosts = [...mockPosts];
+  }
+
   // App state
   const state = {
     jobsList: [...mockJobs],
     talentsList: [...mockTalents],
-    communityPosts: [...mockPosts],
+    communityPosts: initialPosts,
     filters: {
       jobs: { region: '', position: '', type: '' },
       talents: { regions: [], position: '' }
@@ -2134,6 +2149,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       state.communityPosts.unshift(newPost);
       
+      try {
+        localStorage.setItem('taekwondo_community_posts', JSON.stringify(state.communityPosts));
+      } catch (err) {
+        console.warn("Failed to save posts to localStorage", err);
+      }
+      
       // 등록 완료 후 폼 초기화 및 모달 닫기
       formPostCommunity.reset();
       if (dialogs.postCommunity) {
@@ -2158,6 +2179,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Increment views locally
     post.views = (post.views || 0) + 1;
+
+    try {
+      localStorage.setItem('taekwondo_community_posts', JSON.stringify(state.communityPosts));
+    } catch (err) {
+      console.warn("Failed to save posts to localStorage", err);
+    }
 
     const categoryNames = {
       recruit: '사범 구인구직',
@@ -2209,6 +2236,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!post.comments) post.comments = [];
         post.comments.push(newComment);
+        
+        try {
+          localStorage.setItem('taekwondo_community_posts', JSON.stringify(state.communityPosts));
+        } catch (err) {
+          console.warn("Failed to save posts to localStorage", err);
+        }
         
         commentInput.value = '';
         renderPostComments(post);
