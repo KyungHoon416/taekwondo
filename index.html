@@ -564,7 +564,7 @@
                   <span class="checkbox-custom"></span>
                   <span>(필수) 개인정보 수집 및 이용에 동의합니다.</span>
                 </label>
-                <button type="button" class="btn-agree-detail" onclick="alert('개인정보 수집 및 이용 안내\n\n1. 수집 항목: 이름, 이메일, 연락처\n2. 수집 목적: 1:1 고객 문의에 대한 식별 및 답변 처리\n3. 보유 및 이용 기간: 문의 접수일로부터 3년간 보관 후 파기 (관련 법령에 의거)')">상세보기</button>
+                <button type="button" class="btn-agree-detail" onclick="document.getElementById('dialog-privacy-agreement').showModal()">상세보기</button>
               </div>
               
               <div class="form-submit-wrap">
@@ -1621,6 +1621,40 @@
       </div>
       <div class="detail-footer">
         <button type="button" class="btn-action-secondary" onclick="this.closest('dialog').close();" style="margin: 0 auto; max-width: 200px;">닫기</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Privacy Agreement Details Dialog -->
+  <dialog id="dialog-privacy-agreement" class="modal-dialog" style="max-width: 550px;">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h2>개인정보 수집 및 이용 동의</h2>
+        <button type="button" class="btn-close-dialog" onclick="this.closest('dialog').close();" aria-label="닫기">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="detail-body" style="padding: 1.5rem; max-height: 400px; overflow-y: auto;">
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--brand-primary-dark); margin-bottom: 0.75rem;">1. 수집 항목</h3>
+        <p style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1.5rem;">
+          성함/담당자명, 답변받을 이메일 주소
+        </p>
+
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--brand-primary-dark); margin-bottom: 0.75rem;">2. 수집 및 이용 목적</h3>
+        <p style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1.5rem;">
+          사용자 1:1 고객 문의에 대한 신원 식별, 사실 관계 조사, 그리고 결과에 대한 이메일 답변 회신 처리
+        </p>
+
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--brand-primary-dark); margin-bottom: 0.75rem;">3. 보유 및 이용 기간</h3>
+        <p style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem;">
+          <strong>문의 처리 완료일로부터 3년간 보관</strong> 후 안전한 방법으로 지체 없이 파기합니다. (전자상거래 등에서의 소비자보호에 관한 법률 등 관련 법령에 따른 기준)
+        </p>
+        <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; background-color: var(--color-slate-50); border: 1.5px solid var(--border-main); padding: 0.75rem; border-radius: var(--radius-md);">
+          ※ 귀하는 본 개인정보 수집 및 이용 동의에 거부할 권리가 있으나, 거부 시 1:1 문의 접수 서비스 이용이 제한됩니다.
+        </p>
+      </div>
+      <div class="detail-footer" style="padding: 1.25rem 1.5rem; display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close();" style="width: auto; padding: 0.5rem 1.5rem;">닫기</button>
       </div>
     </div>
   </dialog>
