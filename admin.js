@@ -470,6 +470,44 @@ async function fetchFirestoreData() {
     console.warn('Firestore 문의 데이터 조회 중 실패:', err);
     showToast('문의 목록 조회 실패: ' + err.message, 'error');
   }
+
+  // 사이드바 메뉴 뱃지 일괄 갱신
+  updateSidebarBadges();
+}
+
+function updateSidebarBadges() {
+  // 1. 지원 목록 뱃지 ('검토중' 건수)
+  const pendingApps = APPLICATIONS.filter(a => a.status === '검토중').length;
+  const appBadge = document.getElementById('pending-badge');
+  if (appBadge) {
+    appBadge.textContent = pendingApps;
+    appBadge.style.display = pendingApps > 0 ? 'inline-flex' : 'none';
+  }
+
+  // 2. 문의 목록 뱃지 (미답변 'pending' 건수)
+  const pendingInquiries = INQUIRIES.filter(i => i.status === 'pending').length;
+  const inqBadge = document.getElementById('inquiries-badge');
+  if (inqBadge) {
+    inqBadge.textContent = pendingInquiries;
+    inqBadge.style.display = pendingInquiries > 0 ? 'inline-flex' : 'none';
+  }
+
+  // 3. 이력서 목록 뱃지 (최근 3일 이내 신규 등록 건수)
+  const today = new Date();
+  const threeDaysAgo = new Date(today);
+  threeDaysAgo.setDate(today.getDate() - 3);
+  
+  const newResumesCount = RESUMES.filter(r => {
+    if (!r.regDate) return false;
+    const reg = new Date(r.regDate);
+    return reg >= threeDaysAgo;
+  }).length;
+
+  const resumeBadge = document.getElementById('resumes-badge');
+  if (resumeBadge) {
+    resumeBadge.textContent = newResumesCount;
+    resumeBadge.style.display = newResumesCount > 0 ? 'inline-flex' : 'none';
+  }
 }
 
 function updateDashboardStats() {
@@ -884,9 +922,7 @@ function renderApplications() {
     </tr>`).join('');
 
   // Update badge
-  const pendingCount = APPLICATIONS.filter(a => a.status === '검토중').length;
-  const badge = document.getElementById('pending-badge');
-  if (badge) badge.textContent = pendingCount;
+  updateSidebarBadges();
 
   renderPagination('apps-pagination', filtered.length, page, 'applications');
 }
@@ -917,6 +953,7 @@ async function changeAppStatus(id, newStatus) {
     showToast(`${app.applicant}님 상태가 "${newStatus}"로 변경되었습니다.`, newStatus === '합격' ? 'success' : 'error');
   }
   filterApplications();
+  updateSidebarBadges();
 }
 
 // ─── Inquiries (1:1 문의) ───────────────────────────────────────────────────
@@ -928,6 +965,8 @@ function populateInquiries() {
   if (totalCountEl) totalCountEl.textContent = INQUIRIES.length;
   const pendingCount = INQUIRIES.filter(i => i.status === 'pending').length;
   if (pendingCountEl) pendingCountEl.textContent = pendingCount;
+  
+  updateSidebarBadges();
   
   if (!tbody) return;
   
