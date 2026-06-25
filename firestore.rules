@@ -305,7 +305,9 @@ service cloud.firestore {
           // Case A: Gym Owner updates status
           (request.auth.uid == get(/databases/$(database)/documents/jobs/$(resource.data.job_id)).data.user_id) ||
           // Case B: Resume Owner updates status
-          (request.auth.uid == get(/databases/$(database)/documents/resumes/$(resource.data.resume_id)).data.user_id)
+          (request.auth.uid == get(/databases/$(database)/documents/resumes/$(resource.data.resume_id)).data.user_id) ||
+          // Case C: Admin (any user of type 'gym') updates status
+          isUserOfType(request.auth.uid, 'gym')
         );
 
       allow delete: if isAuthenticated() &&
