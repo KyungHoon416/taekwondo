@@ -281,6 +281,9 @@ window.refreshAdminData = async function(viewId) {
       filterApplications();
     } else if (viewId === 'inquiries') {
       populateInquiries();
+    } else if (viewId === 'notices') {
+      // 공지사항은 현재 정적 마크업이므로 로딩 지연 시뮬레이션
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
 
     showToast('데이터 새로고침 완료', 'success');
