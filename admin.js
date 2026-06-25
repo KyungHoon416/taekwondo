@@ -1461,6 +1461,88 @@ document.addEventListener('DOMContentLoaded', () => {
   filterApplications();
 });
 
+// ─── Notices Static Data ─────────────────────────────────────────────────────
+const NOTICES = [
+  {
+    id: 'notice-1',
+    category: '필독',
+    categoryClass: 'badge-red',
+    title: '태권잡 서비스 이용약관 개정 안내',
+    date: '2026-06-01',
+    views: '1,205',
+    content: `안녕하세요, 태권잡 운영팀입니다.
+
+태권잡 서비스를 이용해 주시는 회원님들께 깊은 감사를 드리며, 새로운 서비스 이용약관 개정 사항에 대해 안내해 드립니다.
+
+■ 개정 대상: 태권잡 서비스 이용약관 및 개인정보 처리방침
+■ 개정 공지일: 2026-06-01
+■ 개정 적용일: 2026-07-01
+
+■ 주요 개정 내용:
+1. 국내 PG사(토스페이먼츠) 연동에 따른 결제 조항 정비
+2. 채용공고 최상단 고정 노출(상위 노출) 권한 관련 약관 구체화
+3. 1:1 문의 채널 고도화에 따른 개인정보 수집 항목(연락처 삭제 등) 현행화
+
+본 개정 약관에 동의하지 않으시는 경우 회원 탈퇴를 요청하실 수 있으며, 적용일 전까지 별도의 거부 의사를 표시하지 않으실 경우 본 개정 약관에 동의하신 것으로 간주됩니다. 관련 문의 사항은 고객센터를 통해 문의해 주시기 바랍니다.`
+  },
+  {
+    id: 'notice-2',
+    category: '공지',
+    categoryClass: 'badge-blue',
+    title: '2026년 6월 서버 점검 안내 (06/15 02:00~04:00)',
+    date: '2026-05-30',
+    views: '892',
+    content: `안녕하세요, 태권잡 운영팀입니다.
+
+더욱 안정적이고 빠른 서비스 제공을 위해 시스템 정기 점검 및 인프라 서버 확장을 진행할 예정입니다.
+점검 시간 동안에는 플랫폼 전체 서비스 이용(로그인, 공고 등록, 이력서 열람 등)이 일시 중단되오니 서비스 이용에 참고하시기 바랍니다.
+
+■ 점검 일시: 2026년 6월 15일 (월) 02:00 ~ 04:00 (약 2시간)
+■ 점검 내용: 데이터베이스 처리 성능 최적화 및 보안 패치 적용
+■ 영향 범위: 태권잡 웹사이트 및 관리자 웹 콘솔 전체 서비스 접속 불가
+
+점검 작업은 예정된 시간 내에 신속히 완료할 수 있도록 최선을 다하겠습니다. 이용에 불편을 드려 대단히 죄송합니다.`
+  },
+  {
+    id: 'notice-3',
+    category: '업데이트',
+    categoryClass: 'badge-green',
+    title: '프리미엄 채용공고 기능 업데이트 안내',
+    date: '2026-05-20',
+    views: '445',
+    content: `안녕하세요, 태권잡 운영팀입니다.
+
+관장님들의 빠르고 확실한 사범님 채용을 지원하기 위해 '채용공고 상위 노출 30일권' 서비스가 공식 오픈되었습니다!
+
+■ 주요 내용:
+- 채용공고 관리 화면에서 [상위노출 결제]를 진행할 수 있습니다.
+- 상위 노출이 설정된 공고는 메인 화면 최상단 구역에 고정 노출되어 높은 주목도를 보장합니다.
+- 토스페이먼츠(Toss Payments)를 통한 편리한 신용카드 및 페이 결제(카카오페이, 네이버페이 등)를 제공합니다.
+
+많은 이용 바라며, 관장님들의 원활한 인재 채용을 위해 최선을 다하겠습니다. 감사합니다.`
+  },
+  {
+    id: 'notice-4',
+    category: '일반',
+    categoryClass: 'badge-gray',
+    title: '개인정보 처리방침 개정 안내',
+    date: '2026-05-10',
+    views: '312',
+    content: `안녕하세요, 태권잡 운영팀입니다.
+
+개인정보 처리 위탁 정보 및 개인정보 수집 최소화 방침에 따라 개인정보 처리방침이 일부 변경되어 안내해 드립니다.
+
+■ 개정 공지일: 2026-05-10
+■ 개정 적용일: 2026-05-17
+
+■ 개정 내용:
+1. 1:1 문의 폼 내 전화번호(연락처) 수집 정보 제외 및 불필요한 개인정보 보유 파기 기준 정비
+2. 서비스 연동 외부 결제 대행업체 정보 현행화 (토스페이먼츠 추가)
+
+개정 사항에 대한 문의는 고객센터 이메일을 통해 접수해 주시면 성심껏 답변해 드리겠습니다. 감사합니다.`
+  }
+];
+
 // ─── Detail Modal populator ──────────────────────────────────────────────────
 window.showDetail = function(type, id) {
   const dialog = document.getElementById('detail-dialog');
@@ -1518,7 +1600,7 @@ window.showDetail = function(type, id) {
             <label for="job-detail-pinned-chk" style="cursor: pointer; font-weight: 500; vertical-align: middle; color: var(--blue);">최상단 고정 노출</label>
           </span>
         </div>
-        <div class="detail-full" style="margin-top: 0.5rem; padding: 1.25rem; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; border: 1.5px solid #e2e8f0; display: flex; flex-direction: column; gap: 0.6rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); box-sizing: border-box;">
+        <div class="detail-full" style="margin-top: 0.5rem; padding: 1.25rem; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; border: 1.5px solid #e2e8f0; display: flex; flex-direction: column; gap: 0.6rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); box-sizing: border-box;">
           <strong style="color: var(--blue); font-size: 0.92rem; display: flex; align-items: center; gap: 6px; margin-bottom: 0.2rem; font-family: inherit;">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             채용 담당자 정보
@@ -1568,6 +1650,22 @@ window.showDetail = function(type, id) {
         <div class="detail-item"><strong>도장명</strong><span>${a.gym}</span></div>
         <div class="detail-item"><strong>지원일</strong><span>${a.applyDate}</span></div>
         <div class="detail-item"><strong>진행 상태</strong><span>${appStatusBadge(a.status === '검토중' ? 'pending' : a.status === '면접제안' ? 'interview' : a.status === '합격' ? 'accepted' : 'rejected')}</span></div>
+      </div>
+    `;
+  } else if (type === 'notice') {
+    const n = NOTICES.find(x => x.id === id);
+    if (!n) { showToast('공지사항을 찾을 수 없습니다.', 'error'); return; }
+    title = '공지사항 상세 정보';
+    html = `
+      <div class="detail-grid">
+        <div class="detail-item"><strong>구분</strong><span><span class="badge ${n.categoryClass}">${n.category}</span></span></div>
+        <div class="detail-item"><strong>등록일</strong><span>${n.date}</span></div>
+        <div class="detail-item"><strong>조회수</strong><span>${n.views}회</span></div>
+        <div class="detail-full"><strong>공지사항 제목</strong><span style="font-size: 1.05rem; font-weight: 800; color: #0f172a;">${n.title}</span></div>
+        <div class="detail-full">
+          <strong>공지 내용</strong>
+          <div class="detail-desc" style="white-space: pre-wrap; line-height: 1.65; font-size: 0.88rem; color: #334155; max-height: 380px; overflow-y: auto; padding: 1.25rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; box-sizing: border-box;">${n.content}</div>
+        </div>
       </div>
     `;
   }

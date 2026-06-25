@@ -654,46 +654,46 @@
           <div class="results-count">전체 <strong>8</strong>건</div>
         </div>
         <div class="notice-list">
-          <div class="notice-row">
+          <div class="notice-row" onclick="showDetail('notice', 'notice-1')" style="cursor: pointer;">
             <svg class="notice-pin" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2l2.5 6H21l-5 3.5 2 6L12 14l-6 3.5 2-6L3 8h6.5z"/></svg>
             <span class="notice-category"><span class="badge badge-red">필독</span></span>
             <span class="notice-title">태권잡 서비스 이용약관 개정 안내</span>
             <span class="notice-date">2026-06-01</span>
             <span class="notice-views">👁 1,205</span>
-            <div class="action-btns">
+            <div class="action-btns" onclick="event.stopPropagation()">
               <button class="btn-icon" onclick="showToast('공지사항 수정','')">✏️</button>
               <button class="btn-icon danger" onclick="showToast('삭제하였습니다.','error')">🗑️</button>
             </div>
           </div>
-          <div class="notice-row">
+          <div class="notice-row" onclick="showDetail('notice', 'notice-2')" style="cursor: pointer;">
             <svg class="notice-pin" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2l2.5 6H21l-5 3.5 2 6L12 14l-6 3.5 2-6L3 8h6.5z"/></svg>
             <span class="notice-category"><span class="badge badge-blue">공지</span></span>
             <span class="notice-title">2026년 6월 서버 점검 안내 (06/15 02:00~04:00)</span>
             <span class="notice-date">2026-05-30</span>
             <span class="notice-views">👁 892</span>
-            <div class="action-btns">
+            <div class="action-btns" onclick="event.stopPropagation()">
               <button class="btn-icon" onclick="showToast('공지사항 수정','')">✏️</button>
               <button class="btn-icon danger" onclick="showToast('삭제하였습니다.','error')">🗑️</button>
             </div>
           </div>
-          <div class="notice-row">
+          <div class="notice-row" onclick="showDetail('notice', 'notice-3')" style="cursor: pointer;">
             <span style="width:14px"></span>
             <span class="notice-category"><span class="badge badge-green">업데이트</span></span>
             <span class="notice-title">프리미엄 채용공고 기능 업데이트 안내</span>
             <span class="notice-date">2026-05-20</span>
             <span class="notice-views">👁 445</span>
-            <div class="action-btns">
+            <div class="action-btns" onclick="event.stopPropagation()">
               <button class="btn-icon" onclick="showToast('공지사항 수정','')">✏️</button>
               <button class="btn-icon danger" onclick="showToast('삭제하였습니다.','error')">🗑️</button>
             </div>
           </div>
-          <div class="notice-row">
+          <div class="notice-row" onclick="showDetail('notice', 'notice-4')" style="cursor: pointer;">
             <span style="width:14px"></span>
             <span class="notice-category"><span class="badge badge-gray">일반</span></span>
             <span class="notice-title">개인정보 처리방침 개정 안내</span>
             <span class="notice-date">2026-05-10</span>
             <span class="notice-views">👁 312</span>
-            <div class="action-btns">
+            <div class="action-btns" onclick="event.stopPropagation()">
               <button class="btn-icon" onclick="showToast('공지사항 수정','')">✏️</button>
               <button class="btn-icon danger" onclick="showToast('삭제하였습니다.','error')">🗑️</button>
             </div>
@@ -1134,6 +1134,6 @@
 
 <script src="https://js.tosspayments.com/v1/payment"></script>
 <script src="region-sync.js?v=20260612-v5"></script>
-<script src="admin.js?v=20260625-v3"></script>
+<script src="admin.js?v=20260625-v4"></script>
 </body>
 </html>
