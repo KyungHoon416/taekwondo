@@ -1582,6 +1582,29 @@ window.toggleJobPinned = async function(jobId, element) {
   const isChecked = checkbox.checked;
 
   if (isChecked) {
+    // 결제 연동 활성화 상태인 경우
+    const paymentActive = localStorage.getItem('taekwondo_admin_payment_active') !== 'false';
+    if (paymentActive) {
+      // 켜려고 할 때 -> 결제 모달 오픈!
+      // 결제 완료 전까지 체크박스는 일시적으로 원래 상태(off)로 돌려놓음
+      checkbox.checked = false;
+
+      const j = JOBS.find(x => x.id === jobId || x.fullId === jobId);
+      if (!j) { showToast('채용공고를 찾을 수 없습니다.', 'error'); return; }
+
+      currentPaymentJobId = j.fullId || j.id;
+
+      // 결제 팝업 내 제목 바인딩
+      const payTitleEl = document.getElementById('payment-job-title');
+      if (payTitleEl) {
+        payTitleEl.textContent = `"${j.title}" 상위 노출 30일권`;
+      }
+
+      openDialog('payment-dialog');
+      return;
+    }
+
+    // 결제창 스킵 모드 (기존 직기록 흐름)
     try {
       showToast('상위 노출 정보를 업데이트 중입니다...', 'warning');
 
@@ -1655,6 +1678,39 @@ window.toggleJobPinned = async function(jobId, element) {
 // ─── 결제 모달 탭 변경 및 모의 결제 이벤트 바인딩 ──────────────────────
 let currentPaymentJobId = null;
 
+// 결제 모드 토글 함수 및 UI 업데이트
+window.togglePaymentMode = function() {
+  const active = localStorage.getItem('taekwondo_admin_payment_active') !== 'false';
+  const newActive = !active;
+  localStorage.setItem('taekwondo_admin_payment_active', newActive);
+  window.updatePaymentModeButtonUI(newActive);
+  showToast(newActive ? '결제 연동 모드가 활성화되었습니다.' : '결제 스킵(테스트) 모드가 활성화되었습니다.', 'warning');
+};
+
+window.updatePaymentModeButtonUI = function(active) {
+  const btn = document.getElementById('btn-toggle-payment-mode');
+  if (!btn) return;
+  if (active) {
+    btn.className = 'btn';
+    btn.style.border = '1.5px solid var(--blue)';
+    btn.style.color = 'var(--blue)';
+    btn.style.background = '#f0f7ff';
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      결제창 오픈 활성
+    `;
+  } else {
+    btn.className = 'btn btn-secondary';
+    btn.style.border = '';
+    btn.style.color = '';
+    btn.style.background = '';
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      결제창 스킵
+    `;
+  }
+};
+
 // 결제수단 선택 스타일 토글 헬퍼
 window.selectPayOption = function(method) {
   document.querySelectorAll('.pay-option').forEach(el => {
@@ -1669,61 +1725,83 @@ window.selectPayOption = function(method) {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 국내/해외 결제 탭 연동
-  const tabDomestic = document.getElementById('tab-pay-domestic');
-  const tabGlobal = document.getElementById('tab-pay-global');
-  const methodDomestic = document.getElementById('payment-method-domestic');
-  const methodGlobal = document.getElementById('payment-method-global');
+  // 결제 토글 상태 반영
+  const paymentActive = localStorage.getItem('taekwondo_admin_payment_active') !== 'false';
+  window.updatePaymentModeButtonUI(paymentActive);
+  // 토스페이먼츠 결제 실행 리스너
+  const btnPayExecute = document.getElementById('btn-pay-execute');
 
-  if (tabDomestic && tabGlobal) {
-    tabDomestic.addEventListener('click', () => {
-      tabDomestic.style.background = '#fff';
-      tabDomestic.style.color = '#0f172a';
-      tabDomestic.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-      tabGlobal.style.background = 'transparent';
-      tabGlobal.style.color = '#64748b';
-      tabGlobal.style.boxShadow = 'none';
+  if (btnPayExecute) {
+    btnPayExecute.addEventListener('click', async () => {
+      if (!currentPaymentJobId) {
+        showToast('결제 대상 채용공고를 찾을 수 없습니다.', 'error');
+        closeDialog('payment-dialog');
+        return;
+      }
 
-      if (methodDomestic) methodDomestic.style.display = 'block';
-      if (methodGlobal) methodGlobal.style.display = 'none';
-    });
+      // 라디오 버튼 수집
+      const payMethodRadio = document.querySelector('input[name="pay-method"]:checked');
+      const methodVal = payMethodRadio ? payMethodRadio.value : 'card';
 
-    tabGlobal.addEventListener('click', () => {
-      tabGlobal.style.background = '#fff';
-      tabGlobal.style.color = '#0f172a';
-      tabGlobal.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-      tabDomestic.style.background = 'transparent';
-      tabDomestic.style.color = '#64748b';
-      tabDomestic.style.boxShadow = 'none';
+      // 토스페이먼츠 결제 수단 매핑
+      let tossMethod = '카드';
+      if (methodVal === 'card' || methodVal === 'kakaopay' || methodVal === 'naverpay' || methodVal === 'tosspay') {
+        tossMethod = '카드'; // 일반 통합결제창에서 간편결제와 카드를 제공
+      }
 
-      if (methodDomestic) methodDomestic.style.display = 'none';
-      if (methodGlobal) methodGlobal.style.display = 'block';
+      // 토스페이먼츠 클라이언트 인스턴스 초기화 (테스트용 클라이언트 키)
+      if (typeof TossPayments === 'undefined') {
+        showToast('토스페이먼츠 라이브러리가 로드되지 않았습니다. 잠시 후 다시 시도해 주세요.', 'error');
+        return;
+      }
+      
+      const clientKey = 'test_ck_D5aZzN1E5Q1912A81Y5rlQ8YqFGG';
+      const tossPayments = TossPayments(clientKey);
+
+      // 결제창 호출
+      try {
+        const orderId = 'order_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
+        const successUrl = window.location.origin + window.location.pathname + '?paySuccess=true&jobId=' + currentPaymentJobId;
+        const failUrl = window.location.origin + window.location.pathname + '?payFail=true';
+
+        showToast('결제창을 여는 중...', 'warning');
+
+        tossPayments.requestPayment(tossMethod, {
+          amount: 30000,
+          orderId: orderId,
+          orderName: '채용공고 상위 노출 30일권',
+          customerName: '관장님',
+          successUrl: successUrl,
+          failUrl: failUrl,
+        });
+      } catch (err) {
+        console.error('토스페이먼츠 결제 호출 에러:', err);
+        showToast('결제창 호출에 실패했습니다: ' + err.message, 'error');
+      }
     });
   }
 
-  // 모의 결제 실행 리스너
-  const btnPayExecute = document.getElementById('btn-pay-execute');
-  const btnPaypalMock = document.getElementById('btn-paypal-mock');
-  const btnGlobalCardMock = document.getElementById('btn-global-card-mock');
+  // ─── 결제 결과 파라미터 감지 처리 ──────────────────────────────────────────
+  const urlParams = new URLSearchParams(window.location.search);
+  const paySuccess = urlParams.get('paySuccess');
+  const payFail = urlParams.get('payFail');
+  const jobId = urlParams.get('jobId');
 
-  const executeMockPayment = async () => {
-    if (!currentPaymentJobId) {
-      showToast('결제 대상 채용공고를 찾을 수 없습니다.', 'error');
-      closeDialog('payment-dialog');
-      return;
-    }
+  if (paySuccess === 'true' && jobId) {
+    // 쿼리 파라미터 지우기 (history replace)
+    const cleanUri = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUri);
 
-    showToast('결제 승인을 요청 중입니다...', 'warning');
-    closeDialog('payment-dialog');
+    showToast('결제 승인이 완료되었습니다. 데이터베이스 반영 중...', 'warning');
 
-    // 모의 결제 1초 로딩 지연 구현
-    setTimeout(async () => {
+    // 비동기 반영 처리
+    (async () => {
       try {
         // 실제 Firestore에 pinned 반영 (동일 상위노출 공고 조회 및 중복해제 트랜잭션 적용)
         const querySnap = await db.collection('jobs').where('pinned', '==', true).get();
         let existingPinnedJob = null;
         querySnap.forEach(doc => {
-          if (doc.id !== currentPaymentJobId) {
+          if (doc.id !== jobId) {
             existingPinnedJob = { id: doc.id, ...doc.data() };
           }
         });
@@ -1732,37 +1810,29 @@ document.addEventListener('DOMContentLoaded', () => {
           // 기존 상위 노출 해제 + 신규 설정
           const batch = db.batch();
           batch.update(db.collection('jobs').doc(existingPinnedJob.id), { pinned: false });
-          batch.update(db.collection('jobs').doc(currentPaymentJobId), { pinned: true });
+          batch.update(db.collection('jobs').doc(jobId), { pinned: true });
           await batch.commit();
         } else {
           // 신규 설정
-          await db.collection('jobs').doc(currentPaymentJobId).update({ pinned: true });
+          await db.collection('jobs').doc(jobId).update({ pinned: true });
         }
 
         // 데이터 갱신
         await fetchFirestoreData();
         filterJobs();
 
-        // 모달 열려있으면 갱신
-        const detailDialog = document.getElementById('detail-dialog');
-        if (detailDialog && detailDialog.open) {
-          showDetail('job', currentPaymentJobId.substring(0, 8));
-        }
-
         // 결제 완료 모달 띄우기
         openDialog('payment-success-dialog');
-        showToast('결제가 완료되었습니다.', 'success');
-
+        showToast('상위 노출 권한이 활성화되었습니다!', 'success');
       } catch (err) {
-        console.error('결제 완료 처리 중 에러:', err);
-        showToast('결제 처리 오류: ' + err.message, 'error');
-      } finally {
-        currentPaymentJobId = null;
+        console.error('결제 성공 후 Firestore 반영 실패:', err);
+        showToast('결제 반영 실패: ' + err.message, 'error');
       }
-    }, 1000);
-  };
-
-  if (btnPayExecute) btnPayExecute.addEventListener('click', executeMockPayment);
-  if (btnPaypalMock) btnPaypalMock.addEventListener('click', executeMockPayment);
-  if (btnGlobalCardMock) btnGlobalCardMock.addEventListener('click', executeMockPayment);
+    })();
+  } else if (payFail === 'true') {
+    // 쿼리 파라미터 지우기
+    const cleanUri = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUri);
+    showToast('결제가 취소되었거나 실패하였습니다.', 'error');
+  }
 });
