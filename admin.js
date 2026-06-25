@@ -1461,12 +1461,13 @@ document.addEventListener('DOMContentLoaded', () => {
   filterApplications();
 });
 
-// ─── Notices Static Data ─────────────────────────────────────────────────────
-const NOTICES = [
+// ─── Notices Data & CRUD ─────────────────────────────────────────────────────
+const DEFAULT_NOTICES = [
   {
     id: 'notice-1',
     category: '필독',
     categoryClass: 'badge-red',
+    isPinned: true,
     title: '태권잡 서비스 이용약관 개정 안내',
     date: '2026-06-01',
     views: '1,205',
@@ -1489,6 +1490,7 @@ const NOTICES = [
     id: 'notice-2',
     category: '공지',
     categoryClass: 'badge-blue',
+    isPinned: true,
     title: '2026년 6월 서버 점검 안내 (06/15 02:00~04:00)',
     date: '2026-05-30',
     views: '892',
@@ -1507,6 +1509,7 @@ const NOTICES = [
     id: 'notice-3',
     category: '업데이트',
     categoryClass: 'badge-green',
+    isPinned: false,
     title: '프리미엄 채용공고 기능 업데이트 안내',
     date: '2026-05-20',
     views: '445',
@@ -1525,6 +1528,7 @@ const NOTICES = [
     id: 'notice-4',
     category: '일반',
     categoryClass: 'badge-gray',
+    isPinned: false,
     title: '개인정보 처리방침 개정 안내',
     date: '2026-05-10',
     views: '312',
@@ -1542,6 +1546,167 @@ const NOTICES = [
 개정 사항에 대한 문의는 고객센터 이메일을 통해 접수해 주시면 성심껏 답변해 드리겠습니다. 감사합니다.`
   }
 ];
+
+let NOTICES = [];
+try {
+  const localData = localStorage.getItem('taekwondo_admin_notices');
+  if (localData) {
+    NOTICES = JSON.parse(localData);
+  } else {
+    NOTICES = [...DEFAULT_NOTICES];
+    localStorage.setItem('taekwondo_admin_notices', JSON.stringify(NOTICES));
+  }
+} catch (e) {
+  console.error('공지사항 초기화 에러:', e);
+  NOTICES = [...DEFAULT_NOTICES];
+}
+
+window.populateNotices = function() {
+  const container = document.getElementById('notice-list-container');
+  const countEl = document.getElementById('notice-count');
+  if (!container) return;
+
+  container.innerHTML = '';
+  if (countEl) countEl.textContent = NOTICES.length;
+
+  // 상단 고정(isPinned === true) 항목을 가장 앞으로 오게 하고, 나머지는 등록일 역순 정렬
+  const sorted = [...NOTICES].sort((a, b) => {
+    const aPinned = a.isPinned === true || a.isPinned === 'true';
+    const bPinned = b.isPinned === true || b.isPinned === 'true';
+    if (aPinned && !bPinned) return -1;
+    if (!aPinned && bPinned) return 1;
+    return new Date(b.date) - new Date(a.date);
+  });
+
+  sorted.forEach(n => {
+    const isPinned = n.isPinned === true || n.isPinned === 'true';
+    const row = document.createElement('div');
+    row.className = 'notice-row';
+    row.style.cursor = 'pointer';
+    row.onclick = () => showDetail('notice', n.id);
+
+    row.innerHTML = `
+      ${isPinned
+        ? `<svg class="notice-pin" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2l2.5 6H21l-5 3.5 2 6L12 14l-6 3.5 2-6L3 8h6.5z"/></svg>`
+        : `<span style="width:14px"></span>`}
+      <span class="notice-category"><span class="badge ${n.categoryClass || 'badge-gray'}">${n.category}</span></span>
+      <span class="notice-title">${n.title}</span>
+      <span class="notice-date">${n.date}</span>
+      <span class="notice-views">👁 ${n.views || 0}</span>
+      <div class="action-btns" onclick="event.stopPropagation()">
+        <button class="btn-icon" onclick="openEditNoticeDialog('${n.id}')">✏️</button>
+        <button class="btn-icon danger" onclick="deleteNotice('${n.id}')">🗑️</button>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+};
+
+let editingNoticeId = null;
+
+window.openCreateNoticeDialog = function() {
+  editingNoticeId = null;
+  const header = document.getElementById('notice-dlg-header');
+  const submitBtn = document.getElementById('notice-dlg-submit-btn');
+  if (header) header.textContent = '공지사항 작성';
+  if (submitBtn) submitBtn.textContent = '등록하기';
+
+  const categorySelect = document.getElementById('notice-dlg-category');
+  const pinnedSelect = document.getElementById('notice-dlg-pinned');
+  const titleInput = document.getElementById('notice-dlg-title');
+  const contentInput = document.getElementById('notice-dlg-content');
+
+  if (categorySelect) categorySelect.value = '공지';
+  if (pinnedSelect) pinnedSelect.value = 'false';
+  if (titleInput) titleInput.value = '';
+  if (contentInput) contentInput.value = '';
+
+  openDialog('notice-dialog');
+};
+
+window.openEditNoticeDialog = function(id) {
+  const n = NOTICES.find(x => x.id === id);
+  if (!n) { showToast('공지사항을 찾을 수 없습니다.', 'error'); return; }
+
+  editingNoticeId = id;
+  const header = document.getElementById('notice-dlg-header');
+  const submitBtn = document.getElementById('notice-dlg-submit-btn');
+  if (header) header.textContent = '공지사항 수정';
+  if (submitBtn) submitBtn.textContent = '수정완료';
+
+  const categorySelect = document.getElementById('notice-dlg-category');
+  const pinnedSelect = document.getElementById('notice-dlg-pinned');
+  const titleInput = document.getElementById('notice-dlg-title');
+  const contentInput = document.getElementById('notice-dlg-content');
+
+  if (categorySelect) categorySelect.value = n.category;
+  if (pinnedSelect) pinnedSelect.value = (n.isPinned === true || n.isPinned === 'true') ? 'true' : 'false';
+  if (titleInput) titleInput.value = n.title;
+  if (contentInput) contentInput.value = n.content;
+
+  openDialog('notice-dialog');
+};
+
+window.submitNotice = function() {
+  const categorySelect = document.getElementById('notice-dlg-category');
+  const pinnedSelect = document.getElementById('notice-dlg-pinned');
+  const titleInput = document.getElementById('notice-dlg-title');
+  const contentInput = document.getElementById('notice-dlg-content');
+
+  const category = categorySelect ? categorySelect.value : '공지';
+  const isPinned = pinnedSelect ? pinnedSelect.value === 'true' : false;
+  const title = titleInput ? titleInput.value.trim() : '';
+  const content = contentInput ? contentInput.value.trim() : '';
+
+  if (!title) { showToast('제목을 입력해 주세요.', 'error'); return; }
+  if (!content) { showToast('내용을 입력해 주세요.', 'error'); return; }
+
+  const categoryClasses = {
+    '필독': 'badge-red',
+    '공지': 'badge-blue',
+    '업데이트': 'badge-green',
+    '일반': 'badge-gray'
+  };
+  const categoryClass = categoryClasses[category] || 'badge-gray';
+
+  if (editingNoticeId) {
+    const idx = NOTICES.findIndex(x => x.id === editingNoticeId);
+    if (idx !== -1) {
+      NOTICES[idx].category = category;
+      NOTICES[idx].categoryClass = categoryClass;
+      NOTICES[idx].isPinned = isPinned;
+      NOTICES[idx].title = title;
+      NOTICES[idx].content = content;
+      showToast('공지사항이 수정되었습니다.', 'success');
+    }
+  } else {
+    const today = new Date().toISOString().split('T')[0];
+    const newNotice = {
+      id: 'notice-' + Date.now(),
+      category: category,
+      categoryClass: categoryClass,
+      isPinned: isPinned,
+      title: title,
+      date: today,
+      views: '0',
+      content: content
+    };
+    NOTICES.push(newNotice);
+    showToast('공지사항이 등록되었습니다.', 'success');
+  }
+
+  localStorage.setItem('taekwondo_admin_notices', JSON.stringify(NOTICES));
+  window.populateNotices();
+  closeDialog('notice-dialog');
+};
+
+window.deleteNotice = function(id) {
+  if (!confirm('정말 이 공지사항을 삭제하시겠습니까?')) return;
+  NOTICES = NOTICES.filter(x => x.id !== id);
+  localStorage.setItem('taekwondo_admin_notices', JSON.stringify(NOTICES));
+  window.populateNotices();
+  showToast('삭제하였습니다.', 'error');
+};
 
 // ─── Detail Modal populator ──────────────────────────────────────────────────
 window.showDetail = function(type, id) {
@@ -1829,6 +1994,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // 결제 토글 상태 반영
   const paymentActive = localStorage.getItem('taekwondo_admin_payment_active') !== 'false';
   window.updatePaymentModeButtonUI(paymentActive);
+  // 공지사항 리스트 동적 로드
+  if (window.populateNotices) {
+    window.populateNotices();
+  }
   // 토스페이먼츠 결제 실행 리스너
   const btnPayExecute = document.getElementById('btn-pay-execute');
 
