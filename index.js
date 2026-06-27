@@ -1888,6 +1888,15 @@ document.addEventListener('DOMContentLoaded', () => {
   postJobTriggers.forEach(trigger => {
     if (trigger) {
       trigger.addEventListener('click', () => {
+        const currentUser = auth ? auth.currentUser : null;
+        if (!currentUser) {
+          alert('채용공고 등록은 로그인 후 이용하실 수 있습니다.');
+          if (dialogs.auth) {
+            document.getElementById('tab-login')?.click();
+            dialogs.auth.showModal();
+          }
+          return;
+        }
         if (dialogs.postJob) dialogs.postJob.showModal();
       });
     }
@@ -1902,6 +1911,15 @@ document.addEventListener('DOMContentLoaded', () => {
   postResumeTriggers.forEach(trigger => {
     if (trigger) {
       trigger.addEventListener('click', () => {
+        const currentUser = auth ? auth.currentUser : null;
+        if (!currentUser) {
+          alert('이력서 등록은 로그인 후 이용하실 수 있습니다.');
+          if (dialogs.auth) {
+            document.getElementById('tab-login')?.click();
+            dialogs.auth.showModal();
+          }
+          return;
+        }
         if (dialogs.postResume) dialogs.postResume.showModal();
       });
     }
