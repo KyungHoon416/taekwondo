@@ -539,6 +539,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const userName = creator ? creator.name : (j.gymName || '관장님');
         const userEmail = creator ? creator.email : '이메일 정보 없음';
 
+        // 30일(30일 = 30 * 24 * 60 * 60 * 1000 ms) 이내에 등록된 공고에만 NEW 뱃지 노출
+        let isNew = false;
+        if (j.created_at) {
+          const createdAtMs = (j.created_at.toMillis) ? j.created_at.toMillis() : new Date(j.created_at).getTime();
+          const diffMs = Date.now() - createdAtMs;
+          if (diffMs <= 30 * 24 * 60 * 60 * 1000) {
+            isNew = true;
+          }
+        }
+
         dbJobs.push({
           id: doc.id,
           gymName: j.gymName || '도장',
@@ -548,7 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
           salary: j.salary || '월 300만원',
           type: j.type || '정규직',
           exp: j.career || '경력무관',
-          hotness: j.status === 'active' ? 'NEW' : '',
+          hotness: (j.status === 'active' && isNew) ? 'NEW' : '',
           desc: j.content || '',
           pinned: j.pinned || false,
           views: j.views || 0,
