@@ -1172,15 +1172,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Create single talent card element
-  function createTalentCardElement(talent, isHome = false) {
+  function createTalentCardElement(talent) {
     const card = document.createElement('div');
     card.className = 'talent-card';
     card.setAttribute('role', 'button');
     card.setAttribute('tabindex', '0');
     card.dataset.id = talent.id;
 
-    const displayName = isHome ? maskName(talent.name) : talent.name;
-    const avatarName = isHome ? '비공개' : talent.name;
+    const displayName = maskName(talent.name);
+    const avatarName = '비공개';
 
     card.innerHTML = `
       <div class="talent-avatar-wrapper">
@@ -1233,7 +1233,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Render first 5 talents
     const recentTalents = state.talentsList.slice(0, 5);
     recentTalents.forEach(talent => {
-      grid.appendChild(createTalentCardElement(talent, true));
+      grid.appendChild(createTalentCardElement(talent));
     });
   }
 
