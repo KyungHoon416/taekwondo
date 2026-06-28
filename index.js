@@ -1036,9 +1036,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // 4. Render Logic (Cards and Lists)
   // ==========================================================================
   
+  // Name masking helper for anonymous talent listings on home view
+  function maskName(name) {
+    if (!name) return '사범 회원';
+    if (name.length <= 2) {
+      return name.charAt(0) + '*';
+    }
+    return name.charAt(0) + '*'.repeat(name.length - 2) + name.slice(-1);
+  }
+
   // Generate SVG avatar markup
   function createAvatarSvg(name, gender, index) {
-    const initials = name.slice(1, 3) || name.charAt(0);
+    let initials = name.slice(1, 3) || name.charAt(0);
+    if (name === '비공개') {
+      initials = '?';
+    }
     const gradient = avatarGradients[index % avatarGradients.length];
     
     // Draw simple belt or ribbon overlay
@@ -1119,19 +1131,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Create single talent card element
-  function createTalentCardElement(talent) {
+  function createTalentCardElement(talent, isHome = false) {
     const card = document.createElement('div');
     card.className = 'talent-card';
     card.setAttribute('role', 'button');
     card.setAttribute('tabindex', '0');
     card.dataset.id = talent.id;
 
+    const displayName = isHome ? maskName(talent.name) : talent.name;
+    const avatarName = isHome ? '비공개' : talent.name;
+
     card.innerHTML = `
       <div class="talent-avatar-wrapper">
-        ${createAvatarSvg(talent.name, talent.gender, talent.colorIndex)}
+        ${createAvatarSvg(avatarName, talent.gender, talent.colorIndex)}
         <span class="talent-online-badge"></span>
       </div>
-      <h3 class="talent-name">${talent.name}</h3>
+      <h3 class="talent-name">${displayName}</h3>
       <div class="talent-role-exp">${talent.role} | ${talent.exp}</div>
       <div class="talent-meta">
         <span class="talent-loc">${talent.region}</span>
@@ -1177,7 +1192,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Render first 5 talents
     const recentTalents = state.talentsList.slice(0, 5);
     recentTalents.forEach(talent => {
-      grid.appendChild(createTalentCardElement(talent));
+      grid.appendChild(createTalentCardElement(talent, true));
     });
   }
 
