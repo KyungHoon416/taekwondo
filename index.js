@@ -425,7 +425,45 @@ document.addEventListener('DOMContentLoaded', () => {
     jobsList: [...mockJobs],
     talentsList: [...mockTalents],
     communityPosts: initialPosts,
-    filters: {
+  };
+
+  // Migrate older community post categories to 'free' and seed 'contest' data if missing
+  state.communityPosts.forEach(post => {
+    if (post.category === 'recruit' || post.category === 'archive') {
+      post.category = 'free';
+    }
+  });
+
+  const hasContest = state.communityPosts.some(post => post.category === 'contest');
+  if (!hasContest) {
+    state.communityPosts.push(
+      {
+        id: 'post-11',
+        category: 'contest',
+        title: '2026 하반기 전국 시도대항 태권도대회 접수 개시',
+        author: '대회연맹',
+        date: '2026.06.15',
+        views: 142,
+        content: '2026년도 하반기 전국 시도대항 태권도대회 참가 신청이 시작되었습니다. 품새 및 겨루기 부문 접수 요강 파일을 다운로드하여 기일 내에 신청 바랍니다.',
+        comments: []
+      },
+      {
+        id: 'post-12',
+        category: 'contest',
+        title: '제15회 도지사기 태권도 품새대회 개최 알림',
+        author: '품새협회',
+        date: '2026.06.12',
+        views: 98,
+        content: '지방 체육의 활성화와 꿈나무 육성을 위한 제15회 도지사기 태권도 품새대회 일정을 공지하오니 각 도장 선수단의 많은 참가를 부탁드립니다.',
+        comments: []
+      }
+    );
+    try {
+      localStorage.setItem('taekwondo_community_posts', JSON.stringify(state.communityPosts));
+    } catch(e) {}
+  }
+
+  state.filters = {
       jobs: { region: '', position: '', type: '' },
       talents: { regions: [], position: '' }
     },
@@ -937,10 +975,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       case '#community':
         navigateToView('community');
-        // Check if query params contain a specific tab
-        const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
-        const tab = params.get('tab') || 'recruit';
-        setupCommunityTab(tab);
+        setupCommunityTab('free');
         break;
       case '#customer-service':
         navigateToView('customerService');
@@ -1265,6 +1300,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // 5. Community tab handling
   // ==========================================================================
   
+  // Category badge helper for community lists
+  function getCategoryBadge(category) {
+    switch (category) {
+      case 'knowhow':
+        return `<span class="badge badge-amber" style="font-size:0.72rem;padding:2px 6px;margin-right:8px;display:inline-block;vertical-align:middle;">도장운영</span>`;
+      case 'news':
+        return `<span class="badge badge-blue" style="font-size:0.72rem;padding:2px 6px;margin-right:8px;display:inline-block;vertical-align:middle;">뉴스</span>`;
+      case 'contest':
+        return `<span class="badge" style="font-size:0.72rem;padding:2px 6px;margin-right:8px;display:inline-block;vertical-align:middle;background-color:#fee2e2;color:#ef4444;border:1px solid #fca5a5;">대회정보</span>`;
+      case 'free':
+      default:
+        return `<span class="badge badge-green" style="font-size:0.72rem;padding:2px 6px;margin-right:8px;display:inline-block;vertical-align:middle;">자유</span>`;
+    }
+  }
+
   function setupCommunityTab(tabName) {
     // Set active tab styling
     document.querySelectorAll('.comm-tab').forEach(tab => {
@@ -1278,23 +1328,27 @@ document.addEventListener('DOMContentLoaded', () => {
       activeTabButton.setAttribute('aria-selected', 'true');
     }
 
-    // Render corresponding posts
+    // Render corresponding posts with checkbox filtering
     const container = document.getElementById('community-posts-container');
     const countEl = document.getElementById('community-posts-count');
     if (!container) return;
     container.innerHTML = '';
 
-    const filteredPosts = state.communityPosts.filter(post => post.category === tabName);
+    // Extract active filter checkbox categories
+    const checkedChks = document.querySelectorAll('.comm-filter-chk:checked');
+    const checkedCategories = Array.from(checkedChks).map(chk => chk.value);
+
+    let filteredPosts = [];
+    if (checkedCategories.length === 0) {
+      // If none checked, show ALL community posts
+      filteredPosts = state.communityPosts;
+    } else {
+      // Filter by selected checkbox categories
+      filteredPosts = state.communityPosts.filter(post => checkedCategories.includes(post.category));
+    }
     
     if (countEl) {
-      const categoryNames = {
-        recruit: '사범 구인구직',
-        knowhow: '도장 운영 노하우',
-        news: '태권도 뉴스',
-        free: '자유게시판',
-        archive: '자료실'
-      };
-      countEl.textContent = `${categoryNames[tabName] || '게시글'} 목록 (${filteredPosts.length}개)`;
+      countEl.textContent = `자유게시판 목록 (${filteredPosts.length}개)`;
     }
 
     if (filteredPosts.length === 0) {
@@ -1307,7 +1361,7 @@ document.addEventListener('DOMContentLoaded', () => {
       row.className = 'post-row';
       row.innerHTML = `
         <div class="post-main-info">
-          <h3>${post.title}</h3>
+          <h3>${getCategoryBadge(post.category)} ${post.title}</h3>
           <div class="post-meta-line">
             <span class="post-author">${post.author}</span>
             <span class="post-date">${post.date}</span>
@@ -1327,11 +1381,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Hook up community tabs clicks
+  // Hook up community tabs clicks (always free board)
   document.querySelectorAll('.comm-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
-      const targetTab = e.target.dataset.filter;
-      window.location.hash = `#community?tab=${targetTab}`;
+      window.location.hash = '#community';
+    });
+  });
+
+  // Bind change event to community filters
+  document.querySelectorAll('.comm-filter-chk').forEach(chk => {
+    chk.addEventListener('change', () => {
+      setupCommunityTab('free');
     });
   });
 
@@ -2226,9 +2286,9 @@ document.addEventListener('DOMContentLoaded', () => {
         dialogs.postCommunity.close();
       }
 
-      // 작성한 글 카테고리로 탭 갱신 및 해시 이동
-      window.location.hash = `#community?tab=${category}`;
-      setupCommunityTab(category);
+      // 작성한 글 작성 후 커뮤니티 갱신 및 자유게시판(free) 로드
+      window.location.hash = '#community';
+      setupCommunityTab('free');
       
       alert('게시글이 성공적으로 등록되었습니다.');
     });
@@ -2252,11 +2312,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const categoryNames = {
-      recruit: '사범 구인구직',
+      free: '자유게시판',
       knowhow: '도장 운영 노하우',
       news: '태권도 뉴스',
-      free: '자유게시판',
-      archive: '자료실'
+      contest: '대회정보'
     };
 
     document.getElementById('detail-post-category').textContent = categoryNames[post.category] || '커뮤니티';

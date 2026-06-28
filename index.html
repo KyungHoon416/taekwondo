@@ -231,53 +231,13 @@
           </div>
           
           <div class="community-grid">
-            <a href="#community?tab=recruit" class="community-card" id="comm-card-recruit">
-              <div class="comm-icon-wrapper">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              </div>
-              <div class="comm-info">
-                <h3>사범 구인구직</h3>
-                <p>구인구직 정보를 자유롭게 공유하세요.</p>
-              </div>
-            </a>
-            
-            <a href="#community?tab=knowhow" class="community-card" id="comm-card-knowhow">
-              <div class="comm-icon-wrapper">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-              </div>
-              <div class="comm-info">
-                <h3>도장 운영 노하우</h3>
-                <p>도장 운영에 도움이 되는 정보를 나눠보세요.</p>
-              </div>
-            </a>
-            
-            <a href="#community?tab=news" class="community-card" id="comm-card-news">
-              <div class="comm-icon-wrapper">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M16 8h2"/><path d="M16 12h2"/><path d="M16 16h2"/><path d="M6 8h6v8H6z"/></svg>
-              </div>
-              <div class="comm-info">
-                <h3>태권도 뉴스</h3>
-                <p>태권도 관련 최신 소식을 확인해보세요.</p>
-              </div>
-            </a>
-            
-            <a href="#community?tab=free" class="community-card" id="comm-card-free">
+            <a href="#community?tab=free" class="community-card" id="comm-card-free" style="grid-column: 1 / -1; max-width: 500px; margin: 0 auto; width: 100%;">
               <div class="comm-icon-wrapper">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               </div>
               <div class="comm-info">
                 <h3>자유게시판</h3>
                 <p>자유로운 주제로 이야기를 나눠보세요.</p>
-              </div>
-            </a>
-            
-            <a href="#community?tab=archive" class="community-card" id="comm-card-archive">
-              <div class="comm-icon-wrapper">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-              </div>
-              <div class="comm-info">
-                <h3>자료실</h3>
-                <p>교육자료, 서식 등을 다운로드 받으세요.</p>
               </div>
             </a>
           </div>
@@ -445,12 +405,26 @@
             <p>정보 공유부터 소소한 소통까지, 태권도인들의 열린 광장입니다.</p>
           </div>
           
-          <div class="community-tabs" role="tablist" aria-label="커뮤니티 게시판 목록">
-            <button role="tab" aria-selected="true" class="comm-tab active" id="tab-recruit" data-filter="recruit">사범 구인구직</button>
-            <button role="tab" aria-selected="false" class="comm-tab" id="tab-knowhow" data-filter="knowhow">도장 운영 노하우</button>
-            <button role="tab" aria-selected="false" class="comm-tab" id="tab-news" data-filter="news">태권도 뉴스</button>
-            <button role="tab" aria-selected="false" class="comm-tab" id="tab-free" data-filter="free">자유게시판</button>
-            <button role="tab" aria-selected="false" class="comm-tab" id="tab-archive" data-filter="archive">자료실</button>
+          <div class="community-header-section" style="margin-bottom: 1.5rem;">
+            <div class="community-tabs" role="tablist" aria-label="커뮤니티 게시판 목록" style="margin-bottom: 1rem; border-bottom: none;">
+              <button role="tab" aria-selected="true" class="comm-tab active" id="tab-free" data-filter="free" style="font-size: 1.5rem; font-weight: 700; border-bottom: none; padding-bottom: 0;">자유게시판</button>
+            </div>
+            
+            <div class="community-filter-wrapper" style="display: flex; gap: 1rem; flex-wrap: wrap; padding: 0.75rem 1rem; background-color: var(--bg-surface); border-radius: var(--radius-md); border: 1px solid var(--border-main); margin-bottom: 1rem; align-items: center;">
+              <span style="font-size: 0.88rem; font-weight: 600; color: var(--text-main);">카테고리 필터 :</span>
+              <label style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.88rem; cursor: pointer; color: var(--text-main);">
+                <input type="checkbox" class="comm-filter-chk" value="knowhow" style="cursor: pointer; accent-color: var(--accent-blue);">
+                도장 운영 노하우
+              </label>
+              <label style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.88rem; cursor: pointer; color: var(--text-main);">
+                <input type="checkbox" class="comm-filter-chk" value="news" style="cursor: pointer; accent-color: var(--accent-blue);">
+                태권도 뉴스
+              </label>
+              <label style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.88rem; cursor: pointer; color: var(--text-main);">
+                <input type="checkbox" class="comm-filter-chk" value="contest" style="cursor: pointer; accent-color: var(--accent-blue);">
+                대회정보
+              </label>
+            </div>
           </div>
 
           <div class="board-layout">
@@ -1446,11 +1420,10 @@
         <div class="form-group">
           <label for="comm-post-category">게시판 선택</label>
           <select id="comm-post-category" required>
-            <option value="recruit">사범 구인구직</option>
+            <option value="free">자유게시판</option>
             <option value="knowhow">도장 운영 노하우</option>
             <option value="news">태권도 뉴스</option>
-            <option value="free">자유게시판</option>
-            <option value="archive">자료실</option>
+            <option value="contest">대회정보</option>
           </select>
         </div>
         <div class="form-group">
