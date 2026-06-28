@@ -936,28 +936,56 @@
 /* ==========================================================================
    Community Section
    ========================================================================== */
-.community-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.25rem;
-}
-
-.community-card {
-  background-color: var(--bg-surface);
-  border-radius: var(--radius-md);
-  padding: 1.5rem;
-  border: 1px solid var(--border-main);
+.home-community-list {
   display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  transition: all 0.2s;
+  flex-direction: column;
+  background-color: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-main);
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
-.community-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent-blue);
-  box-shadow: var(--shadow-md);
+.home-post-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 1px solid var(--border-main);
+}
+
+.home-post-row:last-child {
+  border-bottom: none;
+}
+
+.home-post-row:hover {
+  background-color: var(--bg-body);
+}
+
+.home-post-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.home-post-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-post-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  margin-left: 1rem;
 }
 
 .comm-icon-wrapper {

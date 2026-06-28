@@ -999,6 +999,7 @@ document.addEventListener('DOMContentLoaded', () => {
         navigateToView('home');
         renderHomeJobs();
         renderHomeTalents();
+        renderHomeCommunityPosts();
         break;
     }
   }
@@ -1233,6 +1234,42 @@ document.addEventListener('DOMContentLoaded', () => {
     const recentTalents = state.talentsList.slice(0, 5);
     recentTalents.forEach(talent => {
       grid.appendChild(createTalentCardElement(talent, true));
+    });
+  }
+
+  // Render community posts on the Home view
+  function renderHomeCommunityPosts() {
+    const container = document.getElementById('home-community-posts');
+    if (!container) return;
+    container.innerHTML = '';
+
+    // 최신 글 4개 추출
+    const recentPosts = state.communityPosts.slice(0, 4);
+
+    if (recentPosts.length === 0) {
+      container.innerHTML = '<div class="no-results" style="padding: 2rem 0;">등록된 커뮤니티 게시글이 없습니다.</div>';
+      return;
+    }
+
+    recentPosts.forEach(post => {
+      const row = document.createElement('div');
+      row.className = 'home-post-row';
+      row.innerHTML = `
+        <div class="home-post-main">
+          ${getCategoryBadge(post.category)}
+          <span class="home-post-title">${post.title}</span>
+        </div>
+        <div class="home-post-meta">
+          <span style="margin-right: 8px;">${post.author}</span>
+          <span>${post.date}</span>
+        </div>
+      `;
+
+      row.addEventListener('click', () => {
+        openCommunityDetails(post);
+      });
+
+      container.appendChild(row);
     });
   }
 
@@ -2287,6 +2324,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // 작성한 글 작성 후 커뮤니티 갱신 및 자유게시판(free) 로드
       window.location.hash = '#community';
       setupCommunityTab('free');
+      renderHomeCommunityPosts();
       
       alert('게시글이 성공적으로 등록되었습니다.');
     });
@@ -2519,6 +2557,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderBoardJobs();
     renderHomeTalents();
     renderBoardTalents();
+    renderHomeCommunityPosts();
     updateStats();
   });
   handleRoute();
