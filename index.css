@@ -1720,7 +1720,8 @@
 }
 
 .modal-dialog[open] {
-  display: block;
+  display: flex;
+  flex-direction: column;
   opacity: 1;
   transform: translateY(0);
 }
@@ -1759,6 +1760,8 @@
   width: 100%;
   box-sizing: border-box;
   overflow: visible;
+  flex-shrink: 0;
+  min-height: min-content;
 }
 
 
@@ -1990,6 +1993,14 @@
 .btn-auth-back:hover {
   background-color: var(--color-slate-50);
   color: var(--accent-blue);
+}
+
+.auth-pane {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: min-content;
+  flex-shrink: 0;
 }
 
 .auth-pane.hidden {
