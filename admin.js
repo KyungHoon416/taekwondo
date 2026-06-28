@@ -1402,8 +1402,8 @@ function initAnalyticsCharts() {
     new Chart(posCtx, {
       type: 'pie',
       data: {
-        labels: ['정사범', '보조사범', '수석사범', '파트타임', '유치부'],
-        datasets: [{ data: [55, 28, 10, 15, 20], backgroundColor: ['#2563eb','#10b981','#8b5cf6','#f59e0b','#ef4444'], borderWidth: 3, borderColor: '#fff' }],
+        labels: ['지도관장', '정사범', '보조사범', '수석사범', '파트타임', '유치부'],
+        datasets: [{ data: [15, 55, 28, 10, 15, 20], backgroundColor: ['#3b82f6','#2563eb','#10b981','#8b5cf6','#f59e0b','#ef4444'], borderWidth: 3, borderColor: '#fff' }],
       },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, usePointStyle: true } } } },
     });
