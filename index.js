@@ -425,6 +425,14 @@ document.addEventListener('DOMContentLoaded', () => {
     jobsList: [...mockJobs],
     talentsList: [...mockTalents],
     communityPosts: initialPosts,
+    filters: {
+      jobs: { region: '', position: '', type: '' },
+      talents: { regions: [], position: '' }
+    },
+    regions: [],
+    selectedResumeRegions: [],
+    selectedJobRegions: [],
+    regionPickers: {}
   };
 
   // Migrate older community post categories to 'free' and seed 'contest' data if missing
@@ -462,16 +470,6 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('taekwondo_community_posts', JSON.stringify(state.communityPosts));
     } catch(e) {}
   }
-
-  state.filters = {
-      jobs: { region: '', position: '', type: '' },
-      talents: { regions: [], position: '' }
-    },
-    regions: [],
-    selectedResumeRegions: [],
-    selectedJobRegions: [],
-    regionPickers: {}
-  };
 
   // Views
   const views = {
