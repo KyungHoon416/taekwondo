@@ -1720,8 +1720,7 @@
 }
 
 .modal-dialog[open] {
-  display: flex;
-  flex-direction: column;
+  display: block;
   opacity: 1;
   transform: translateY(0);
 }
