@@ -1047,10 +1047,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Generate SVG avatar markup
   function createAvatarSvg(name, gender, index) {
-    let initials = name.slice(1, 3) || name.charAt(0);
     if (name === '비공개') {
-      initials = '?';
+      return `
+        <svg class="talent-avatar" viewBox="0 0 100 100" width="80" height="80">
+          <circle cx="50" cy="50" r="48" fill="#e2e8f0"/>
+          <circle cx="50" cy="38" r="16" fill="#94a3b8"/>
+          <path d="M 22,76 C 22,58 35,52 50,52 C 65,52 78,58 78,76 C 78,79 75,82 72,82 L 28,82 C 25,82 22,79 22,76 Z" fill="#94a3b8"/>
+        </svg>
+      `;
     }
+    
+    let initials = name.slice(1, 3) || name.charAt(0);
     const gradient = avatarGradients[index % avatarGradients.length];
     
     // Draw simple belt or ribbon overlay
