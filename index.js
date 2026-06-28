@@ -1009,6 +1009,7 @@ document.addEventListener('DOMContentLoaded', () => {
       case '#home':
       default:
         navigateToView('home');
+        loadHomeBanners();
         renderHomeJobs();
         renderHomeTalents();
         renderHomeCommunityPosts();
@@ -1248,6 +1249,84 @@ document.addEventListener('DOMContentLoaded', () => {
       grid.appendChild(createTalentCardElement(talent));
     });
   }
+
+  // Home Banner: Firestore에서 배너를 불러와 홈 화면에 표시
+  async function loadHomeBanners() {
+    const section = document.getElementById('home-banner-section');
+    if (!section) return;
+
+    // db가 없으면 배너 숨김
+    if (!db) { section.innerHTML = ''; return; }
+
+    try {
+      const snap = await db.collection('banners').orderBy('created_at', 'desc').limit(5).get();
+      const banners = [];
+      snap.forEach(doc => banners.push({ id: doc.id, ...doc.data() }));
+
+      if (banners.length === 0) {
+        section.innerHTML = '';
+        return;
+      }
+
+      // 1개면 단순 이미지, 여러 개면 슬라이더
+      if (banners.length === 1) {
+        section.innerHTML = `
+          <div style="width:100%;border-radius:12px;overflow:hidden;margin:0 0 0.5rem;">
+            <img src="${banners[0].url}" alt="배너" style="width:100%;max-height:180px;object-fit:cover;display:block;"
+              onerror="this.parentElement.style.display='none'">
+          </div>`;
+      } else {
+        let currentIdx = 0;
+        const sliderId = 'home-banner-slider-' + Date.now();
+        section.innerHTML = `
+          <div id="${sliderId}" style="position:relative;width:100%;border-radius:12px;overflow:hidden;margin:0 0 0.5rem;user-select:none;">
+            ${banners.map((b, i) => `
+              <div class="banner-slide" style="display:${i === 0 ? 'block' : 'none'};width:100%;">
+                <img src="${b.url}" alt="배너 ${i+1}" style="width:100%;max-height:180px;object-fit:cover;display:block;"
+                  onerror="this.parentElement.style.display='none'">
+              </div>`).join('')}
+            <button onclick="bannerPrev('${sliderId}')" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.45);border:none;color:#fff;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">&#8249;</button>
+            <button onclick="bannerNext('${sliderId}',${banners.length})" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.45);border:none;color:#fff;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">&#8250;</button>
+            <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;">
+              ${banners.map((_, i) => `<span class="banner-dot" data-i="${i}" style="width:7px;height:7px;border-radius:50%;background:${i===0?'#fff':'rgba(255,255,255,0.45)'};display:inline-block;cursor:pointer;" onclick="bannerGoTo('${sliderId}',${i},${banners.length})"></span>`).join('')}
+            </div>
+          </div>`;
+
+        // 자동 슬라이드 (5초)
+        setInterval(() => { bannerNext(sliderId, banners.length); }, 5000);
+      }
+    } catch (e) {
+      console.warn('홈 배너 로드 실패:', e);
+      section.innerHTML = '';
+    }
+  }
+
+  // 배너 슬라이더 컨트롤 함수 (전역 노출 필요)
+  window.bannerGoTo = function(sliderId, idx, total) {
+    const slider = document.getElementById(sliderId);
+    if (!slider) return;
+    const slides = slider.querySelectorAll('.banner-slide');
+    const dots = slider.querySelectorAll('.banner-dot');
+    slides.forEach((s, i) => s.style.display = i === idx ? 'block' : 'none');
+    dots.forEach((d, i) => d.style.background = i === idx ? '#fff' : 'rgba(255,255,255,0.45)');
+  };
+
+  window.bannerNext = function(sliderId, total) {
+    const slider = document.getElementById(sliderId);
+    if (!slider) return;
+    const slides = slider.querySelectorAll('.banner-slide');
+    let cur = Array.from(slides).findIndex(s => s.style.display !== 'none');
+    window.bannerGoTo(sliderId, (cur + 1) % total, total);
+  };
+
+  window.bannerPrev = function(sliderId) {
+    const slider = document.getElementById(sliderId);
+    if (!slider) return;
+    const slides = slider.querySelectorAll('.banner-slide');
+    const total = slides.length;
+    let cur = Array.from(slides).findIndex(s => s.style.display !== 'none');
+    window.bannerGoTo(sliderId, (cur - 1 + total) % total, total);
+  };
 
   // Render community posts on the Home view
   function renderHomeCommunityPosts() {
@@ -2286,8 +2365,71 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Submit Community Post
   const formPostCommunity = document.getElementById('form-post-community');
+  // 커뮤니티 이미지 선택 상태 관리
+  let commSelectedImage = null;
+
+  // 이미지 파일 선택 처리 (input[type=file] 변경 이벤트)
+  window.handleCommImageSelect = function(event) {
+    const file = event.target.files[0];
+    if (file) applyCommImageFile(file);
+    event.target.value = '';
+  };
+
+  // 드래그앤드롭 처리
+  window.handleCommImageDrop = function(event) {
+    event.preventDefault();
+    const drop = document.getElementById('comm-image-drop');
+    if (drop) { drop.style.borderColor = '#cbd5e1'; drop.style.background = '#f8fafc'; }
+    const file = event.dataTransfer.files[0];
+    if (file) applyCommImageFile(file);
+  };
+
+  // 이미지 파일 검증 및 미리보기 설정
+  function applyCommImageFile(file) {
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      alert('JPG, PNG, WebP 형식의 이미지만 첨부 가능합니다.');
+      return;
+    }
+    if (file.size > 1 * 1024 * 1024) {
+      alert('이미지 용량이 너무 큽니다. 1MB 이하로 압축 후 첨부해주세요.');
+      return;
+    }
+    commSelectedImage = file;
+
+    // 미리보기
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const previewDiv = document.getElementById('comm-image-preview');
+      const previewImg = document.getElementById('comm-image-preview-img');
+      const placeholder = document.getElementById('comm-image-placeholder');
+      const infoDiv = document.getElementById('comm-image-info');
+      const nameEl = document.getElementById('comm-image-name');
+
+      if (previewImg) previewImg.src = e.target.result;
+      if (previewDiv) previewDiv.style.display = 'block';
+      if (placeholder) placeholder.style.display = 'none';
+      if (infoDiv) { infoDiv.style.display = 'flex'; }
+      if (nameEl) nameEl.textContent = file.name + ` (${(file.size/1024).toFixed(0)}KB)`;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // 이미지 제거
+  window.clearCommImage = function() {
+    commSelectedImage = null;
+    const previewDiv = document.getElementById('comm-image-preview');
+    const previewImg = document.getElementById('comm-image-preview-img');
+    const placeholder = document.getElementById('comm-image-placeholder');
+    const infoDiv = document.getElementById('comm-image-info');
+    if (previewDiv) previewDiv.style.display = 'none';
+    if (previewImg) previewImg.src = '';
+    if (placeholder) placeholder.style.display = 'block';
+    if (infoDiv) infoDiv.style.display = 'none';
+  };
+
   if (formPostCommunity) {
-    formPostCommunity.addEventListener('submit', (e) => {
+    formPostCommunity.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const currentUser = auth ? auth.currentUser : null;
@@ -2312,6 +2454,24 @@ document.addEventListener('DOMContentLoaded', () => {
       const dateStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
         .replace(/\s/g, '').slice(0, -1); // '2026.06.16' 형식
 
+      // 이미지 업로드 처리 (선택한 경우에만)
+      let imageUrl = '';
+      if (commSelectedImage) {
+        try {
+          const storageInst = (typeof firebase !== 'undefined' && firebase.storage) ? firebase.storage() : null;
+          if (storageInst) {
+            const timestamp = Date.now();
+            const safeFileName = commSelectedImage.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const ref = storageInst.ref(`community/${timestamp}_${safeFileName}`);
+            const uploadTask = await ref.put(commSelectedImage);
+            imageUrl = await uploadTask.ref.getDownloadURL();
+          }
+        } catch (uploadErr) {
+          console.warn('이미지 업로드 실패 (이미지 제외 등록):', uploadErr);
+          imageUrl = '';
+        }
+      }
+
       const newPost = {
         id: 'post-' + Date.now(),
         category: category,
@@ -2320,6 +2480,7 @@ document.addEventListener('DOMContentLoaded', () => {
         date: dateStr,
         views: 0,
         content: content,
+        imageUrl: imageUrl,
         comments: []
       };
 
@@ -2333,6 +2494,8 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // 등록 완료 후 폼 초기화 및 모달 닫기
       formPostCommunity.reset();
+      clearCommImage();
+      commSelectedImage = null;
       if (dialogs.postCommunity) {
         dialogs.postCommunity.close();
       }

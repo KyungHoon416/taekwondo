@@ -17,6 +17,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="firebase-config.js"></script>
 </head>
 <body>
@@ -193,20 +194,9 @@
         </div>
       </section>
 
-      <!-- Premium Banner -->
-      <section class="premium-ad-section" aria-label="프리미엄 채용공고 안내">
-        <div class="premium-container">
-          <div class="premium-content">
-            <div class="crown-icon-wrapper">
-              <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" class="gold-crown"><path d="M12 2L15 8L22 9L17 14L18.5 21L12 17.5L5.5 21L7 14L2 9L9 8L12 2Z"/></svg>
-            </div>
-            <div class="premium-text">
-              <span class="premium-label">프리미엄 채용공고</span>
-              <p class="premium-desc">상단 고정 노출로 더 빠르고 정확하게 인재를 만나보세요!</p>
-            </div>
-          </div>
-          <button type="button" class="btn-premium-action" id="btn-premium-products">프리미엄 상품 보기</button>
-        </div>
+      <!-- Home Banner Slot - 어드민에서 등록한 배너가 동적으로 표시됩니다 -->
+      <section id="home-banner-section" aria-label="배너" style="margin:0 0 0.5rem;">
+        <!-- JS에 의해 동적 렌더링 -->
       </section>
 
       <!-- Recommended Resumes Section -->
@@ -1432,6 +1422,30 @@
           <label for="comm-post-content">내용</label>
           <textarea id="comm-post-content" rows="6" required placeholder="내용을 입력하세요"></textarea>
         </div>
+        <div class="form-group">
+          <label for="comm-post-image">이미지 쳊부 <span style="font-weight:400;color:var(--text-muted);font-size:0.82rem;">선택 · JPG/PNG/WebP · 최대 1MB</span></label>
+          <div id="comm-image-drop" style="
+            border:2px dashed #cbd5e1;border-radius:10px;padding:1.25rem;
+            text-align:center;cursor:pointer;background:#f8fafc;
+            transition:border-color 0.2s,background 0.2s;
+          " onclick="document.getElementById('comm-post-image').click()"
+             ondragover="event.preventDefault();this.style.borderColor='#6366f1';this.style.background='#eef2ff';"
+             ondragleave="this.style.borderColor='#cbd5e1';this.style.background='#f8fafc';"
+             ondrop="handleCommImageDrop(event)">
+            <div id="comm-image-preview" style="display:none;margin-bottom:0.5rem;">
+              <img id="comm-image-preview-img" src="" alt="선택된 이미지" style="max-width:100%;max-height:180px;border-radius:8px;object-fit:contain;">
+            </div>
+            <div id="comm-image-placeholder">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#94a3b8" stroke-width="1.5" style="vertical-align:middle;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <p style="margin:0.4rem 0 0;font-size:0.82rem;color:#64748b;">클릭하거나 이미지를 드래그하여 첨부</p>
+            </div>
+          </div>
+          <input type="file" id="comm-post-image" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handleCommImageSelect(event)">
+          <div id="comm-image-info" style="display:none;margin-top:0.4rem;font-size:0.78rem;color:#64748b;display:flex;align-items:center;justify-content:space-between;">
+            <span id="comm-image-name"></span>
+            <button type="button" onclick="clearCommImage()" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.78rem;font-weight:600;padding:0;">제거</button>
+          </div>
+        </div>
         <button type="submit" class="btn-submit-dialog">등록하기</button>
       </form>
     </div>
@@ -1636,6 +1650,6 @@
 
   <!-- Interactive JavaScript -->
   <script src="region-sync.js?v=20260612-v6"></script>
-  <script src="index.js?v=20260619-v4"></script>
+  <script src="index.js?v=20260628-v5"></script>
 </body>
 </html>

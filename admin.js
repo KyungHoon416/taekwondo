@@ -5,15 +5,16 @@
 /* ==========================================================================
    Firebase 초기화 & 관리자 접근 제어
    ========================================================================== */
-let auth, db;
+let auth, db, storage;
 
 (function initAdminAuth() {
   // Firebase 초기화
   try {
     // 이미 초기화된 경우 기존 app 재사용
     try { firebase.app(); } catch (_) { firebase.initializeApp(FIREBASE_CONFIG); }
-    auth = firebase.auth();
-    db   = firebase.firestore();
+    auth    = firebase.auth();
+    db      = firebase.firestore();
+    storage = (firebase.storage) ? firebase.storage() : null;
   } catch (e) {
     console.error('Firebase 초기화 실패:', e);
     return;
@@ -260,6 +261,7 @@ async function navigateTo(viewId, clickedItem) {
   if (viewId === 'applications') filterApplications();
   if (viewId === 'inquiries') populateInquiries();
   if (viewId === 'analytics') initAnalyticsCharts();
+  if (viewId === 'banners') loadBanners();
 }
 
 // 수동 새로고침 함수
@@ -921,8 +923,6 @@ function renderApplications() {
           <button class="btn-icon" title="상세보기" onclick="showDetail('application', '${a.id}')">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
-          <button class="btn btn-sm btn-success" onclick="changeAppStatus('${a.id}','합격')">합격</button>
-          <button class="btn btn-sm btn-danger" onclick="changeAppStatus('${a.id}','불합격')">불합격</button>
         </div>
       </td>
     </tr>`).join('');
@@ -2109,3 +2109,181 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('결제가 취소되었거나 실패하였습니다.', 'error');
   }
 });
+
+// =============================================================================
+// 배너 관리 (Banner Management)
+// =============================================================================
+
+// 배너 목록 로드
+async function loadBanners() {
+  const list = document.getElementById('banners-list');
+  const countEl = document.getElementById('banners-count');
+  if (!list) return;
+
+  if (!db) {
+    list.innerHTML = '<div style="text-align:center;padding:3rem;color:#94a3b8;grid-column:1/-1;">Firebase 연결 필요</div>';
+    return;
+  }
+
+  try {
+    const snap = await db.collection('banners').orderBy('created_at', 'desc').get();
+    const banners = [];
+    snap.forEach(doc => banners.push({ id: doc.id, ...doc.data() }));
+
+    if (countEl) countEl.textContent = banners.length;
+
+    if (banners.length === 0) {
+      list.innerHTML = '<div style="text-align:center;padding:3rem;color:#94a3b8;grid-column:1/-1;">등록된 배너가 없습니다.</div>';
+      return;
+    }
+
+    list.innerHTML = banners.map(b => `
+      <div style="
+        background:#fff; border-radius:12px; overflow:hidden;
+        box-shadow:0 2px 8px rgba(0,0,0,0.08); border:1px solid #e2e8f0;
+      ">
+        <div style="position:relative;">
+          <img src="${b.url}" alt="${b.name || '배너'}"
+            style="width:100%;height:140px;object-fit:cover;display:block;"
+            onerror="this.style.display='none'">
+          <div style="
+            position:absolute;top:8px;right:8px;
+            display:flex;gap:6px;
+          ">
+            <a href="${b.url}" target="_blank" rel="noopener"
+              style="background:rgba(255,255,255,0.9);border:none;border-radius:6px;padding:5px 8px;font-size:0.75rem;font-weight:600;cursor:pointer;color:#0f172a;text-decoration:none;display:inline-flex;align-items:center;gap:3px;">
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              원본
+            </a>
+            <button onclick="deleteBanner('${b.id}', '${b.storagePath || ''}')"
+              style="background:rgba(239,68,68,0.9);border:none;border-radius:6px;padding:5px 8px;font-size:0.75rem;font-weight:600;cursor:pointer;color:#fff;display:inline-flex;align-items:center;gap:3px;">
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+              삭제
+            </button>
+          </div>
+        </div>
+        <div style="padding:0.75rem 1rem;">
+          <div style="font-size:0.82rem;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.name || '배너'}</div>
+          <div style="font-size:0.75rem;color:#94a3b8;margin-top:2px;">${b.created_at ? new Date(b.created_at.seconds * 1000).toLocaleDateString('ko-KR') : ''}</div>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    console.error('배너 로드 실패:', e);
+    list.innerHTML = '<div style="text-align:center;padding:3rem;color:#ef4444;grid-column:1/-1;">배너를 불러오는 중 오류가 발생했습니다.</div>';
+  }
+}
+
+// 드래그앤드롭 핸들러
+function handleBannerDrop(event) {
+  event.preventDefault();
+  const zone = document.getElementById('banner-upload-zone');
+  if (zone) { zone.style.borderColor = '#cbd5e1'; zone.style.background = '#f8fafc'; }
+  const file = event.dataTransfer.files[0];
+  if (file) uploadBannerFile(file);
+}
+
+// 파일 선택 핸들러
+function handleBannerFileSelect(event) {
+  const file = event.target.files[0];
+  if (file) uploadBannerFile(file);
+  // 같은 파일 재선택 가능하도록 초기화
+  event.target.value = '';
+}
+
+// 배너 업로드 핵심 함수
+async function uploadBannerFile(file) {
+  // 파일 타입 검증
+  const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  if (!allowed.includes(file.type)) {
+    showToast('JPG, PNG, WebP 형식의 이미지만 업로드 가능합니다.', 'error');
+    return;
+  }
+
+  // 용량 검증 (800KB = 800 * 1024 bytes)
+  const maxBytes = 800 * 1024;
+  if (file.size > maxBytes) {
+    const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+    showToast(`파일 용량이 너무 큽니다. (${sizeMB}MB) 800KB 이하로 압축 후 다시 업로드해주세요.`, 'error');
+    return;
+  }
+
+  if (!storage) {
+    showToast('Firebase Storage가 초기화되지 않았습니다.', 'error');
+    return;
+  }
+
+  // 진행 바 표시
+  const progressWrap = document.getElementById('banner-upload-progress');
+  const filenameEl   = document.getElementById('banner-upload-filename');
+  const pctEl        = document.getElementById('banner-upload-pct');
+  const barEl        = document.getElementById('banner-upload-bar');
+
+  if (progressWrap) progressWrap.style.display = 'block';
+  if (filenameEl) filenameEl.textContent = file.name;
+  if (pctEl) pctEl.textContent = '0%';
+  if (barEl) barEl.style.width = '0%';
+
+  const timestamp = Date.now();
+  const ext = file.name.split('.').pop();
+  const storagePath = `banners/${timestamp}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+  const ref = storage.ref(storagePath);
+  const uploadTask = ref.put(file);
+
+  uploadTask.on('state_changed',
+    (snapshot) => {
+      const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+      if (pctEl) pctEl.textContent = `${pct}%`;
+      if (barEl) barEl.style.width = `${pct}%`;
+    },
+    (err) => {
+      console.error('배너 업로드 실패:', err);
+      if (progressWrap) progressWrap.style.display = 'none';
+      showToast('업로드 중 오류: ' + err.message, 'error');
+    },
+    async () => {
+      try {
+        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+
+        // Firestore에 배너 메타데이터 저장
+        if (db) {
+          await db.collection('banners').add({
+            name: file.name,
+            url: downloadURL,
+            storagePath,
+            size: file.size,
+            created_at: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+
+        if (progressWrap) progressWrap.style.display = 'none';
+        showToast(`"${file.name}" 배너가 성공적으로 등록되었습니다!`, 'success');
+        loadBanners();
+      } catch (e) {
+        console.error('배너 메타데이터 저장 실패:', e);
+        if (progressWrap) progressWrap.style.display = 'none';
+        showToast('배너 등록 중 오류가 발생했습니다.', 'error');
+      }
+    }
+  );
+}
+
+// 배너 삭제
+async function deleteBanner(docId, storagePath) {
+  if (!confirm('이 배너를 삭제하시겠습니까?')) return;
+  try {
+    // Firestore 문서 삭제
+    if (db) await db.collection('banners').doc(docId).delete();
+
+    // Storage 파일 삭제 (경로가 있을 경우)
+    if (storage && storagePath) {
+      try { await storage.ref(storagePath).delete(); } catch (_) {}
+    }
+
+    showToast('배너가 삭제되었습니다.', 'success');
+    loadBanners();
+  } catch (e) {
+    console.error('배너 삭제 실패:', e);
+    showToast('배너 삭제 중 오류가 발생했습니다.', 'error');
+  }
+}
