@@ -307,6 +307,7 @@ async function fetchFirestoreData() {
         fullId: doc.id,
         name: u.name || '이름 없음',
         email: u.email || '',
+        phone: u.phone || '-',
         businessNumber: u.business_number || '-',
         businessStatus: u.business_status || '',
         businessStatusCode: u.business_status_code || '',
@@ -582,13 +583,14 @@ function renderMembers() {
   if (!tbody) return;
 
   if (items.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>검색 결과가 없습니다.</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>검색 결과가 없습니다.</p></div></td></tr>`;
   } else {
     tbody.innerHTML = items.map(m => `
       <tr>
         <td style="color:var(--muted);font-size:0.78rem">${m.id}</td>
         <td style="font-weight:700">${m.name}</td>
         <td style="color:var(--muted)">${m.email}</td>
+        <td style="color:var(--muted)">${m.phone}</td>
         <td style="color:var(--muted)">${m.businessNumber}</td>
         <td>${m.type === 'gym' ? '<span class="badge badge-blue">도장(관장)</span>' : '<span class="badge badge-green">사범(구직자)</span>'}</td>
         <td style="color:var(--muted)">${m.joinDate}</td>
