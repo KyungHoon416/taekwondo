@@ -422,6 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // App state
   const state = {
+    currentUser: null,
     jobsList: [...mockJobs],
     talentsList: [...mockTalents],
     communityPosts: initialPosts,
@@ -585,7 +586,8 @@ document.addEventListener('DOMContentLoaded', () => {
           dan: r.certificate ? r.certificate.split(',')[0].trim() : '태권도 3단',
           license: r.certificate ? r.certificate.split(',').slice(1).join(',').trim() : '태권도 지도자',
           colorIndex: Math.floor(Math.random() * 5),
-          intro: r.content || ''
+          intro: r.content || '',
+          phone: r.phone || ''
         });
       });
       if (dbTalents.length > 0) {
@@ -2196,6 +2198,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      const userPhone = state.currentUser ? (state.currentUser.phone || '') : '';
+
       const newTalentData = {
         user_id: userId,
         name,
@@ -2206,6 +2210,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hope_salary: salary,
         certificate: `${dan}, ${license}`,
         content: intro,
+        phone: userPhone,
         created_at: firebase.firestore.FieldValue.serverTimestamp()
       };
 
@@ -2225,7 +2230,8 @@ document.addEventListener('DOMContentLoaded', () => {
             dan,
             license,
             colorIndex: Math.floor(Math.random() * 5),
-            intro
+            intro,
+            phone: userPhone
           };
 
           state.talentsList.unshift(newTalent);
@@ -2516,7 +2522,40 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('detail-talent-salary').textContent = talent.salary;
     document.getElementById('detail-talent-region').textContent = talent.region;
     document.getElementById('detail-talent-qual').textContent = `${talent.dan} | ${talent.license}`;
-    document.getElementById('detail-talent-desc').textContent = talent.intro;
+
+    // 로그인된 관장님(gym) 계정만 전화번호 및 자기소개를 볼 수 있도록 제어
+    const isGym = state.currentUser && state.currentUser.type === 'gym';
+    
+    const phoneEl = document.getElementById('detail-talent-phone');
+    const descEl = document.getElementById('detail-talent-desc');
+
+    if (isGym) {
+      if (phoneEl) phoneEl.textContent = talent.phone || '등록된 연락처 없음';
+      if (descEl) descEl.textContent = talent.intro || '소개글이 없습니다.';
+    } else {
+      if (phoneEl) phoneEl.textContent = '관장님 회원만 열람 가능';
+      if (descEl) descEl.textContent = '관장님 회원만 열람 가능합니다. 로그인 또는 회원가입 후 확인해 주세요.';
+    }
+
+    // 면접 제안하기 버튼 이벤트 동적 처리
+    const btnInterview = document.getElementById('btn-interview-suggest');
+    if (btnInterview) {
+      const newBtn = btnInterview.cloneNode(true);
+      btnInterview.parentNode.replaceChild(newBtn, btnInterview);
+      
+      newBtn.addEventListener('click', () => {
+        if (!state.currentUser) {
+          alert('로그인이 필요합니다. 로그인 팝업을 열어드립니다.');
+          if (dialogs.talentDetail) dialogs.talentDetail.close();
+          if (dialogs.auth) {
+            document.getElementById('tab-login')?.click();
+            dialogs.auth.showModal();
+          }
+        } else {
+          alert('사범님께 입사 제안 연락을 보냈습니다. 사범님이 수락할 시 연락처가 서로에게 공개됩니다.');
+        }
+      });
+    }
 
     dialogs.talentDetail.showModal();
   }
@@ -2579,12 +2618,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // 로그인 상태: 유저 이름 + 버튼 표시
         loggedOut.style.display = 'none';
         loggedIn.style.display  = 'flex';
+        
+        // 임시 세팅
+        state.currentUser = { uid: user.uid, email: user.email };
 
         // Firestore에서 type 확인
         try {
           const snap = await db.collection('users').doc(user.uid).get();
           const data = snap.data();
           if (data) {
+            state.currentUser = { uid: user.uid, email: user.email, ...data };
             nameEl.textContent = data.name || user.email;
             // 어드민 계정 이메일에 해당하는 경우에만 관리자 링크 노출
             const adminEmails = ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com'];
@@ -2613,6 +2656,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } else {
         // 비로그인 상태
+        state.currentUser = null;
         loggedOut.style.display = 'flex';
         loggedIn.style.display  = 'none';
         if (adminLink) adminLink.style.display = 'none';

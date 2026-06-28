@@ -161,7 +161,7 @@ service cloud.firestore {
     }
 
     function isValidResume(data) {
-      return hasOnlyAllowedFields(['user_id', 'career', 'certificate', 'hope_area', 'hope_salary', 'content', 'name', 'gender', 'hope_position', 'created_at']) &&
+      return hasOnlyAllowedFields(['user_id', 'career', 'certificate', 'hope_area', 'hope_salary', 'content', 'name', 'gender', 'hope_position', 'phone', 'created_at']) &&
         hasRequiredFields(['user_id', 'career', 'certificate', 'hope_area', 'hope_salary', 'content', 'name', 'gender']) &&
         data.user_id is string && data.user_id == request.auth.uid &&
         data.career is string && data.career.size() >= 1 && data.career.size() <= 100 &&
@@ -172,6 +172,7 @@ service cloud.firestore {
         data.name is string && data.name.size() >= 1 && data.name.size() <= 50 &&
         data.gender is string && (data.gender == '남성' || data.gender == '여성' || data.gender == '남' || data.gender == '여') &&
         (!data.keys().hasAny(['hope_position']) || (data.hope_position is string && data.hope_position.size() >= 1 && data.hope_position.size() <= 50)) &&
+        (!data.keys().hasAny(['phone']) || (data.phone is string && data.phone.size() <= 20)) &&
         (!data.keys().hasAny(['created_at']) || data.created_at is timestamp);
     }
 
