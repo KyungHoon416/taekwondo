@@ -2547,8 +2547,9 @@ document.addEventListener('DOMContentLoaded', () => {
           const data = snap.data();
           if (data) {
             nameEl.textContent = data.name || user.email;
-            // 도장(관장) 타입이면 관리자 링크 노출
-            if (data.type === 'gym') {
+            // 어드민 계정 이메일에 해당하는 경우에만 관리자 링크 노출
+            const adminEmails = ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com'];
+            if (user.email && adminEmails.includes(user.email.toLowerCase())) {
               adminLink.style.display = 'inline-flex';
             } else {
               adminLink.style.display = 'none';

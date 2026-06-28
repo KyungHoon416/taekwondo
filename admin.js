@@ -94,8 +94,9 @@ let auth, db;
       const snap = await db.collection('users').doc(user.uid).get();
       const data = snap.data();
 
-      if (data && data.type === 'gym') {
-        // ✅ 도장(관장) → 대시보드 허용
+      const adminEmails = ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com'];
+      if (data && user.email && adminEmails.includes(user.email.toLowerCase())) {
+        // ✅ 지정된 어드민 계정만 대시보드 허용
         if (overlay)     overlay.style.display = 'none';
         if (denied)      denied.style.display  = 'none';
         if (sidebar)     sidebar.style.display  = '';
