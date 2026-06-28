@@ -1455,6 +1455,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const businessStatusResult = document.getElementById('business-status-result');
   const businessValidateResult = document.getElementById('business-validate-result');
   const roleInputs = document.querySelectorAll('input[name="user-role"]');
+  const regPhoneInput = document.getElementById('reg-phone');
+  if (regPhoneInput) {
+    regPhoneInput.addEventListener('input', (e) => {
+      let val = e.target.value.replace(/[^0-9]/g, '');
+      if (val.length > 3 && val.length <= 7) {
+        val = val.replace(/(\d{3})(\d{1,4})/, '$1-$2');
+      } else if (val.length > 7) {
+        val = val.replace(/(\d{3})(\d{3,4})(\d{4})/, '$1-$2-$3');
+      }
+      e.target.value = val;
+    });
+  }
   let businessStatusCheck = null;
   let businessValidation = null;
 
@@ -1786,6 +1798,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearAuthError();
     const name     = document.getElementById('reg-name').value.trim();
     const email    = document.getElementById('reg-email').value.trim();
+    const phone    = document.getElementById('reg-phone') ? document.getElementById('reg-phone').value.trim() : '';
     const password = document.getElementById('reg-password').value;
     const type     = document.querySelector('input[name="user-role"]:checked')?.value || 'instructor';
     const { businessNumber, businessStartDate, businessOwnerName, gymName } = getCurrentBusinessPayload();
@@ -1798,21 +1811,32 @@ document.addEventListener('DOMContentLoaded', () => {
       submitBtn.textContent = '회원가입하기'; submitBtn.disabled = false; return;
     }
     try {
+      const phoneRegex = /^010-\d{3,4}-\d{4}$/;
+      if (!phoneRegex.test(phone)) {
+        showAuthError('올바른 휴대폰 번호 형식을 입력해주세요. (예: 010-1234-5678)');
+        submitBtn.textContent = '회원가입하기'; submitBtn.disabled = false;
+        return;
+      }
+
       if (type === 'gym') {
         if (!gymName) {
           showAuthError('상호명을 입력해주세요.');
+          submitBtn.textContent = '회원가입하기'; submitBtn.disabled = false;
           return;
         }
         if (businessNumber.length !== 10) {
           showAuthError('사업자등록번호 10자리를 입력해주세요.');
+          submitBtn.textContent = '회원가입하기'; submitBtn.disabled = false;
           return;
         }
         if (businessStartDate.length !== 8) {
           showAuthError('개업일자 8자리를 입력해주세요. 예: 20200101');
+          submitBtn.textContent = '회원가입하기'; submitBtn.disabled = false;
           return;
         }
         if (!businessOwnerName) {
           showAuthError('대표자명을 입력해주세요.');
+          submitBtn.textContent = '회원가입하기'; submitBtn.disabled = false;
           return;
         }
       }
@@ -1827,6 +1851,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const userData = {
         name,
         email,
+        phone,
         type,                        // 'gym' | 'instructor'
         created_at: firebase.firestore.FieldValue.serverTimestamp()
       };
