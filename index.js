@@ -2809,7 +2809,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapContainer = document.getElementById('detail-job-map-container');
     const mapEl = document.getElementById('detail-job-map');
     
-    if (job.address && typeof kakao !== 'undefined') {
+    if (job.address && typeof kakao !== 'undefined' && kakao.maps) {
       if (mapContainer) mapContainer.style.display = 'block';
       
       const initMap = () => {
@@ -3520,7 +3520,7 @@ document.addEventListener('DOMContentLoaded', () => {
     autoSelectRegionFromAddress(addr);
 
     const mapEl = document.getElementById('job-map');
-    if (mapEl && typeof kakao !== 'undefined') {
+    if (mapEl && typeof kakao !== 'undefined' && kakao.maps) {
       const initMap = () => {
         try {
           if (!kakao.maps.services || !kakao.maps.services.Geocoder) {
