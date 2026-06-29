@@ -2399,12 +2399,36 @@
 /* Detail dialog custom */
 .modal-dialog.detail-dialog {
   max-width: 650px;
+  overflow: hidden;
+  height: 85vh;
+  max-height: 85vh;
 }
 
-.detail-body {
-  padding: 1.5rem 2.25rem;
+.modal-dialog.detail-dialog .dialog-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+}
+
+.modal-dialog.detail-dialog .dialog-header {
+  padding: 2rem 2.25rem 1rem 2.25rem;
+  margin-bottom: 0;
+}
+
+.modal-dialog.detail-dialog .detail-body {
+  padding: 1rem 2.25rem 2rem 2.25rem;
+  flex: 1;
   overflow-y: auto;
-  max-height: calc(85vh - 140px);
+  max-height: none;
+}
+
+.modal-dialog.detail-dialog .detail-footer {
+  padding: 1.25rem 2.25rem 1.5rem 2.25rem;
+  background-color: var(--bg-surface);
+  border-top: 1px solid var(--border-main);
+  z-index: 10;
 }
 
 .detail-title-block {
