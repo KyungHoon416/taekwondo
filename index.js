@@ -2872,10 +2872,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const checkAndLoad = () => {
         if (typeof kakao !== 'undefined' && kakao.maps) {
-          if (kakao.maps.load) {
+          if (kakao.maps.services && kakao.maps.services.Geocoder) {
+            renderMap();
+          } else if (kakao.maps.load) {
             kakao.maps.load(renderMap);
           } else {
-            renderMap();
+            setTimeout(checkAndLoad, 100);
           }
         } else {
           setTimeout(checkAndLoad, 100);
@@ -3581,10 +3583,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const checkAndLoad = () => {
         if (typeof kakao !== 'undefined' && kakao.maps) {
-          if (kakao.maps.load) {
+          if (kakao.maps.services && kakao.maps.services.Geocoder) {
+            renderMap();
+          } else if (kakao.maps.load) {
             kakao.maps.load(renderMap);
           } else {
-            renderMap();
+            setTimeout(checkAndLoad, 100);
           }
         } else {
           setTimeout(checkAndLoad, 100);
