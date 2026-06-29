@@ -1019,8 +1019,209 @@ document.addEventListener('DOMContentLoaded', () => {
       activeMobileLink.classList.add('active');
     }
 
+    if (viewId === 'termsOfUse') {
+      const activeTab = document.querySelector('.terms-tab-btn.active');
+      const termsType = activeTab ? activeTab.dataset.termsType : 'gym';
+      loadTermsForPage(termsType);
+    }
+
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  // ─── 약관 상세 페이지 (/Terms_of_Use) 내의 탭 전환 및 파일 동적 로드 로직 ──────────────────────
+  const termsPageViewerContent = document.getElementById('terms-page-viewer-content');
+  const termsLoadingBox = document.getElementById('terms-loading');
+  const termsTabButtons = document.querySelectorAll('.terms-tab-btn');
+
+  function parseTermsText(rawText, termsTitle, termsDate) {
+    const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    if (lines.length === 0) return { title: termsTitle, date: termsDate, articles: [] };
+
+    let title = termsTitle || lines[0] || '';
+    let date = termsDate || '2026년 07월 04일';
+    
+    if (lines[0] && (lines[0].includes('약관') || lines[0].includes('방침'))) {
+      title = lines[0];
+    }
+    if (lines[1] && (lines[1].includes('시행일') || lines[1].includes('시행'))) {
+      date = lines[1].replace('시행일: ', '').replace('시행일:', '').trim();
+    }
+
+    const articles = [];
+    let currentArticle = null;
+    let introLines = [];
+    let isBodyStarted = false;
+
+    const startIdx = (lines[0] && (lines[0].includes('약관') || lines[0].includes('방침')) && lines[1] && (lines[1].includes('시행일') || lines[1].includes('시행'))) ? 2 : 0;
+
+    for (let i = startIdx; i < lines.length; i++) {
+      const line = lines[i];
+      const articleMatch = line.match(/^(제\d+조)\s*(.+)$/);
+
+      if (articleMatch) {
+        isBodyStarted = true;
+        if (currentArticle) articles.push(currentArticle);
+        currentArticle = {
+          num: articleMatch[1],
+          title: articleMatch[2],
+          intro: '',
+          items: [],
+        };
+      } else if (!isBodyStarted) {
+        introLines.push(line);
+      } else if (currentArticle) {
+        const itemMatch = line.match(/^([①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮]|\d+\.|[가-힣]\.)(.+)?$/);
+        if (itemMatch) {
+          currentArticle.items.push({ num: itemMatch[1], text: (itemMatch[2] || '').trim() });
+        } else if (currentArticle.items.length === 0 && !currentArticle.intro) {
+          currentArticle.intro = line;
+        } else {
+          if (currentArticle.items.length > 0) {
+            const last = currentArticle.items[currentArticle.items.length - 1];
+            last.text = last.text ? last.text + ' ' + line : line;
+          } else {
+            currentArticle.intro = currentArticle.intro ? currentArticle.intro + ' ' + line : line;
+          }
+        }
+      }
+    }
+    if (currentArticle) articles.push(currentArticle);
+
+    return { title, date, articles };
+  }
+
+  function buildTermsHTML(parsed) {
+    const { title, date, articles } = parsed;
+
+    const tocHTML = articles.map((a, i) =>
+      `<li><a href="#terms-art-${i}">${a.num} ${a.title}</a></li>`
+    ).join('');
+
+    const articlesHTML = articles.map((a, i) => {
+      const itemsHTML = a.items.map(item =>
+        `<div class="terms-item">
+          <span class="terms-item-num">${item.num}</span>
+          <span class="terms-item-text">${escapeHtml(item.text)}</span>
+        </div>`
+      ).join('');
+
+      const introHTML = a.intro
+        ? `<p class="terms-intro-text">${escapeHtml(a.intro)}</p>`
+        : '';
+
+      return `
+        <div class="terms-article" id="terms-art-${i}">
+          <div class="terms-article-header">
+            <span class="terms-article-num">${a.num}</span>
+            <h3 class="terms-article-title">${escapeHtml(a.title)}</h3>
+          </div>
+          <div class="terms-article-body">
+            ${introHTML}
+            ${itemsHTML}
+          </div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="terms-doc-header">
+        <h2 class="terms-doc-title">${escapeHtml(title)}</h2>
+        <span class="terms-doc-date">📅 시행일: ${escapeHtml(date)}</span>
+      </div>
+      <div class="terms-toc">
+        <p class="terms-toc-title">📑 목차</p>
+        <ul class="terms-toc-list">${tocHTML}</ul>
+      </div>
+      <div class="terms-body">
+        ${articlesHTML}
+        <div class="terms-addendum">
+          <p>본 약관은 <strong>${escapeHtml(date)}</strong>부터 시행합니다.</p>
+          <p style="font-size:0.8rem; color: var(--text-light); margin-top: 0.3rem;">© 2026 태권잡. All rights reserved.</p>
+        </div>
+      </div>`;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  async function loadTermsForPage(termsType) {
+    if (!termsPageViewerContent) return;
+
+    if (termsLoadingBox) termsLoadingBox.style.display = 'flex';
+    termsPageViewerContent.style.display = 'none';
+
+    try {
+      const termsData = await getTermsData(termsType);
+      const parsed = parseTermsText(termsData.content, termsData.title, termsData.effectiveDate);
+      termsPageViewerContent.innerHTML = buildTermsHTML(parsed);
+      
+      if (termsLoadingBox) termsLoadingBox.style.display = 'none';
+      termsPageViewerContent.style.display = 'block';
+    } catch (err) {
+      console.error('이용약관 페이지 로드 실패:', err);
+      if (termsLoadingBox) termsLoadingBox.style.display = 'none';
+      termsPageViewerContent.innerHTML = `<div style="padding:3rem; text-align:center; color:var(--text-muted);">약관 파일을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>`;
+      termsPageViewerContent.style.display = 'block';
+    }
+  }
+
+  termsTabButtons.forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      termsTabButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const termsType = btn.dataset.termsType;
+      loadTermsForPage(termsType);
+    });
+  });
+
+  // ─── 이용안내 페이지 (/User_Guide) 사이드바 네비게이션 ──────────────────────
+  let guideObserver = null;
+
+  function initGuideNavigation() {
+    const navItems = document.querySelectorAll('.guide-nav-item');
+    const sectionCards = document.querySelectorAll('.guide-section-card');
+
+    if (!navItems.length || !sectionCards.length) return;
+
+    // 클릭 이벤트: 부드러운 스크롤
+    navItems.forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = item.getAttribute('data-guide-section');
+        const targetEl = document.getElementById(targetId);
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        // 즉시 active 상태 갱신
+        navItems.forEach(n => n.classList.remove('active'));
+        item.classList.add('active');
+      });
+    });
+
+    // IntersectionObserver: 스크롤 시 사이드바 하이라이트
+    if (guideObserver) guideObserver.disconnect();
+
+    guideObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const sectionId = entry.target.id;
+          navItems.forEach(n => {
+            n.classList.toggle('active', n.getAttribute('data-guide-section') === sectionId);
+          });
+        }
+      });
+    }, {
+      rootMargin: '-20% 0px -60% 0px',
+      threshold: 0
+    });
+
+    sectionCards.forEach(card => guideObserver.observe(card));
   }
 
   // 로그인 회원 유형 롤 획득
@@ -1199,20 +1400,49 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     if (pathname === '/Terms_of_Use') {
-      if (rawHash && cleanHash !== '#terms-of-use' && cleanHash !== '#termsOfUse') {
+      if (rawHash && cleanHash !== '#terms-of-use' && cleanHash !== '#termsOfUse' && !cleanHash.startsWith('#terms-art-')) {
         window.history.replaceState({}, '', '/' + rawHash);
       } else {
-        navigateToView('termsOfUse');
-        window.scrollTo(0, 0);
+        const isAlreadyVisible = views.termsOfUse && !views.termsOfUse.classList.contains('hidden');
+        if (!isAlreadyVisible) {
+          navigateToView('termsOfUse');
+        }
+        if (cleanHash.startsWith('#terms-art-')) {
+          setTimeout(() => {
+            const el = document.getElementById(cleanHash.substring(1));
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, isAlreadyVisible ? 10 : 150);
+        } else {
+          if (!isAlreadyVisible) {
+            window.scrollTo(0, 0);
+          }
+        }
         return;
       }
     }
     if (pathname === '/User_Guide') {
-      if (rawHash && cleanHash !== '#user-guide' && cleanHash !== '#userGuide') {
+      if (rawHash && cleanHash !== '#user-guide' && cleanHash !== '#userGuide' && !cleanHash.startsWith('#guide-')) {
         window.history.replaceState({}, '', '/' + rawHash);
       } else {
-        navigateToView('userGuide');
-        window.scrollTo(0, 0);
+        const isAlreadyVisible = views.userGuide && !views.userGuide.classList.contains('hidden');
+        if (!isAlreadyVisible) {
+          navigateToView('userGuide');
+          initGuideNavigation();
+        }
+        if (cleanHash.startsWith('#guide-')) {
+          setTimeout(() => {
+            const el = document.getElementById(cleanHash.substring(1));
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, isAlreadyVisible ? 10 : 150);
+        } else {
+          if (!isAlreadyVisible) {
+            window.scrollTo(0, 0);
+          }
+        }
         return;
       }
     }
@@ -1258,6 +1488,7 @@ document.addEventListener('DOMContentLoaded', () => {
       case '#user-guide':
         navigateToView('userGuide');
         window.scrollTo(0, 0);
+        initGuideNavigation();
         break;
       case '#about':
         navigateToView('about');
@@ -1288,6 +1519,33 @@ document.addEventListener('DOMContentLoaded', () => {
       handleRoute();
     }
   });
+
+  // Back to Top Button Logic
+  const backToTopBtn = document.getElementById('btn-back-to-top');
+  if (backToTopBtn) {
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 300) {
+        backToTopBtn.style.display = 'flex';
+        setTimeout(() => {
+          backToTopBtn.classList.add('visible');
+        }, 10);
+      } else {
+        backToTopBtn.classList.remove('visible');
+        setTimeout(() => {
+          if (!backToTopBtn.classList.contains('visible')) {
+            backToTopBtn.style.display = 'none';
+          }
+        }, 300);
+      }
+    });
+
+    backToTopBtn.addEventListener('click', () => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    });
+  }
 
   // 네비게이션 메뉴 클릭 시 동일한 탭이라도 새로고침 동작하도록 처리
   const navItems = [
@@ -2333,9 +2591,150 @@ document.addEventListener('DOMContentLoaded', () => {
   agreementInputs.forEach((input) => {
     input.addEventListener('change', syncAgreementAllState);
   });
-  syncBusinessNumberField();
+  roleInputs.forEach((input) => input.addEventListener('change', () => {
+    syncBusinessNumberField();
+    updateTermsPanel();
+  }));
   syncAgreementAllState();
 
+  // ─── 약관 데이터 획득 공통 헬퍼 (Firestore 우선, 실패 시 서버 파일/하드코딩 대비책) ──────────────────
+  async function getTermsData(termsType) {
+    const fallbacks = {
+      gym: {
+        file: 'gym-terms-20260704.txt',
+        text: `관장회원 이용약관 (시행일: 2026년 07월 04일)\n\n제1조 목적\n본 약관은 태권잡(이하 "회사")이 운영하는 태권도 전문 구인·구직 플랫폼 및 관련 제반 서비스를 관장회원이 이용함에 있어 회사와 관장회원 간의 이용조건 및 절차, 권리·의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.`
+      },
+      instructor: {
+        file: 'instructor-terms-20260704.txt',
+        text: `사범회원 이용약관 (시행일: 2026년 07월 04일)\n\n제1조 목적\n본 약관은 태권잡(이하 "회사")이 운영하는 태권도 전문 구인·구직 플랫폼 및 관련 제반 서비스를 사범회원이 이용함에 있어 회사와 사범회원 간의 이용조건 및 절차, 권리·의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.`
+      },
+      paid: {
+        file: 'paid-terms-20260704.txt',
+        text: `유료서비스 이용약관 (시행일: 2026년 07월 04일)\n\n제1조 목적\n본 약관은 태권잡(이하 “회사”)이 운영하는 태권도 전문 구인·구직 플랫폼에서 관장회원이 이용하는 유료서비스의 이용조건, 결제, 이용기간, 환불, 청약철회 제한, 이용제한 및 기타 필요한 사항을 규정함을 목적으로 합니다.`
+      }
+    };
+    
+    const fb = fallbacks[termsType] || fallbacks.instructor;
+    
+    try {
+      if (typeof db !== 'undefined' && db) {
+        const doc = await db.collection('terms').doc(termsType).get();
+        if (doc.exists) {
+          const data = doc.data();
+          if (data && data.content) {
+            return {
+              title: data.title || '',
+              effectiveDate: data.effectiveDate || '',
+              content: data.content
+            };
+          }
+        }
+      }
+    } catch (e) {
+      console.warn(`Firestore에서 약관 [${termsType}] 로드 실패:`, e);
+    }
+    
+    try {
+      const response = await fetch(`/legal/${fb.file}`);
+      if (response.ok) {
+        const text = await response.text();
+        return {
+          title: termsType === 'gym' ? '관장회원 이용약관' : (termsType === 'instructor' ? '사범회원 이용약관' : '유료서비스 이용약관'),
+          effectiveDate: '2026년 07월 04일',
+          content: text
+        };
+      }
+    } catch (err) {
+      console.warn(`정적 파일 fetch 실패 [${fb.file}]:`, err);
+    }
+    
+    return {
+      title: termsType === 'gym' ? '관장회원 이용약관' : (termsType === 'instructor' ? '사범회원 이용약관' : '유료서비스 이용약관'),
+      effectiveDate: '2026년 07월 04일',
+      content: fb.text
+    };
+  }
+
+  // 회원가입용 약관 패널 내용 갱신
+  async function updateTermsPanel() {
+    const role = document.querySelector('input[name="user-role"]:checked')?.value || 'instructor';
+    const termsPanelContent = document.getElementById('terms-panel-content');
+    if (!termsPanelContent) return;
+
+    termsPanelContent.textContent = '약관을 불러오는 중입니다...';
+    const termsData = await getTermsData(role);
+    termsPanelContent.textContent = termsData.content;
+  }
+
+  // 초기 1회 로드 호출
+  updateTermsPanel();
+
+  // 약관 내용보기 및 확인하고 동의하기 리스너 바인딩
+  document.querySelectorAll('.agreement-view-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target;
+      const panel = document.getElementById(targetId);
+      if (!panel) return;
+      
+      const isOpen = panel.classList.contains('open') || panel.style.maxHeight === '200px' || (panel.style.maxHeight && panel.style.maxHeight !== '0px');
+      
+      // 다른 열린 패널 닫기 (회원가입창 내)
+      document.querySelectorAll('.agreement-panel.open').forEach((p) => {
+        if (p !== panel && p.id !== 'pay-terms-panel') { // 결제 약관은 독립적
+          p.classList.remove('open');
+          p.setAttribute('aria-hidden', 'true');
+          const relBtn = document.querySelector(`.agreement-view-btn[data-target="${p.id}"]`);
+          if (relBtn) relBtn.setAttribute('aria-expanded', 'false');
+        }
+      });
+      
+      // 클릭한 패널 토글
+      if (isOpen) {
+        panel.classList.remove('open');
+        panel.setAttribute('aria-hidden', 'true');
+        btn.setAttribute('aria-expanded', 'false');
+        if (targetId === 'pay-terms-panel') {
+          panel.style.maxHeight = '0';
+        }
+      } else {
+        panel.classList.add('open');
+        panel.setAttribute('aria-hidden', 'false');
+        btn.setAttribute('aria-expanded', 'true');
+        if (targetId === 'pay-terms-panel') {
+          panel.style.maxHeight = '200px';
+        }
+      }
+    });
+  });
+
+  // 약관 하단의 '확인하고 동의하기' 버튼 리스너 바인딩
+  document.querySelectorAll('.agreement-panel-agree-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const checkboxId = btn.dataset.checkbox;
+      const panelId = btn.dataset.panel;
+      
+      const checkbox = document.getElementById(checkboxId);
+      if (checkbox) {
+        checkbox.checked = true;
+        // 회원가입 동의 체크박스일 경우 전체동의 체크여부 재계산
+        if (checkboxId.startsWith('reg-')) {
+          syncAgreementAllState();
+        }
+      }
+      
+      const panel = document.getElementById(panelId);
+      if (panel) {
+        panel.classList.remove('open');
+        panel.setAttribute('aria-hidden', 'true');
+        if (panelId === 'pay-terms-panel') {
+          panel.style.maxHeight = '0';
+        }
+        
+        const relBtn = document.querySelector(`.agreement-view-btn[data-target="${panelId}"]`);
+        if (relBtn) relBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  });
   // ─── 로그인 폼 제출 (Firebase Auth) ─────────────────────────────────────────
   formLogin.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -3478,12 +3877,40 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // 결제 신청 팝업 열기
-  window.confirmPurchasePass = function() {
+  window.confirmPurchasePass = async function() {
     if (!state.currentUser) {
       alert('로그인이 필요한 서비스입니다.');
       return;
     }
     
+    // 동의 체크박스 및 토글 패널 상태 초기화
+    const payAgreeTerms = document.getElementById('pay-agree-terms');
+    const payAgreeRefund = document.getElementById('pay-agree-refund');
+    const payTermsPanel = document.getElementById('pay-terms-panel');
+    const payTermsContent = document.getElementById('pay-terms-content');
+    
+    if (payAgreeTerms) payAgreeTerms.checked = false;
+    if (payAgreeRefund) payAgreeRefund.checked = false;
+    if (payTermsPanel) {
+      payTermsPanel.classList.remove('open');
+      payTermsPanel.setAttribute('aria-hidden', 'true');
+      payTermsPanel.style.maxHeight = '0';
+    }
+    
+    const viewBtn = document.querySelector('.agreement-view-btn[data-target="pay-terms-panel"]');
+    if (viewBtn) viewBtn.setAttribute('aria-expanded', 'false');
+
+    // 유료서비스 약관 비동기 로드
+    if (payTermsContent) {
+      payTermsContent.textContent = '약관을 불러오는 중입니다...';
+      try {
+        const termsData = await getTermsData('paid');
+        payTermsContent.textContent = termsData.content;
+      } catch (err) {
+        console.error('유료서비스 약관 로드 실패:', err);
+      }
+    }
+
     const months = parseInt(document.getElementById('selected-pass-count').value) || 1;
     const price = parseInt(document.getElementById('selected-pass-price').value) || 20000;
     const productName = document.getElementById('selected-pass-name')?.value || `${months}개월 구독권`;
@@ -3505,6 +3932,19 @@ document.addEventListener('DOMContentLoaded', () => {
   window.executeResumePassPayment = async function() {
     if (!state.currentUser) {
       alert('로그인이 필요한 서비스입니다.');
+      return;
+    }
+
+    // 약관 동의 검증 추가
+    const payAgreeTerms = document.getElementById('pay-agree-terms');
+    const payAgreeRefund = document.getElementById('pay-agree-refund');
+
+    if (!payAgreeTerms || !payAgreeTerms.checked) {
+      alert('유료서비스 이용약관에 동의하셔야 결제가 가능합니다.');
+      return;
+    }
+    if (!payAgreeRefund || !payAgreeRefund.checked) {
+      alert('청약철회 및 환불 제한 안내에 동의하셔야 결제가 가능합니다.');
       return;
     }
 

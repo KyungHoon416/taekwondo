@@ -409,5 +409,11 @@ service cloud.firestore {
         && areImmutableFieldsUnchanged(['created_at']);
       allow delete: if isAuthenticated() && isUserOfType(request.auth.uid, 'gym');
     }
+
+    // 7. Terms Collection
+    match /terms/{termsId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

@@ -177,6 +177,15 @@
       </div>
     </div>
 
+    <!-- 약관 관리 -->
+    <div class="nav-group">
+      <div class="nav-group-label">사이트 설정</div>
+      <div class="nav-item" data-view="terms" onclick="navigateTo('terms', this)">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        약관 등록 / 관리
+      </div>
+    </div>
+
     <!-- 통계/분석 -->
     <div class="nav-group">
       <div class="nav-group-label">통계 / 분석</div>
@@ -633,6 +642,70 @@
         </div>
         <div id="banners-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;padding:1rem 0;">
           <div style="text-align:center;padding:3rem;color:#94a3b8;grid-column:1/-1;">등록된 배너가 없습니다.</div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ════ TERMS VIEW ════ -->
+    <div id="view-terms" class="view">
+      <div class="page-toolbar">
+        <div class="page-title-block">
+          <h2>약관 등록 / 관리</h2>
+          <p>회원가입 약관 및 유료서비스 이용약관을 수정하고 신규 시행일에 맞춰 업데이트합니다.</p>
+        </div>
+        <div class="toolbar-actions" style="display:flex; gap: 8px;">
+          <button class="btn btn-secondary" onclick="loadTermsOriginalFiles()" style="display:inline-flex;align-items:center;gap:6px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            서버 파일 원본 불러오기
+          </button>
+          <button class="btn btn-primary" onclick="saveAdminTerms()" style="display:inline-flex;align-items:center;gap:6px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            약관 저장하기
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-grid" style="display: grid; grid-template-columns: 240px 1fr; gap: 1.5rem; align-items: flex-start;">
+        <!-- 왼쪽 사이드 필터/선택 -->
+        <div class="panel" style="margin-bottom: 0;">
+          <div class="panel-body" style="padding: 1.25rem;">
+            <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-light); margin-bottom: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase;">관리 약관 목록</div>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;" id="terms-admin-list">
+              <button type="button" class="btn btn-secondary active-terms-btn" id="terms-btn-gym" onclick="selectAdminTerms('gym')" style="text-align: left; justify-content: flex-start; width: 100%; font-weight: 700;">🏫 관장회원 이용약관</button>
+              <button type="button" class="btn btn-secondary" id="terms-btn-instructor" onclick="selectAdminTerms('instructor')" style="text-align: left; justify-content: flex-start; width: 100%; font-weight: 700;">🥋 사범회원 이용약관</button>
+              <button type="button" class="btn btn-secondary" id="terms-btn-paid" onclick="selectAdminTerms('paid')" style="text-align: left; justify-content: flex-start; width: 100%; font-weight: 700;">💳 유료서비스 이용약관</button>
+            </div>
+            <div style="margin-top: 1.5rem; font-size: 0.8rem; color: var(--text-light); line-height: 1.5; padding: 0.75rem; background: var(--bg-main); border-radius: 8px;">
+              💡 <strong>안내:</strong> 약관을 저장하면 사용자 회원가입창 및 결제창, 이용약관 상세 페이지에 실시간 반영됩니다.
+            </div>
+          </div>
+        </div>
+
+        <!-- 오른쪽 상세 폼 -->
+        <div class="panel" style="margin-bottom: 0;">
+          <div class="panel-body" style="padding: 1.75rem;">
+            <div style="display: grid; grid-template-columns: 1fr 200px; gap: 1rem; margin-bottom: 1.25rem;">
+              <div>
+                <label style="display:block; font-size:0.82rem; font-weight:800; color:#374151; margin-bottom:0.4rem;">약관 제목</label>
+                <input type="text" id="terms-admin-title" class="form-control" style="width: 100%;" placeholder="예: 관장회원 이용약관">
+              </div>
+              <div>
+                <label style="display:block; font-size:0.82rem; font-weight:800; color:#374151; margin-bottom:0.4rem;">시행일자</label>
+                <input type="text" id="terms-admin-effective" class="form-control" style="width: 100%;" placeholder="예: 2026년 07월 04일">
+              </div>
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+              <label style="display:block; font-size:0.82rem; font-weight:800; color:#374151; margin-bottom:0.4rem;">약관 내용 전문</label>
+              <textarea id="terms-admin-content" style="width:100%; height: 500px; padding: 1rem; border: 1.5px solid #e2e8f0; border-radius: 10px; font-family: inherit; font-size: 0.9rem; line-height: 1.6; outline: none; resize: vertical; box-sizing: border-box;" placeholder="약관 내용을 입력하세요. '제1조 목적' 등 각 조항을 줄바꿈하여 작성하세요."></textarea>
+            </div>
+            
+            <div style="display:flex; justify-content: space-between; align-items:center;">
+              <span id="terms-admin-status" style="font-size:0.82rem; color:var(--text-light); font-weight: 600;"></span>
+              <button class="btn btn-primary" onclick="saveAdminTerms()">약관 변경사항 저장</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

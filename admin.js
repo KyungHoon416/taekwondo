@@ -245,6 +245,8 @@ const VIEW_TITLES = {
   inquiries: '문의 목록',
   notices: '공지사항 관리',
   analytics: '통계 대시보드',
+  banners: '배너 등록 / 관리',
+  terms: '약관 등록 / 관리',
   settings: '설정',
 };
 
@@ -283,7 +285,12 @@ async function navigateTo(viewId, clickedItem) {
   if (viewId === 'inquiries') populateInquiries();
   if (viewId === 'analytics') initAnalyticsCharts();
   if (viewId === 'banners') loadBanners();
+  if (viewId === 'terms') {
+    // 기본적으로 gym 약관 선택 로드
+    selectAdminTerms('gym');
+  }
 }
+
 
 // 수동 새로고침 함수
 window.refreshAdminData = async function(viewId) {
@@ -2565,5 +2572,161 @@ async function deleteBanner(docId, storagePath) {
   } catch (e) {
     console.error('배너 삭제 실패:', e);
     showToast('배너 삭제 중 오류가 발생했습니다.', 'error');
+  }
+}
+
+// ─── 약관 등록 / 관리 어드민 기능 ──────────────────────────────────────────────
+let currentSelectedTermsType = 'gym'; // 기본값
+
+// 약관 선택 전환
+window.selectAdminTerms = async function(termsType) {
+  currentSelectedTermsType = termsType;
+  
+  // 버튼 액티브 스타일 교체
+  document.querySelectorAll('#terms-admin-list button').forEach(btn => {
+    btn.classList.remove('active-terms-btn');
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  });
+  
+  const activeBtn = document.getElementById(`terms-btn-${termsType}`);
+  if (activeBtn) {
+    activeBtn.classList.add('active-terms-btn');
+    activeBtn.style.background = 'linear-gradient(135deg, #eff6ff, #dbeafe)';
+    activeBtn.style.color = 'var(--accent-blue)';
+    activeBtn.style.borderColor = 'rgba(37,99,235,0.2)';
+  }
+  
+  // 상태 초기화
+  document.getElementById('terms-admin-status').textContent = '데이터 로딩 중...';
+  
+  try {
+    if (!db) {
+      document.getElementById('terms-admin-status').textContent = '⚠️ Firestore 연결이 없습니다.';
+      return;
+    }
+    
+    // Firestore terms 컬렉션에서 데이터 로드
+    const docRef = db.collection('terms').doc(termsType);
+    const doc = await docRef.get();
+    
+    if (doc.exists) {
+      const data = doc.data();
+      document.getElementById('terms-admin-title').value = data.title || '';
+      document.getElementById('terms-admin-effective').value = data.effectiveDate || '';
+      document.getElementById('terms-admin-content').value = data.content || '';
+      
+      const lastUpdated = data.updatedAt ? new Date(data.updatedAt.toDate()).toLocaleString() : '미기록';
+      document.getElementById('terms-admin-status').textContent = `✅ 최근 수정일: ${lastUpdated}`;
+    } else {
+      // 문서가 없는 경우, 서버 txt 파일에서 데이터 원본 가져오기 시도
+      document.getElementById('terms-admin-status').textContent = '📝 신규 작성 상태 (Firestore에 데이터가 없음)';
+      await loadTermsOriginalFiles(true); // silent load
+    }
+  } catch (e) {
+    console.error('약관 데이터 로드 실패:', e);
+    document.getElementById('terms-admin-status').textContent = '❌ 데이터 로드 실패';
+    showToast('약관 데이터를 불러오지 못했습니다.', 'error');
+  }
+}
+
+// 서버 txt 파일 원본 불러오기
+window.loadTermsOriginalFiles = async function(isSilent = false) {
+  if (!isSilent && !confirm('서버의 정적 텍스트 파일 원본을 불러오시겠습니까?\n현재 작성 중이던 내용은 덮어씌워집니다.')) return;
+  
+  let filename = '';
+  let defaultTitle = '';
+  let defaultEffective = '2026년 07월 04일';
+  
+  if (currentSelectedTermsType === 'gym') {
+    filename = 'gym-terms-20260704.txt';
+    defaultTitle = '관장회원 이용약관';
+  } else if (currentSelectedTermsType === 'instructor') {
+    filename = 'instructor-terms-20260704.txt';
+    defaultTitle = '사범회원 이용약관';
+  } else if (currentSelectedTermsType === 'paid') {
+    filename = 'paid-terms-20260704.txt';
+    defaultTitle = '유료서비스 이용약관';
+  }
+  
+  try {
+    const response = await fetch(`/legal/${filename}`);
+    if (!response.ok) throw new Error('파일 fetch 실패');
+    
+    let text = await response.text();
+    
+    // 텍스트 파일에서 제목 및 시행일 파싱
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    if (lines.length > 0) {
+      defaultTitle = lines[0];
+      const match = lines[1] ? lines[1].match(/(시행일:\s*)(.+)$/) : null;
+      if (match && match[2]) {
+        defaultEffective = match[2].trim();
+      }
+      
+      // 제목과 시행일은 textarea에서 뺀 약관 알짜 본문만 넣을 것인지, 아니면 전체를 넣을 것인지 선택
+      // UI에서는 제목과 시행일을 별도 필드로 분리하고 있으므로, 파싱하여 텍스트에리어에는 조항부터 넣을 수도 있습니다.
+      // 하지만 이용약관에 파일 내용 그대로가 저장되는 것이 안전하므로, 텍스트에리어에는 원문 파일 전체를 그대로 넣도록 하겠습니다.
+      // (혹은 첫줄, 둘째줄을 제외한 나머지 본문만 넣어줄 수도 있습니다.)
+      // 여기서는 사용자가 보기 편하도록 원문 전체를 textarea에 그대로 로드합니다.
+    }
+    
+    document.getElementById('terms-admin-title').value = defaultTitle;
+    document.getElementById('terms-admin-effective').value = defaultEffective;
+    document.getElementById('terms-admin-content').value = text;
+    
+    if (!isSilent) {
+      document.getElementById('terms-admin-status').textContent = '🔄 원본 파일이 정상적으로 로드되었습니다. 저장하기를 눌러 적용하세요.';
+      showToast('원본 파일을 불러왔습니다. 저장 버튼을 클릭해야 실시간 서비스에 적용됩니다.', 'success');
+    }
+  } catch (err) {
+    console.error('원본 파일 로드 실패:', err);
+    if (!isSilent) {
+      showToast('서버 원본 파일을 불러오지 못했습니다.', 'error');
+    }
+  }
+}
+
+// 약관 저장하기
+window.saveAdminTerms = async function() {
+  const title = document.getElementById('terms-admin-title').value.trim();
+  const effectiveDate = document.getElementById('terms-admin-effective').value.trim();
+  const content = document.getElementById('terms-admin-content').value.trim();
+  
+  if (!title) {
+    alert('약관 제목을 입력해 주세요.');
+    return;
+  }
+  if (!effectiveDate) {
+    alert('시행일을 입력해 주세요.');
+    return;
+  }
+  if (!content) {
+    alert('약관 본문 내용을 입력해 주세요.');
+    return;
+  }
+  
+  if (!confirm(`[${title}] 약관의 변경사항을 저장하고 실시간 반영하시겠습니까?`)) return;
+  
+  try {
+    if (!db) {
+      alert('Firestore 연결 정보가 존재하지 않습니다.');
+      return;
+    }
+    
+    await db.collection('terms').doc(currentSelectedTermsType).set({
+      title: title,
+      effectiveDate: effectiveDate,
+      content: content,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    
+    const nowStr = new Date().toLocaleString();
+    document.getElementById('terms-admin-status').textContent = `✅ 최근 수정일: ${nowStr} (저장 완료)`;
+    showToast('약관이 안전하게 저장되었으며, 서비스에 실시간 적용되었습니다.', 'success');
+  } catch (e) {
+    console.error('약관 저장 실패:', e);
+    showToast('약관 저장 중 오류가 발생했습니다.', 'error');
   }
 }
