@@ -12,6 +12,21 @@ let bannerCache = {};
 let selectedBannerFile = null;
 let selectedBannerPreviewUrl = null;
 
+const DEFAULT_RESUME_PASS_PRODUCTS = [
+  { id: 'month_1', name: '1개월 구독권', months: 1, price: 20000, active: true, sort: 1 },
+  { id: 'month_2', name: '2개월 구독권', months: 2, price: 30000, active: true, sort: 2 },
+  { id: 'month_3', name: '3개월 구독권', months: 3, price: 40000, active: true, sort: 3 }
+];
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 (function initAdminAuth() {
   // Firebase 초기화
   try {
@@ -114,6 +129,7 @@ let selectedBannerPreviewUrl = null;
 
         // Firestore 실시간 데이터 로드 및 렌더링
         await fetchFirestoreData();
+        await loadResumePassProducts();
         populateDashboard();
         updateDashboardStats();
 
@@ -320,6 +336,9 @@ async function fetchFirestoreData() {
         businessStatus: u.business_status || '',
         businessStatusCode: u.business_status_code || '',
         businessValid: u.business_valid || '',
+        testPaymentEnabled: u.testPaymentEnabled === true,
+        resumeSubscriptionUntil: u.resumeSubscriptionUntil || null,
+        resumeSubscriptionMonths: u.resumeSubscriptionMonths || 0,
         type: u.type || 'instructor',
         joinDate: u.created_at ? (u.created_at.toDate ? u.created_at.toDate().toISOString().split('T')[0] : '2026-06-11') : '2026-06-11',
         status: 'active'
@@ -439,7 +458,7 @@ async function fetchFirestoreData() {
         job: matchedJob ? matchedJob.title : '채용공고',
         gym: matchedJob ? matchedJob.gym : '도장',
         applyDate: a.created_at ? (a.created_at.toDate ? a.created_at.toDate().toISOString().split('T')[0] : '2026-06-11') : '2026-06-11',
-        status: a.status === 'pending' ? '검토중' : a.status === 'interview' ? '면접제안' : a.status === 'pass' ? '합격' : '불합격',
+        status: a.status === 'pending' ? '검토중' : a.status === 'interview' ? '면접제안' : (a.status === 'accepted' || a.status === 'pass') ? '합격' : '불합격',
         resumeId: a.resume_id || '',
         jobId: a.job_id || ''
       });
@@ -591,7 +610,7 @@ function renderMembers() {
   if (!tbody) return;
 
   if (items.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>검색 결과가 없습니다.</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>검색 결과가 없습니다.</p></div></td></tr>`;
   } else {
     tbody.innerHTML = items.map(m => `
       <tr>
@@ -611,6 +630,18 @@ function renderMembers() {
           ) : ''}
         </td>
         <td>
+          ${m.type === 'gym' ? `
+            <div class="member-payment-toggle">
+              <label class="toggle-switch" title="이 회원의 테스트 결제 허용">
+                <input type="checkbox" ${m.testPaymentEnabled ? 'checked' : ''} onchange="toggleMemberTestPayment('${m.id}', this.checked)">
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="${m.testPaymentEnabled ? 'toggle-state-on' : 'toggle-state-off'}">${m.testPaymentEnabled ? 'ON' : 'OFF'}</span>
+            </div>
+          ` : '<span style="color:var(--muted);font-size:0.78rem">-</span>'}
+        </td>
+        <td>${renderMemberSubscriptionBadge(m)}</td>
+        <td>
           <div class="action-btns">
             <button class="btn-icon" title="상세보기" onclick="showDetail('member', '${m.id}')">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -626,6 +657,58 @@ function renderMembers() {
       </tr>`).join('');
   }
   renderPagination('members-pagination', filtered.length, page, 'members');
+}
+
+function getAdminMillisFromDateLike(value) {
+  if (!value) return 0;
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  if (typeof value.toDate === 'function') return value.toDate().getTime();
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === 'number') return value;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function formatMemberSubscriptionDate(value) {
+  const millis = getAdminMillisFromDateLike(value);
+  if (!millis) return '-';
+  return new Date(millis).toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+}
+
+function renderMemberSubscriptionBadge(member) {
+  if (member.type !== 'gym') return '<span style="color:var(--muted);font-size:0.78rem">-</span>';
+  const untilMillis = getAdminMillisFromDateLike(member.resumeSubscriptionUntil);
+  if (!untilMillis) return '<span class="badge badge-amber">미구독</span>';
+  if (untilMillis <= Date.now()) {
+    return `<span class="badge badge-red">만료</span><div class="subscription-date">${formatMemberSubscriptionDate(member.resumeSubscriptionUntil)}</div>`;
+  }
+  const months = Number(member.resumeSubscriptionMonths) || '';
+  const monthText = months ? `${months}개월 ` : '';
+  return `<span class="badge badge-blue">${monthText}구독중</span><div class="subscription-date">~ ${formatMemberSubscriptionDate(member.resumeSubscriptionUntil)}</div>`;
+}
+
+async function toggleMemberTestPayment(id, enabled) {
+  const member = MEMBERS.find(m => m.id === id);
+  if (!member) return;
+
+  member.testPaymentEnabled = enabled;
+  renderMembers();
+
+  try {
+    await db.collection('users').doc(member.fullId).update({
+      testPaymentEnabled: enabled
+    });
+    showToast(`${member.name}님 테스트 결제를 ${enabled ? 'ON' : 'OFF'} 처리했습니다.`, enabled ? 'success' : 'warning');
+  } catch (err) {
+    member.testPaymentEnabled = !enabled;
+    renderMembers();
+    console.error('테스트 결제 플래그 변경 실패:', err);
+    showToast('테스트 결제 설정 저장 실패: ' + err.message, 'error');
+  }
 }
 
 function toggleMemberBan(id) {
@@ -942,7 +1025,7 @@ async function changeAppStatus(id, newStatus) {
   const app = APPLICATIONS.find(a => a.id === id);
   if (!app) return;
 
-  const dbStatus = newStatus === '합격' ? 'accepted' : (newStatus === '불합격' ? 'rejected' : 'pending');
+  const dbStatus = newStatus === '합격' ? 'accepted' : (newStatus === '불합격' ? 'rejected' : newStatus === '면접제안' ? 'interview' : 'pending');
 
   if (db && app.fullId) {
     try {
@@ -1215,6 +1298,102 @@ function switchSettings(el, sectionId) {
   el.classList.add('active');
   document.getElementById(sectionId)?.classList.add('active');
 }
+
+async function ensureDefaultResumePassProducts() {
+  const snap = await db.collection('resume_pass_products').limit(1).get();
+  if (!snap.empty) return;
+  const batch = db.batch();
+  DEFAULT_RESUME_PASS_PRODUCTS.forEach((product) => {
+    batch.set(db.collection('resume_pass_products').doc(product.id), {
+      name: product.name,
+      months: product.months,
+      price: product.price,
+      active: product.active,
+      sort: product.sort,
+      created_at: firebase.firestore.FieldValue.serverTimestamp(),
+      updated_at: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  });
+  await batch.commit();
+}
+
+window.loadResumePassProducts = async function() {
+  const tbody = document.getElementById('resume-pass-products-tbody');
+  if (!tbody || !db) return;
+  tbody.innerHTML = `<tr><td colspan="4" style="color:var(--muted);padding:1rem">상품 정보를 불러오는 중입니다.</td></tr>`;
+
+  try {
+    await ensureDefaultResumePassProducts();
+    const snap = await db.collection('resume_pass_products').orderBy('sort', 'asc').get();
+    const products = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    renderResumePassProducts(products);
+  } catch (err) {
+    console.error('이력서 열람권 상품 로드 실패:', err);
+    tbody.innerHTML = `<tr><td colspan="4" style="color:#dc2626;padding:1rem">상품 정보를 불러오지 못했습니다.</td></tr>`;
+    showToast('이력서 열람권 상품 로드 실패: ' + err.message, 'error');
+  }
+};
+
+function renderResumePassProducts(products) {
+  const tbody = document.getElementById('resume-pass-products-tbody');
+  if (!tbody) return;
+  const rows = products.length ? products : DEFAULT_RESUME_PASS_PRODUCTS;
+  tbody.innerHTML = rows.map((product, index) => `
+    <tr data-product-id="${product.id || `month_${index + 1}`}" data-product-sort="${Number(product.sort || index + 1)}">
+      <td>
+        <label class="toggle-switch">
+          <input type="checkbox" class="resume-product-active" ${product.active !== false ? 'checked' : ''}>
+          <span class="toggle-slider"></span>
+        </label>
+      </td>
+      <td>
+        <input class="form-control resume-product-name" value="${escapeHtml(product.name || `${product.months || index + 1}개월 구독권`)}">
+      </td>
+      <td>
+        <div class="product-input-inline">
+          <input class="form-control resume-product-months" type="number" min="1" max="36" value="${Number(product.months || index + 1)}">
+          <span>개월</span>
+        </div>
+      </td>
+      <td>
+        <div class="product-input-inline">
+          <input class="form-control resume-product-price" type="number" min="0" step="1000" value="${Number(product.price || 0)}">
+          <span>원</span>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+window.saveResumePassProducts = async function() {
+  const rows = Array.from(document.querySelectorAll('#resume-pass-products-tbody tr[data-product-id]'));
+  if (!rows.length || !db) return;
+
+  try {
+    const batch = db.batch();
+    rows.forEach((row, index) => {
+      const id = row.dataset.productId;
+      const name = row.querySelector('.resume-product-name')?.value?.trim() || `${index + 1}개월 구독권`;
+      const months = Math.max(1, parseInt(row.querySelector('.resume-product-months')?.value, 10) || index + 1);
+      const price = Math.max(0, parseInt(row.querySelector('.resume-product-price')?.value, 10) || 0);
+      const active = row.querySelector('.resume-product-active')?.checked === true;
+      batch.set(db.collection('resume_pass_products').doc(id), {
+        name,
+        months,
+        price,
+        active,
+        sort: Number(row.dataset.productSort || index + 1),
+        updated_at: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    });
+    await batch.commit();
+    showToast('이력서 열람권 상품 설정이 저장되었습니다.', 'success');
+    await loadResumePassProducts();
+  } catch (err) {
+    console.error('이력서 열람권 상품 저장 실패:', err);
+    showToast('상품 설정 저장 실패: ' + err.message, 'error');
+  }
+};
 
 // ─── Region Sync ────────────────────────────────────────────────────────────
 function formatRegionSyncDate(value) {
@@ -1745,6 +1924,8 @@ window.showDetail = function(type, id) {
                 : '<span class="badge badge-amber">확인중</span>'}
             </span>
           </div>
+          <div class="detail-item"><strong>테스트 결제</strong><span>${m.testPaymentEnabled ? '<span class="badge badge-blue">ON</span>' : '<span class="badge badge-amber">OFF</span>'}</span></div>
+          <div class="detail-item"><strong>구독기간</strong><span>${renderMemberSubscriptionBadge(m)}</span></div>
         ` : ''}
         <div class="detail-item"><strong>가입일</strong><span>${m.joinDate}</span></div>
         <div class="detail-item"><strong>상태</strong><span>${m.status === 'banned' ? '<span class="badge badge-red">정지</span>' : '<span class="badge badge-green">정상</span>'}</span></div>
@@ -1856,29 +2037,6 @@ window.toggleJobPinned = async function(jobId, element) {
   const isChecked = checkbox.checked;
 
   if (isChecked) {
-    // 결제 연동 활성화 상태인 경우
-    const paymentActive = localStorage.getItem('taekwondo_admin_payment_active') !== 'false';
-    if (paymentActive) {
-      // 켜려고 할 때 -> 결제 모달 오픈!
-      // 결제 완료 전까지 체크박스는 일시적으로 원래 상태(off)로 돌려놓음
-      checkbox.checked = false;
-
-      const j = JOBS.find(x => x.id === jobId || x.fullId === jobId);
-      if (!j) { showToast('채용공고를 찾을 수 없습니다.', 'error'); return; }
-
-      currentPaymentJobId = j.fullId || j.id;
-
-      // 결제 팝업 내 제목 바인딩
-      const payTitleEl = document.getElementById('payment-job-title');
-      if (payTitleEl) {
-        payTitleEl.textContent = `"${j.title}" 상위 노출 30일권`;
-      }
-
-      openDialog('payment-dialog');
-      return;
-    }
-
-    // 결제창 스킵 모드 (기존 직기록 흐름)
     try {
       showToast('상위 노출 정보를 업데이트 중입니다...', 'warning');
 
@@ -1949,169 +2107,9 @@ window.toggleJobPinned = async function(jobId, element) {
   }
 };
 
-// ─── 결제 모달 탭 변경 및 모의 결제 이벤트 바인딩 ──────────────────────
-let currentPaymentJobId = null;
-
-// 결제 모드 토글 함수 및 UI 업데이트
-window.togglePaymentMode = function() {
-  const active = localStorage.getItem('taekwondo_admin_payment_active') !== 'false';
-  const newActive = !active;
-  localStorage.setItem('taekwondo_admin_payment_active', newActive);
-  window.updatePaymentModeButtonUI(newActive);
-  showToast(newActive ? '결제 연동 모드가 활성화되었습니다.' : '결제 스킵(테스트) 모드가 활성화되었습니다.', 'warning');
-};
-
-window.updatePaymentModeButtonUI = function(active) {
-  const btn = document.getElementById('btn-toggle-payment-mode');
-  if (!btn) return;
-  if (active) {
-    btn.className = 'btn';
-    btn.style.border = '1.5px solid var(--blue)';
-    btn.style.color = 'var(--blue)';
-    btn.style.background = '#f0f7ff';
-    btn.innerHTML = `
-      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      결제창 오픈 활성
-    `;
-  } else {
-    btn.className = 'btn btn-secondary';
-    btn.style.border = '';
-    btn.style.color = '';
-    btn.style.background = '';
-    btn.innerHTML = `
-      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      결제창 스킵
-    `;
-  }
-};
-
-// 결제수단 선택 스타일 토글 헬퍼
-window.selectPayOption = function(method) {
-  document.querySelectorAll('.pay-option').forEach(el => {
-    el.style.border = '1.5px solid #e2e8f0';
-    el.style.background = '#fff';
-  });
-  const activeLabel = document.getElementById('label-pay-' + method);
-  if (activeLabel) {
-    activeLabel.style.border = '1.5px solid var(--blue)';
-    activeLabel.style.background = '#f0f7ff';
-  }
-};
-
 document.addEventListener('DOMContentLoaded', () => {
-  // 결제 토글 상태 반영
-  const paymentActive = localStorage.getItem('taekwondo_admin_payment_active') !== 'false';
-  window.updatePaymentModeButtonUI(paymentActive);
-  // 공지사항 리스트 동적 로드
   if (window.populateNotices) {
     window.populateNotices();
-  }
-  // 토스페이먼츠 결제 실행 리스너
-  const btnPayExecute = document.getElementById('btn-pay-execute');
-
-  if (btnPayExecute) {
-    btnPayExecute.addEventListener('click', async () => {
-      if (!currentPaymentJobId) {
-        showToast('결제 대상 채용공고를 찾을 수 없습니다.', 'error');
-        closeDialog('payment-dialog');
-        return;
-      }
-
-      // 라디오 버튼 수집
-      const payMethodRadio = document.querySelector('input[name="pay-method"]:checked');
-      const methodVal = payMethodRadio ? payMethodRadio.value : 'card';
-
-      // 토스페이먼츠 결제 수단 매핑
-      let tossMethod = '카드';
-      if (methodVal === 'card' || methodVal === 'kakaopay' || methodVal === 'naverpay' || methodVal === 'tosspay') {
-        tossMethod = '카드'; // 일반 통합결제창에서 간편결제와 카드를 제공
-      }
-
-      // 토스페이먼츠 클라이언트 인스턴스 초기화 (테스트용 클라이언트 키)
-      if (typeof TossPayments === 'undefined') {
-        showToast('토스페이먼츠 라이브러리가 로드되지 않았습니다. 잠시 후 다시 시도해 주세요.', 'error');
-        return;
-      }
-      
-      const clientKey = 'test_ck_D5aZzN1E5Q1912A81Y5rlQ8YqFGG';
-      const tossPayments = TossPayments(clientKey);
-
-      // 결제창 호출
-      try {
-        const orderId = 'order_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
-        const successUrl = window.location.origin + window.location.pathname + '?paySuccess=true&jobId=' + currentPaymentJobId;
-        const failUrl = window.location.origin + window.location.pathname + '?payFail=true';
-
-        showToast('결제창을 여는 중...', 'warning');
-
-        tossPayments.requestPayment(tossMethod, {
-          amount: 30000,
-          orderId: orderId,
-          orderName: '채용공고 상위 노출 30일권',
-          customerName: '관장님',
-          successUrl: successUrl,
-          failUrl: failUrl,
-        });
-      } catch (err) {
-        console.error('토스페이먼츠 결제 호출 에러:', err);
-        showToast('결제창 호출에 실패했습니다: ' + err.message, 'error');
-      }
-    });
-  }
-
-  // ─── 결제 결과 파라미터 감지 처리 ──────────────────────────────────────────
-  const urlParams = new URLSearchParams(window.location.search);
-  const paySuccess = urlParams.get('paySuccess');
-  const payFail = urlParams.get('payFail');
-  const jobId = urlParams.get('jobId');
-
-  if (paySuccess === 'true' && jobId) {
-    // 쿼리 파라미터 지우기 (history replace)
-    const cleanUri = window.location.origin + window.location.pathname;
-    window.history.replaceState({}, document.title, cleanUri);
-
-    showToast('결제 승인이 완료되었습니다. 데이터베이스 반영 중...', 'warning');
-
-    // 비동기 반영 처리
-    (async () => {
-      try {
-        // 실제 Firestore에 pinned 반영 (동일 상위노출 공고 조회 및 중복해제 트랜잭션 적용)
-        const querySnap = await db.collection('jobs').where('pinned', '==', true).get();
-        let existingPinnedJob = null;
-        querySnap.forEach(doc => {
-          if (doc.id !== jobId) {
-            existingPinnedJob = { id: doc.id, ...doc.data() };
-          }
-        });
-
-        if (existingPinnedJob) {
-          // 기존 상위 노출 해제 + 신규 설정
-          const batch = db.batch();
-          batch.update(db.collection('jobs').doc(existingPinnedJob.id), { pinned: false });
-          batch.update(db.collection('jobs').doc(jobId), { pinned: true });
-          await batch.commit();
-        } else {
-          // 신규 설정
-          await db.collection('jobs').doc(jobId).update({ pinned: true });
-        }
-
-        // 데이터 갱신
-        await fetchFirestoreData();
-        filterJobs();
-
-        // 결제 완료 모달 띄우기
-        openDialog('payment-success-dialog');
-        showToast('상위 노출 권한이 활성화되었습니다!', 'success');
-      } catch (err) {
-        console.error('결제 성공 후 Firestore 반영 실패:', err);
-        showToast('결제 반영 실패: ' + err.message, 'error');
-      }
-    })();
-  } else if (payFail === 'true') {
-    // 쿼리 파라미터 지우기
-    const cleanUri = window.location.origin + window.location.pathname;
-    window.history.replaceState({}, document.title, cleanUri);
-    showToast('결제가 취소되었거나 실패하였습니다.', 'error');
   }
 });
 

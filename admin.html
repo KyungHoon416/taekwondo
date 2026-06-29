@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>태권잡 관리자 | 어드민 대시보드</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="admin.css?v=20260612-v4">
+  <link rel="stylesheet" href="admin.css?v=20260629-appflow2">
   <!-- Firebase SDK (compat v10) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -452,7 +452,7 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>ID</th><th>이름</th><th>이메일</th><th>연락처</th><th>사업자등록번호</th><th>유형</th><th>가입일</th><th>상태</th><th>관리</th>
+                <th>ID</th><th>이름</th><th>이메일</th><th>연락처</th><th>사업자등록번호</th><th>유형</th><th>가입일</th><th>상태</th><th>테스트 결제</th><th>구독기간</th><th>관리</th>
               </tr>
             </thead>
             <tbody id="members-tbody"></tbody>
@@ -474,9 +474,6 @@
           <button class="btn btn-secondary" onclick="refreshAdminData('jobs')" style="display: inline-flex; align-items: center; gap: 6px;">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
             새로고침
-          </button>
-          <button id="btn-toggle-payment-mode" class="btn" onclick="togglePaymentMode()" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; transition: all 0.2s;">
-            <!-- JS will populate icon and text -->
           </button>
           <button class="btn btn-primary" onclick="openDialog('job-dialog')">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -754,6 +751,7 @@
           <div class="settings-grid">
             <nav class="settings-nav">
               <div class="settings-nav-item active" onclick="switchSettings(this, 'settings-general')">일반 설정</div>
+              <div class="settings-nav-item" onclick="switchSettings(this, 'settings-products')">결제 상품</div>
               <div class="settings-nav-item" onclick="switchSettings(this, 'settings-notify')">알림 설정</div>
               <div class="settings-nav-item" onclick="switchSettings(this, 'settings-security')">보안 설정</div>
             </nav>
@@ -812,6 +810,35 @@
                 </div>
                 <div style="margin-top:1.5rem">
                   <button class="btn btn-primary" onclick="showToast('설정이 저장되었습니다.','success')">변경사항 저장</button>
+                </div>
+              </div>
+
+              <div class="settings-section" id="settings-products">
+                <h3>이력서 열람권 상품 관리</h3>
+                <div class="settings-row" style="align-items:flex-start">
+                  <div>
+                    <div class="settings-label">구독 상품</div>
+                    <div class="settings-desc">사용자 페이지의 이력서 열람권 구매 화면에 표시되는 상품입니다.</div>
+                  </div>
+                  <button class="btn btn-secondary" type="button" onclick="loadResumePassProducts()">새로고침</button>
+                </div>
+                <div class="product-settings-table-wrap">
+                  <table class="data-table product-settings-table">
+                    <thead>
+                      <tr>
+                        <th>노출</th>
+                        <th>상품명</th>
+                        <th>기간</th>
+                        <th>가격</th>
+                      </tr>
+                    </thead>
+                    <tbody id="resume-pass-products-tbody">
+                      <tr><td colspan="4" style="color:var(--muted);padding:1rem">상품 정보를 불러오는 중입니다.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div style="margin-top:1rem;display:flex;gap:0.5rem;justify-content:flex-end">
+                  <button class="btn btn-primary" type="button" onclick="saveResumePassProducts()">상품 설정 저장</button>
                 </div>
               </div>
 
@@ -1108,83 +1135,10 @@
   </div>
 </dialog>
 
-<!-- Payment Dialog (Mock) -->
-<dialog id="payment-dialog" class="admin-dialog" style="max-width: 460px;">
-  <div class="dialog-hd">
-    <h3 style="display: flex; align-items: center; gap: 8px;">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--blue)" stroke-width="2.5"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="18" x2="12" y2="6"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
-      서비스 결제 신청
-    </h3>
-    <button class="dialog-close-btn" onclick="closeDialog('payment-dialog')">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <div class="dialog-bd" style="padding: 1.25rem 1.5rem 1.5rem 1.5rem;">
-    <!-- 상품 정보 -->
-    <div style="background: #f8fafc; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; border: 1px solid #e2e8f0; box-sizing: border-box;">
-      <div style="font-size: 0.78rem; font-weight: 700; color: #64748b; margin-bottom: 0.3rem;">신청 서비스</div>
-      <div style="font-size: 1rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;" id="payment-job-title">채용공고 상위 노출 30일권</div>
-      <div style="display: flex; align-items: baseline; gap: 4px;">
-        <span style="font-size: 1.35rem; font-weight: 900; color: var(--blue);">₩30,000</span>
-      </div>
-    </div>
-
-    <!-- 결제수단 그리드 -->
-    <div id="payment-method-domestic">
-      <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.6rem;">결제 수단 선택</label>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.5rem;">
-        <!-- 신용카드 -->
-        <label style="border: 1.5px solid var(--blue); border-radius: 10px; padding: 0.8rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s; background: #f0f7ff;" class="pay-option" id="label-pay-card">
-          <input type="radio" name="pay-method" value="card" checked style="accent-color: var(--blue);" onclick="selectPayOption('card')">
-          <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b;">신용/체크카드</span>
-        </label>
-        <!-- 카카오페이 -->
-        <label style="border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.8rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s;" class="pay-option" id="label-pay-kakao">
-          <input type="radio" name="pay-method" value="kakaopay" style="accent-color: #ffeb00;" onclick="selectPayOption('kakao')">
-          <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 4px;">
-            <span style="background: #ffeb00; color: #3c1e1e; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem; font-weight: 900; line-height: 1;">talk</span>카카오페이
-          </span>
-        </label>
-        <!-- 네이버페이 -->
-        <label style="border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.8rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s;" class="pay-option" id="label-pay-naver">
-          <input type="radio" name="pay-method" value="naverpay" style="accent-color: #03c75a;" onclick="selectPayOption('naver')">
-          <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 4px;">
-            <span style="background: #03c75a; color: #fff; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem; font-weight: 900; line-height: 1;">N</span>네이버페이
-          </span>
-        </label>
-        <!-- 토스페이 -->
-        <label style="border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.8rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s;" class="pay-option" id="label-pay-toss">
-          <input type="radio" name="pay-method" value="tosspay" style="accent-color: #0064ff;" onclick="selectPayOption('toss')">
-          <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 4px;">
-            <span style="color: #0064ff; font-weight: 900; font-style: italic; font-size: 0.85rem;">toss</span>페이
-          </span>
-        </label>
-      </div>
-      <button type="button" id="btn-pay-execute" class="btn btn-primary" style="width: 100%; height: 42px; font-size: 0.92rem; font-weight: 800;">30,000원 결제하기</button>
-    </div>
-  </div>
-</dialog>
-
-<!-- Payment Success Dialog (Mock) -->
-<dialog id="payment-success-dialog" class="admin-dialog" style="max-width: 380px; text-align: center;">
-  <div class="dialog-bd" style="padding: 2.25rem 1.5rem 2rem 1.5rem;">
-    <div style="width: 52px; height: 52px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;">
-      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#16a34a" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-    </div>
-    <h3 style="font-size: 1.2rem; font-weight: 900; color: #0f172a; margin-bottom: 0.5rem; margin-top: 0;">결제 완료!</h3>
-    <p style="font-size: 0.85rem; color: #64748b; line-height: 1.6; margin-bottom: 1.5rem; margin-top: 0;">
-      서비스 결제가 정상적으로 완료되었습니다.<br>
-      해당 채용공고의 <strong style="color: #d97706;">상위 노출</strong>이 활성화되었습니다.
-    </p>
-    <button type="button" class="btn btn-primary" onclick="closeDialog('payment-success-dialog')" style="width: 100%; height: 38px; font-weight: 700;">확인</button>
-  </div>
-</dialog>
-
 <!-- Toast Container -->
 <div id="toast-container"></div>
 
-<script src="https://js.tosspayments.com/v1/payment"></script>
 <script src="region-sync.js?v=20260612-v5"></script>
-<script src="admin.js?v=20260628-v6"></script>
+<script src="admin.js?v=20260629-appflow2"></script>
 </body>
 </html>

@@ -825,6 +825,125 @@
 /* ==========================================================================
    Talent Cards (추천 인재정보)
    ========================================================================== */
+.my-applications-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.application-job-group,
+.application-row-card {
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.application-job-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-main);
+  background: #f8fafc;
+}
+
+.application-job-title {
+  font-size: 1rem;
+  font-weight: 850;
+  color: var(--text-main);
+}
+
+.application-job-meta,
+.application-row-meta {
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.application-count-badge,
+.application-status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.application-count-badge {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.application-status-badge.pending { color: #92400e; background: #fef3c7; }
+.application-status-badge.interview { color: #1d4ed8; background: #dbeafe; }
+.application-status-badge.accepted { color: #047857; background: #d1fae5; }
+.application-status-badge.rejected { color: #b91c1c; background: #fee2e2; }
+
+.application-applicant-list {
+  display: grid;
+}
+
+.application-applicant-row,
+.application-row-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-main);
+}
+
+.application-applicant-row:last-child {
+  border-bottom: none;
+}
+
+.application-applicant-name {
+  font-size: 0.95rem;
+  font-weight: 850;
+  color: var(--text-main);
+}
+
+.application-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.application-actions button {
+  border: 1px solid var(--border-main);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--text-main);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.42rem 0.65rem;
+}
+
+.application-actions button:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+@media (max-width: 720px) {
+  .application-job-header,
+  .application-applicant-row,
+  .application-row-card {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .application-actions {
+    justify-content: flex-start;
+  }
+}
+
 .talents-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

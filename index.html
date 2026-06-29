@@ -53,7 +53,9 @@
         <!-- 로그인 상태 -->
         <div id="auth-logged-in" style="display:none;gap:0.75rem;align-items:center">
           <span id="auth-user-name" style="font-size:0.88rem;font-weight:700;color:var(--color-navy-800)"></span>
+          <button type="button" id="btn-header-my-applications" onclick="window.location.hash='#my-applications'" style="display:none;font-size:0.82rem;font-weight:800;color:#1e40af;background:#eff6ff;padding:0.42rem 0.8rem;border:1.5px solid #bfdbfe;border-radius:20px;cursor:pointer;white-space:nowrap">내 채용 관리</button>
           <a href="admin.html" id="btn-admin-link" style="display:none;font-size:0.82rem;font-weight:700;color:var(--color-blue-600);padding:0.35rem 0.8rem;border:1.5px solid var(--color-blue-600);border-radius:20px;text-decoration:none">관리자</a>
+          <button type="button" id="btn-header-purchase-pass" onclick="openPurchasePassModal()" style="display:none;font-size:0.82rem;font-weight:800;color:#ffffff;background:#2563eb;padding:0.42rem 0.8rem;border:1.5px solid #2563eb;border-radius:20px;cursor:pointer;white-space:nowrap">열람권 구매</button>
           <button type="button" class="btn-text" id="btn-logout">로그아웃</button>
         </div>
       </div>
@@ -331,6 +333,24 @@
       </section>
     </div>
     
+    <!-- SUB-PAGE VIEW: MY APPLICATIONS / APPLICANT MANAGEMENT -->
+    <div id="view-my-applications" class="page-view hidden">
+      <section class="section">
+        <div class="section-container">
+          <div class="page-title-area">
+            <h1 id="my-applications-title">내 채용 관리</h1>
+            <p id="my-applications-desc">채용공고별 지원자와 진행 상태를 관리합니다.</p>
+          </div>
+          <div id="my-applications-summary" class="board-meta" style="margin-bottom:1rem">
+            <span class="results-count">불러오는 중입니다.</span>
+          </div>
+          <div id="my-applications-list" class="my-applications-list">
+            <div class="loading-placeholder">지원 현황을 불러오는 중입니다...</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
     <!-- SUB-PAGE VIEW: TALENT BOARD -->
     <div id="view-talents" class="page-view hidden">
       <section class="section">
@@ -350,7 +370,7 @@
               </div>
             </div>
             <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-              <span style="font-size: 0.95rem; color: #1e40af;">보유 열람권: <strong id="gym-pass-count" style="color: #2563eb; font-size: 1.2rem; font-weight: 800;">3</strong>장</span>
+              <span style="font-size: 0.95rem; color: #1e40af;">구독 상태: <strong id="gym-pass-count" style="color: #2563eb; font-size: 1.05rem; font-weight: 800;">미구독</strong></span>
               <button type="button" class="btn-primary-sm" onclick="openPurchasePassModal()" style="background: #2563eb; border-color: #2563eb; color: #ffffff; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s;">
                 🎫 열람권 구매
               </button>
@@ -1255,10 +1275,13 @@
             <input type="checkbox" id="reg-agree-age" required>
             <span>[필수] 만 15세 이상입니다</span>
           </label>
-          <label class="agreement-row">
-            <input type="checkbox" id="reg-agree-terms" required>
-            <span>[필수] 이용약관 동의</span>
-          </label>
+          <div class="agreement-row agreement-row-with-action">
+            <label class="agreement-check-label">
+              <input type="checkbox" id="reg-agree-terms" required>
+              <span>[필수] 이용약관 동의</span>
+            </label>
+            <button type="button" class="agreement-detail-button" id="btn-view-register-terms">상세보기</button>
+          </div>
           <label class="agreement-row">
             <input type="checkbox" id="reg-agree-personalized">
             <span>[선택] 맞춤형 서비스/광고 개인정보 수집 및 이용 동의</span>
@@ -1268,8 +1291,26 @@
             <span>[선택] 광고성 정보 수신 동의</span>
           </label>
         </div>
+        <div id="auth-register-submit-error-msg" class="auth-error-msg" style="display:none;background:#fef2f2;color:#dc2626;padding:0.75rem 0.9rem;border-radius:8px;font-size:0.9rem;font-weight:800;margin:0 0 0.85rem;border:1px solid #fecaca;line-height:1.5"></div>
         <button type="submit" class="btn-submit-dialog">회원가입하기</button>
       </form>
+    </div>
+  </dialog>
+
+  <dialog id="dialog-register-terms-detail" class="modal-dialog auth-dialog" style="max-width: 720px;">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h2 id="register-terms-title">이용약관 상세내역</h2>
+        <button type="button" class="btn-close-dialog" onclick="document.getElementById('dialog-register-terms-detail').close();" aria-label="닫기">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="terms-detail-body">
+        <pre id="register-terms-content" class="terms-detail-content">약관을 불러오는 중입니다.</pre>
+      </div>
+      <div class="detail-footer">
+        <button type="button" class="btn-action-primary" id="btn-agree-register-terms" style="width: 100%;">확인하고 동의하기</button>
+      </div>
     </div>
   </dialog>
 
@@ -1724,38 +1765,85 @@
         <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.25rem; text-align: center;">
           사범님들의 연락처와 자기소개를 무제한 열람해 보세요!
         </p>
-        <div class="purchase-products-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
-          <div class="product-item" style="border: 2px solid var(--primary-color); border-radius: 12px; padding: 1rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: var(--bg-hover);" onclick="selectPurchaseProduct(1, 9900)">
-            <div>
-              <strong style="font-size: 1.05rem; display: block; color: var(--text-color);">열람권 1회권</strong>
-              <span style="font-size: 0.85rem; color: var(--text-muted);">맛보기 체험권</span>
-            </div>
-            <strong style="color: var(--primary-color); font-size: 1.15rem;">9,900원</strong>
-          </div>
-          <div class="product-item" style="border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="selectPurchaseProduct(5, 39000)">
-            <div>
-              <strong style="font-size: 1.05rem; display: block; color: var(--text-color);">열람권 5회권 (20% 할인)</strong>
-              <span style="font-size: 0.85rem; color: var(--text-muted);">실속형 패키지</span>
-            </div>
-            <strong style="color: var(--primary-color); font-size: 1.15rem;">39,000원</strong>
-          </div>
-          <div class="product-item" style="border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="selectPurchaseProduct(10, 69000)">
-            <div>
-              <strong style="font-size: 1.05rem; display: block; color: var(--text-color);">열람권 10회권 (30% 할인)</strong>
-              <span style="font-size: 0.85rem; color: var(--text-muted);">추천 베스트 패키지</span>
-            </div>
-            <strong style="color: var(--primary-color); font-size: 1.15rem;">69,000원</strong>
-          </div>
-        </div>
+        <div class="purchase-products-list" id="purchase-products-list" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
         <input type="hidden" id="selected-pass-count" value="1">
-        <input type="hidden" id="selected-pass-price" value="9900">
+        <input type="hidden" id="selected-pass-price" value="20000">
+        <input type="hidden" id="selected-pass-name" value="1개월 구독권">
         
         <div style="margin-top: 1.5rem; text-align: center; font-size: 0.85rem; color: var(--text-muted);">
           * 신용카드, 계좌이체, 카카오페이 등 모의 결제가 제공됩니다.
         </div>
       </div>
       <div class="detail-footer">
-        <button type="button" class="btn-action-primary" style="width: 100%;" onclick="confirmPurchasePass()">💳 결제하기 (9,900원)</button>
+        <button type="button" class="btn-action-primary" style="width: 100%;" onclick="confirmPurchasePass()">💳 결제하기 (20,000원)</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 12. SERVICE PAYMENT APPLICATION DIALOG -->
+  <dialog id="dialog-service-payment" class="modal-dialog auth-dialog" style="max-width: 460px;">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h2 style="display: flex; align-items: center; gap: 8px;">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--primary-color)" stroke-width="2.5"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="18" x2="12" y2="6"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+          서비스 결제 신청
+        </h2>
+        <button type="button" class="btn-close-dialog" onclick="document.getElementById('dialog-service-payment').close();" aria-label="닫기">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div style="padding: 1.25rem 1.5rem 1.5rem 1.5rem;">
+        <div style="background: #f8fafc; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; border: 1px solid #e2e8f0; box-sizing: border-box;">
+          <div style="font-size: 0.78rem; font-weight: 700; color: #64748b; margin-bottom: 0.3rem;">신청 서비스</div>
+          <div style="font-size: 1rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;" id="resume-payment-title">이력서 열람 1개월 구독권</div>
+          <div style="display: flex; align-items: baseline; gap: 4px;">
+            <span style="font-size: 1.35rem; font-weight: 900; color: var(--primary-color);" id="resume-payment-price">₩20,000</span>
+          </div>
+        </div>
+
+        <div id="resume-payment-methods">
+          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.6rem;">결제 수단 선택</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.5rem;">
+            <label style="border: 1.5px solid var(--primary-color); border-radius: 10px; padding: 0.8rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s; background: #f0f7ff;" class="resume-pay-option" id="resume-label-pay-card">
+              <input type="radio" name="resume-pay-method" value="card" checked style="accent-color: var(--primary-color);" onclick="selectResumePayOption('card')">
+              <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b;">신용/체크카드</span>
+            </label>
+            <label style="border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.8rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s;" class="resume-pay-option" id="resume-label-pay-kakao">
+              <input type="radio" name="resume-pay-method" value="kakaopay" style="accent-color: #ffeb00;" onclick="selectResumePayOption('kakao')">
+              <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 4px;">
+                <span style="background: #ffeb00; color: #3c1e1e; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem; font-weight: 900; line-height: 1;">talk</span>카카오페이
+              </span>
+            </label>
+            <label style="border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.8rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s;" class="resume-pay-option" id="resume-label-pay-naver">
+              <input type="radio" name="resume-pay-method" value="naverpay" style="accent-color: #03c75a;" onclick="selectResumePayOption('naver')">
+              <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 4px;">
+                <span style="background: #03c75a; color: #fff; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem; font-weight: 900; line-height: 1;">N</span>네이버페이
+              </span>
+            </label>
+            <label style="border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.8rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s;" class="resume-pay-option" id="resume-label-pay-toss">
+              <input type="radio" name="resume-pay-method" value="tosspay" style="accent-color: #0064ff;" onclick="selectResumePayOption('toss')">
+              <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 4px;">
+                <span style="color: #0064ff; font-weight: 900; font-style: italic; font-size: 0.85rem;">toss</span>페이
+              </span>
+            </label>
+          </div>
+          <button type="button" id="btn-resume-pay-execute" class="btn-action-primary" onclick="executeResumePassPayment()" style="width: 100%; height: 42px; font-size: 0.92rem; font-weight: 800;">20,000원 결제하기</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="dialog-service-payment-success" class="modal-dialog auth-dialog" style="max-width: 380px; text-align: center;">
+    <div class="dialog-content">
+      <div style="padding: 2.25rem 1.5rem 2rem 1.5rem;">
+        <div style="width: 52px; height: 52px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#16a34a" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h3 style="font-size: 1.2rem; font-weight: 900; color: #0f172a; margin-bottom: 0.5rem; margin-top: 0;">결제 완료!</h3>
+        <p id="resume-payment-success-message" style="font-size: 0.85rem; color: #64748b; line-height: 1.6; margin-bottom: 1.5rem; margin-top: 0;">
+          이력서 열람 구독이 활성화되었습니다.
+        </p>
+        <button type="button" class="btn-action-primary" onclick="document.getElementById('dialog-service-payment-success').close();" style="width: 100%; height: 38px; font-weight: 700;">확인</button>
       </div>
     </div>
   </dialog>
@@ -1764,6 +1852,6 @@
   <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=28f3ae7ad7bb29db3e5774383d5bebe3&libraries=services&autoload=false"></script>
   <script src="region-sync.js?v=20260612-v6"></script>
-  <script src="index.js?v=20260629-agree1"></script>
+  <script src="index.js?v=20260629-appflow2"></script>
 </body>
 </html>

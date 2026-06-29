@@ -19,17 +19,86 @@ try {
 const NTS_BUSINESS_API_KEY = '99546afda95844c23df25ca3cc6c60c4b3b9cc594ba5822a5fa49ecc62391d4e';
 const NTS_BUSINESS_STATUS_URL = 'https://api.odcloud.kr/api/nts-businessman/v1/status';
 const NTS_BUSINESS_VALIDATE_URL = 'https://api.odcloud.kr/api/nts-businessman/v1/validate';
+const ADMIN_EMAILS = ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com'];
+const DEFAULT_RESUME_PASS_PRODUCTS = [
+  { id: 'month_1', name: '1개월 구독권', months: 1, price: 20000, active: true, sort: 1 },
+  { id: 'month_2', name: '2개월 구독권', months: 2, price: 30000, active: true, sort: 2 },
+  { id: 'month_3', name: '3개월 구독권', months: 3, price: 40000, active: true, sort: 3 }
+];
+
+function isAdminEmail(email) {
+  return ADMIN_EMAILS.includes(String(email || '').toLowerCase());
+}
 
 // 에러 토스트 하퍼
 function showAuthError(msg) {
-  let el = document.querySelector('.auth-pane:not(.hidden) .auth-error-msg') || document.querySelector('.auth-error-msg');
-  if (el) { el.textContent = msg; el.style.display = 'block'; }
+  const activePane = document.querySelector('.auth-pane:not(.hidden)');
+  const targets = activePane ? activePane.querySelectorAll('.auth-error-msg') : document.querySelectorAll('.auth-error-msg');
+  targets.forEach((el) => {
+    el.textContent = msg;
+    el.style.display = 'block';
+  });
 }
 function clearAuthError() {
   document.querySelectorAll('.auth-error-msg').forEach((el) => {
     el.textContent = '';
     el.style.display = 'none';
   });
+}
+
+function getRegisterErrorMessage(err) {
+  const code = err?.code || '';
+  const message = err?.message || '';
+  if (code === 'auth/email-already-in-use' || message.includes('EMAIL_EXISTS')) {
+    return '이미 가입된 이메일입니다. 로그인하거나 다른 이메일을 사용해주세요.';
+  }
+  if (code === 'auth/invalid-email' || message.includes('INVALID_EMAIL')) {
+    return '이메일 주소 형식이 올바르지 않습니다.';
+  }
+  if (code === 'auth/weak-password' || message.includes('WEAK_PASSWORD')) {
+    return '비밀번호는 6자 이상으로 입력해주세요.';
+  }
+  if (code === 'auth/operation-not-allowed' || message.includes('OPERATION_NOT_ALLOWED')) {
+    return '이메일/비밀번호 회원가입이 비활성화되어 있습니다. Firebase Authentication 설정을 확인해주세요.';
+  }
+  if (code === 'auth/network-request-failed') {
+    return '네트워크 연결이 불안정합니다. 잠시 후 다시 시도해주세요.';
+  }
+  return message || `회원가입에 실패했습니다. (${code || '알 수 없는 오류'})`;
+}
+
+function savePendingSignupProfile(profile) {
+  try {
+    localStorage.setItem('taekwonjob_pending_signup_profile', JSON.stringify({
+      ...profile,
+      email: String(profile.email || '').toLowerCase(),
+      savedAt: Date.now()
+    }));
+  } catch (e) {
+    console.warn('가입 복구 정보 저장 실패:', e);
+  }
+}
+
+function loadPendingSignupProfile(email) {
+  try {
+    const raw = localStorage.getItem('taekwonjob_pending_signup_profile');
+    if (!raw) return null;
+    const profile = JSON.parse(raw);
+    if (String(profile.email || '').toLowerCase() !== String(email || '').toLowerCase()) return null;
+    if (Date.now() - Number(profile.savedAt || 0) > 24 * 60 * 60 * 1000) return null;
+    return profile;
+  } catch (e) {
+    console.warn('가입 복구 정보 읽기 실패:', e);
+    return null;
+  }
+}
+
+function clearPendingSignupProfile() {
+  try {
+    localStorage.removeItem('taekwonjob_pending_signup_profile');
+  } catch (e) {
+    console.warn('가입 복구 정보 삭제 실패:', e);
+  }
 }
 
 function normalizeAccountKey(value) {
@@ -424,8 +493,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // App state
   const state = {
     currentUser: null,
+    authReady: false,
     jobsList: [...mockJobs],
     talentsList: [...mockTalents],
+    applicationsList: [],
     communityPosts: initialPosts,
     filters: {
       jobs: { region: '', position: '', type: '' },
@@ -477,6 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const views = {
     home: document.getElementById('view-home'),
     jobs: document.getElementById('view-jobs'),
+    myApplications: document.getElementById('view-my-applications'),
     talents: document.getElementById('view-talents'),
     community: document.getElementById('view-community'),
     customerService: document.getElementById('view-customer-service'),
@@ -565,6 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
           pinned: j.pinned || false,
           views: j.views || 0,
           viewedUsers: j.viewed_users || [],
+          userId: j.user_id || '',
           userName: userName,
           userEmail: userEmail
         });
@@ -599,7 +672,8 @@ document.addEventListener('DOMContentLoaded', () => {
           license: r.certificate ? r.certificate.split(',').slice(1).join(',').trim() : '태권도 지도자',
           colorIndex: Math.floor(Math.random() * 5),
           intro: r.content || '',
-          phone: r.phone || ''
+          phone: r.phone || '',
+          userId: r.user_id || ''
         });
       });
       if (dbTalents.length > 0) {
@@ -607,6 +681,32 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (e) {
       console.warn('Firestore 이력서 데이터 로드 생략 또는 에러:', e);
+    }
+
+    // 3. 지원 데이터 로드
+    try {
+      const applySnap = await db.collection('apply').orderBy('created_at', 'desc').get();
+      const dbApplications = [];
+      applySnap.forEach((doc) => {
+        const a = doc.data();
+        const job = state.jobsList.find((item) => item.id === a.job_id);
+        const resume = state.talentsList.find((item) => item.id === a.resume_id);
+        dbApplications.push({
+          id: doc.id,
+          jobId: a.job_id || '',
+          resumeId: a.resume_id || '',
+          jobOwnerId: a.job_owner_id || job?.userId || '',
+          applicantId: a.applicant_id || resume?.userId || '',
+          status: a.status || 'pending',
+          createdAt: a.created_at || null,
+          job,
+          resume
+        });
+      });
+      state.applicationsList = dbApplications;
+    } catch (e) {
+      console.warn('Firestore 지원 데이터 로드 생략 또는 에러:', e);
+      state.applicationsList = [];
     }
   }
 
@@ -925,11 +1025,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 로그인 회원 유형 롤 획득
   function getUserRole() {
+    if (!state.authReady && auth) return 'loading';
     if (!state.currentUser) return 'guest';
     const email = state.currentUser.email ? state.currentUser.email.toLowerCase() : '';
-    const adminEmails = ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com'];
-    if (adminEmails.includes(email)) return 'admin';
-    return state.currentUser.type || 'guest';
+    if (isAdminEmail(email)) return 'admin';
+    const rawType = String(state.currentUser.type || state.currentUser.role || '').toLowerCase();
+    if (
+      rawType === 'gym' ||
+      rawType.includes('관장') ||
+      rawType.includes('구인') ||
+      rawType.includes('도장') ||
+      rawType.includes('owner') ||
+      state.currentUser.gym_name ||
+      state.currentUser.business_number
+    ) {
+      return 'gym';
+    }
+    if (
+      rawType === 'instructor' ||
+      rawType.includes('사범') ||
+      rawType.includes('구직')
+    ) {
+      return 'instructor';
+    }
+    return rawType || 'guest';
   }
 
   // 역할에 따른 메뉴 노출 및 레이아웃 제어
@@ -1043,6 +1162,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const cleanHash = hash.split('?')[0];
 
     const role = getUserRole();
+    if (role === 'loading') {
+      return;
+    }
     if (cleanHash === '#talents' && (role === 'instructor' || role === 'guest')) {
       window.location.hash = '#home';
       if (role === 'guest') {
@@ -1112,6 +1234,10 @@ document.addEventListener('DOMContentLoaded', () => {
       case '#talents':
         navigateToView('talents');
         renderBoardTalents();
+        break;
+      case '#my-applications':
+        navigateToView('myApplications');
+        renderMyApplicationsView();
         break;
 
       case '#community':
@@ -1272,7 +1398,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let badge = '';
     if (job.pinned) {
-      badge = `<span class="badge-hot" style="background-color: var(--color-amber-500); color: #ffffff; font-weight: 800; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; display: inline-block; vertical-align: middle; margin-right: 6px;">상위 노출</span>`;
+      badge = `<span class="badge-hot" style="background-color: var(--color-amber-500); color: #ffffff; font-weight: 800; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; display: inline-block; vertical-align: middle; margin-right: 6px;">NEW</span>`;
     } else if (job.hotness) {
       badge = `<span class="badge-${job.hotness.toLowerCase()}">${job.hotness}</span>`;
     }
@@ -1507,6 +1633,149 @@ document.addEventListener('DOMContentLoaded', () => {
       container.appendChild(row);
     });
   }
+
+  function getApplicationStatusLabel(status) {
+    if (status === 'interview') return '면접 제안';
+    if (status === 'accepted') return '합격';
+    if (status === 'rejected') return '불합격';
+    return '지원완료';
+  }
+
+  function getApplicationStatusClass(status) {
+    if (status === 'interview') return 'interview';
+    if (status === 'accepted') return 'accepted';
+    if (status === 'rejected') return 'rejected';
+    return 'pending';
+  }
+
+  function formatApplicationDate(value) {
+    const millis = getMillisFromDateLike(value);
+    if (!millis) return '-';
+    return new Date(millis).toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  }
+
+  async function renderMyApplicationsView() {
+    const titleEl = document.getElementById('my-applications-title');
+    const descEl = document.getElementById('my-applications-desc');
+    const summaryEl = document.getElementById('my-applications-summary');
+    const listEl = document.getElementById('my-applications-list');
+    if (!listEl) return;
+
+    if (!state.currentUser) {
+      if (titleEl) titleEl.textContent = '로그인이 필요합니다';
+      if (descEl) descEl.textContent = '지원 현황은 로그인 후 확인할 수 있습니다.';
+      listEl.innerHTML = '<div class="no-results">로그인 후 이용해 주세요.</div>';
+      if (dialogs.auth) dialogs.auth.showModal();
+      return;
+    }
+
+    await initJobsAndTalents();
+    const role = getUserRole();
+    if (role === 'gym' || role === 'admin') {
+      renderGymApplicationManagement({ titleEl, descEl, summaryEl, listEl });
+    } else {
+      renderInstructorApplicationStatus({ titleEl, descEl, summaryEl, listEl });
+    }
+  }
+
+  function renderGymApplicationManagement({ titleEl, descEl, summaryEl, listEl }) {
+    if (titleEl) titleEl.textContent = '내 채용 관리';
+    if (descEl) descEl.textContent = '내가 올린 채용공고의 지원자와 진행 상태를 관리합니다.';
+
+    const myJobs = state.jobsList.filter((job) => job.userId === state.currentUser.uid);
+    const myJobIds = new Set(myJobs.map((job) => job.id));
+    const apps = state.applicationsList.filter((app) => app.jobOwnerId === state.currentUser.uid || myJobIds.has(app.jobId));
+
+    if (summaryEl) summaryEl.innerHTML = `<span class="results-count">내 공고 ${myJobs.length}건 · 지원자 ${apps.length}명</span>`;
+    if (!myJobs.length) {
+      listEl.innerHTML = '<div class="no-results">등록한 채용공고가 없습니다. 채용공고를 먼저 등록해 주세요.</div>';
+      return;
+    }
+
+    listEl.innerHTML = myJobs.map((job) => {
+      const jobApps = apps.filter((app) => app.jobId === job.id);
+      return `
+        <div class="application-job-group">
+          <div class="application-job-header">
+            <div>
+              <div class="application-job-title">${escapeHtml(job.title)}</div>
+              <div class="application-job-meta">${escapeHtml(job.gymName)} · ${escapeHtml(job.region)} · ${escapeHtml(job.salary)}</div>
+            </div>
+            <span class="application-count-badge">지원자 ${jobApps.length}명</span>
+          </div>
+          <div class="application-applicant-list">
+            ${jobApps.length ? jobApps.map((app) => renderGymApplicationRow(app)).join('') : '<div class="application-applicant-row"><div class="application-row-meta">아직 지원자가 없습니다.</div></div>'}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderGymApplicationRow(app) {
+    const resume = app.resume || {};
+    return `
+      <div class="application-applicant-row">
+        <div>
+          <div class="application-applicant-name">${escapeHtml(resume.name || '지원자')}</div>
+          <div class="application-row-meta">${escapeHtml(resume.role || '직무 미입력')} · ${escapeHtml(resume.exp || '경력 미입력')} · ${escapeHtml(resume.region || '지역 미입력')} · 지원일 ${formatApplicationDate(app.createdAt)}</div>
+          <div style="margin-top:0.45rem"><span class="application-status-badge ${getApplicationStatusClass(app.status)}">${getApplicationStatusLabel(app.status)}</span></div>
+        </div>
+        <div class="application-actions">
+          <button type="button" onclick="changeHomepageApplicationStatus('${app.id}', 'interview')">면접 제안</button>
+          <button type="button" onclick="changeHomepageApplicationStatus('${app.id}', 'accepted')">합격</button>
+          <button type="button" onclick="changeHomepageApplicationStatus('${app.id}', 'rejected')">불합격</button>
+          <button type="button" onclick="openApplicationResume('${app.resumeId}')">이력서 보기</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderInstructorApplicationStatus({ titleEl, descEl, summaryEl, listEl }) {
+    if (titleEl) titleEl.textContent = '내 지원 현황';
+    if (descEl) descEl.textContent = '지원한 채용공고의 진행 상태를 확인합니다.';
+
+    const apps = state.applicationsList.filter((app) => app.applicantId === state.currentUser.uid || app.resume?.userId === state.currentUser.uid);
+    if (summaryEl) summaryEl.innerHTML = `<span class="results-count">지원 ${apps.length}건</span>`;
+    if (!apps.length) {
+      listEl.innerHTML = '<div class="no-results">아직 지원한 채용공고가 없습니다.</div>';
+      return;
+    }
+
+    listEl.innerHTML = apps.map((app) => `
+      <div class="application-row-card">
+        <div>
+          <div class="application-applicant-name">${escapeHtml(app.job?.title || '채용공고')}</div>
+          <div class="application-row-meta">${escapeHtml(app.job?.gymName || '도장')} · ${escapeHtml(app.job?.region || '')} · 지원일 ${formatApplicationDate(app.createdAt)}</div>
+        </div>
+        <span class="application-status-badge ${getApplicationStatusClass(app.status)}">${getApplicationStatusLabel(app.status)}</span>
+      </div>
+    `).join('');
+  }
+
+  window.changeHomepageApplicationStatus = async function(appId, status) {
+    if (!state.currentUser || !db) return;
+    try {
+      await db.collection('apply').doc(appId).update({ status });
+      alert(`지원 상태를 "${getApplicationStatusLabel(status)}"로 변경했습니다.`);
+      await renderMyApplicationsView();
+    } catch (err) {
+      console.error('지원 상태 변경 실패:', err);
+      alert('지원 상태 변경에 실패했습니다: ' + err.message);
+    }
+  };
+
+  window.openApplicationResume = function(resumeId) {
+    const talent = state.talentsList.find((item) => item.id === resumeId);
+    if (!talent) {
+      alert('이력서 정보를 찾을 수 없습니다.');
+      return;
+    }
+    openTalentDetails(talent);
+  };
 
   // Render jobs on the Job Board view with current filters
   function renderBoardJobs() {
@@ -2233,6 +2502,24 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       submitBtn.textContent = '가입 중...';
+      savePendingSignupProfile({
+        name,
+        email,
+        phone,
+        type,
+        gymName,
+        businessNumber,
+        businessStartDate,
+        businessOwnerName,
+        agreeAge,
+        agreeTerms,
+        agreePersonalized,
+        agreeMarketing,
+        businessStatus: businessStatusCheck?.status || '미확인',
+        businessStatusCode: businessStatusCheck?.statusCode || '00',
+        businessValid: businessValidation?.valid || '00',
+        businessValidMsg: businessValidation?.validMsg || '조회 안됨'
+      });
 
       // 1. Firebase Auth 계정 생성
       const cred = await auth.createUserWithEmailAndPassword(email, password);
@@ -2262,6 +2549,9 @@ document.addEventListener('DOMContentLoaded', () => {
         userData.business_valid = businessValidation?.valid || '00';
         userData.business_valid_msg = businessValidation?.validMsg || '조회 안됨';
         userData.business_verified_at = firebase.firestore.FieldValue.serverTimestamp();
+        userData.resumePassCount = 0;
+        userData.unlockedResumes = [];
+        userData.testPaymentEnabled = false;
       }
 
       await db.collection('users').doc(uid).set(userData);
@@ -2279,15 +2569,11 @@ document.addEventListener('DOMContentLoaded', () => {
       resetBusinessChecks();
       syncBusinessNumberField();
       syncAgreementAllState();
+      clearPendingSignupProfile();
     } catch (err) {
-      const msg = err.code === 'auth/email-already-in-use'
-        ? '이미 사용 중인 이메일입니다.'
-        : err.code === 'auth/weak-password'
-        ? '비밀번호는 6자 이상이어야 합니다.'
-        : err.message
-        ? err.message
-        : '회원가입에 실패했습니다. (' + err.code + ')';
+      const msg = getRegisterErrorMessage(err);
       showAuthError(msg);
+      document.getElementById('auth-register-submit-error-msg')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } finally {
       submitBtn.textContent = '회원가입하기'; submitBtn.disabled = false;
     }
@@ -2830,6 +3116,7 @@ document.addEventListener('DOMContentLoaded', () => {
       applyBtn.dataset.jobId = job.id;
       applyBtn.dataset.jobTitle = job.title;
       applyBtn.dataset.gymName = job.gymName;
+      applyBtn.dataset.jobOwnerId = job.userId || '';
     }
     
     document.getElementById('detail-job-gym').textContent = job.gymName;
@@ -2906,12 +3193,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('detail-talent-qual').textContent = `${talent.dan} | ${talent.license}`;
 
     // 로그인된 관장님(gym) 계정만 전화번호 및 자기소개를 볼 수 있도록 제어하되,
-    // 열람권을 소모하여 해제(unlockedResumes)한 경우에만 마스킹을 해제합니다.
-    const isGym = state.currentUser && state.currentUser.type === 'gym';
+    // 구독 중이거나 개별 열람권을 소모하여 해제한 경우에만 마스킹을 해제합니다.
+    const isGym = state.currentUser && getUserRole() === 'gym';
+    const hasActiveSubscription = isGym && isResumeSubscriptionActive(state.currentUser);
     const isUnlocked = isGym && (
+      hasActiveSubscription ||
       (state.currentUser.unlockedResumes && state.currentUser.unlockedResumes.includes(talent.id)) ||
       talent.userEmail === state.currentUser.email
     );
+    const currentPasses = isGym && typeof state.currentUser.resumePassCount === 'number'
+      ? state.currentUser.resumePassCount
+      : 0;
     
     const phoneEl = document.getElementById('detail-talent-phone');
     const descEl = document.getElementById('detail-talent-desc');
@@ -2931,7 +3223,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (phoneEl) phoneEl.innerHTML = `<span style="color: var(--text-muted); font-size: 0.88rem; font-weight: 500;">🔒 [열람권을 소모하여 열람해 주세요]</span>`;
         if (descEl) descEl.innerHTML = `<div style="text-align: center; padding: 2rem 1rem; background: var(--bg-hover); border-radius: 8px; border: 1.5px dashed var(--border-color); color: var(--text-muted);">
           <p style="font-weight: 700; margin-bottom: 0.4rem; color: var(--text-color); font-size: 0.95rem;">🔒 비공개 정보</p>
-          <p style="font-size: 0.8rem; line-height: 1.5; max-width: 280px; margin: 0 auto;">열람권을 1장 사용하여 이 사범님의 연락처와 상세 포부글을 확인하실 수 있습니다.</p>
+          <p style="font-size: 0.8rem; line-height: 1.5; max-width: 280px; margin: 0 auto;">구독권 구매 후 이 사범님의 연락처와 상세 포부글을 확인하실 수 있습니다.</p>
         </div>`;
         
         if (btnInterview) btnInterview.style.display = 'none';
@@ -2945,8 +3237,8 @@ document.addEventListener('DOMContentLoaded', () => {
           btnUnlockArea.style.gap = '0.5rem';
           btnUnlockArea.style.width = '100%';
           btnUnlockArea.innerHTML = `
-            <button type="button" class="btn-action-primary" id="btn-unlock-talent" style="flex: 2; background: #059669; border-color: #059669; font-weight: 700;">🔑 열람권 1장 소모 후 열람</button>
-            <button type="button" class="btn-action-secondary" id="btn-buy-pass-inside" style="flex: 1; font-weight: 600;">🎫 열람권 구매</button>
+            <button type="button" class="btn-action-primary" id="btn-unlock-talent" style="flex: 2; background: #059669; border-color: #059669; font-weight: 700;">🔑 구독권 구매 후 열람</button>
+            <button type="button" class="btn-action-secondary" id="btn-buy-pass-inside" style="flex: 1; font-weight: 600;">🎫 구독권 구매</button>
           `;
           footer.insertBefore(btnUnlockArea, footer.firstChild);
 
@@ -2955,7 +3247,7 @@ document.addEventListener('DOMContentLoaded', () => {
             unlockResumeWithPass(talent);
           });
           document.getElementById('btn-buy-pass-inside').addEventListener('click', () => {
-            openPurchasePassModal();
+            openPurchasePassModal(talent);
           });
         }
       }
@@ -2984,11 +3276,20 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    dialogs.talentDetail.showModal();
+    if (!dialogs.talentDetail.open) {
+      dialogs.talentDetail.showModal();
+    }
+
+    if (isGym && !isUnlocked && !hasActiveSubscription && currentPasses <= 0) {
+      state.pendingPurchaseTalent = talent;
+      setTimeout(() => {
+        openPurchasePassModal(talent);
+      }, 150);
+    }
   }
 
   // 열람권을 소모하여 이력서의 잠금을 푸는 함수
-  async function unlockResumeWithPass(talent) {
+  async function unlockResumeWithPass(talent, options = {}) {
     if (!state.currentUser) return;
     
     const userDocRef = db.collection('users').doc(state.currentUser.uid);
@@ -2997,18 +3298,29 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!doc.exists) return;
       
       const userData = doc.data();
-      let currentPasses = typeof userData.resumePassCount === 'number' ? userData.resumePassCount : 3;
+      if (isResumeSubscriptionActive(userData)) {
+        state.currentUser.resumeSubscriptionUntil = userData.resumeSubscriptionUntil;
+        openTalentDetails(talent);
+        return;
+      }
+      let currentPasses = typeof userData.resumePassCount === 'number' ? userData.resumePassCount : 0;
       let unlockedList = userData.unlockedResumes || [];
-      
-      if (currentPasses <= 0) {
-        if (confirm('보유하신 이력서 열람권이 부족합니다. 열람권을 충전하러 가시겠습니까?')) {
-          openPurchasePassModal();
-        }
+      if (unlockedList.includes(talent.id)) {
+        openTalentDetails(talent);
         return;
       }
       
-      const conf = confirm(`열람권을 1장 사용하여 이 사범님의 연락처와 상세 프로필을 열람하시겠습니까?\n(현재 보유 열람권: ${currentPasses}장)`);
-      if (!conf) return;
+      if (currentPasses <= 0) {
+        state.pendingPurchaseTalent = talent;
+        alert('인재 이력서 열람 구독이 필요합니다. 구독권 구매 화면으로 이동합니다.');
+        openPurchasePassModal(talent);
+        return;
+      }
+      
+      if (!options.skipConfirm) {
+        const conf = confirm(`열람권을 1장 사용하여 이 사범님의 연락처와 상세 프로필을 열람하시겠습니까?\n(현재 보유 열람권: ${currentPasses}장)`);
+        if (!conf) return;
+      }
       
       currentPasses -= 1;
       unlockedList.push(talent.id);
@@ -3031,6 +3343,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function getMillisFromDateLike(value) {
+    if (!value) return 0;
+    if (typeof value.toMillis === 'function') return value.toMillis();
+    if (typeof value.toDate === 'function') return value.toDate().getTime();
+    if (value instanceof Date) return value.getTime();
+    if (typeof value === 'number') return value;
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+
+  function isResumeSubscriptionActive(userData) {
+    return getMillisFromDateLike(userData?.resumeSubscriptionUntil) > Date.now();
+  }
+
+  function formatSubscriptionDate(value) {
+    const millis = getMillisFromDateLike(value);
+    if (!millis) return '';
+    return new Date(millis).toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  }
+
   // 관장 회원 전용 열람권 상태 안내 바(배너) UI 업데이트 함수
   function updateGymPassBannerUI() {
     const banner = document.getElementById('gym-pass-banner');
@@ -3041,38 +3377,80 @@ document.addEventListener('DOMContentLoaded', () => {
     const role = getUserRole();
     if (role === 'gym' && state.currentUser) {
       banner.style.display = 'flex';
-      const currentPasses = typeof state.currentUser.resumePassCount === 'number' 
-        ? state.currentUser.resumePassCount 
-        : 3;
-      countEl.textContent = currentPasses;
+      countEl.textContent = isResumeSubscriptionActive(state.currentUser)
+        ? `구독중 (~${formatSubscriptionDate(state.currentUser.resumeSubscriptionUntil)})`
+        : '미구독';
     } else {
       banner.style.display = 'none';
     }
   }
 
   // 이력서 열람권 구매 팝업 열기
-  window.openPurchasePassModal = function() {
+  window.openPurchasePassModal = async function(talent = null) {
     const dialog = document.getElementById('dialog-purchase-pass');
     if (dialog) {
-      selectPurchaseProduct(1, 9900);
+      if (talent) state.pendingPurchaseTalent = talent;
+      const products = await loadResumePassProductsForPurchase();
+      renderPurchaseProducts(products);
       dialog.showModal();
     }
   };
 
+  async function loadResumePassProductsForPurchase() {
+    try {
+      if (!db) return DEFAULT_RESUME_PASS_PRODUCTS;
+      const snap = await db.collection('resume_pass_products').orderBy('sort', 'asc').get();
+      const products = snap.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((product) => product.active !== false && Number(product.months) > 0 && Number(product.price) >= 0);
+      return products.length ? products : DEFAULT_RESUME_PASS_PRODUCTS;
+    } catch (err) {
+      console.warn('이력서 열람권 상품 로드 실패, 기본 상품 사용:', err);
+      return DEFAULT_RESUME_PASS_PRODUCTS;
+    }
+  }
+
+  function renderPurchaseProducts(products) {
+    const list = document.getElementById('purchase-products-list');
+    if (!list) return;
+    const rows = products.length ? products : DEFAULT_RESUME_PASS_PRODUCTS;
+    list.innerHTML = rows.map((product, index) => {
+      const months = Number(product.months || index + 1);
+      const price = Number(product.price || 0);
+      const name = product.name || `${months}개월 구독권`;
+      return `
+        <div class="product-item" data-product-key="${escapeHtml(product.id || `${months}-${price}-${index}`)}" style="border: ${index === 0 ? '2px solid var(--primary-color)' : '1px solid var(--border-color)'}; border-radius: 12px; padding: 1rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: ${index === 0 ? 'var(--bg-hover)' : 'transparent'};" onclick="selectPurchaseProduct(${months}, ${price}, '${escapeForInline(name)}', '${escapeForInline(product.id || `${months}-${price}-${index}`)}')">
+          <div>
+            <strong style="font-size: 1.05rem; display: block; color: var(--text-color);">${escapeHtml(name)}</strong>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">인재 이력서 열람</span>
+          </div>
+          <strong style="color: var(--primary-color); font-size: 1.15rem;">${price.toLocaleString()}원</strong>
+        </div>
+      `;
+    }).join('');
+    const first = rows[0];
+    selectPurchaseProduct(Number(first.months || 1), Number(first.price || 0), first.name || `${first.months || 1}개월 구독권`, first.id || `${first.months || 1}-${first.price || 0}-0`);
+  }
+
+  function escapeForInline(value) {
+    return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, ' ');
+  }
+
   // 구매할 상품 선택 시 하이라이트 토글
-  window.selectPurchaseProduct = function(count, price) {
+  window.selectPurchaseProduct = function(months, price, productName = '', productKey = '') {
     const hiddenCount = document.getElementById('selected-pass-count');
     const hiddenPrice = document.getElementById('selected-pass-price');
+    const hiddenName = document.getElementById('selected-pass-name');
     const dialog = document.getElementById('dialog-purchase-pass');
     if (!dialog || !hiddenCount || !hiddenPrice) return;
 
-    hiddenCount.value = count;
+    hiddenCount.value = months;
     hiddenPrice.value = price;
+    if (hiddenName) hiddenName.value = productName || `${months}개월 구독권`;
 
     const items = dialog.querySelectorAll('.product-item');
-    const itemCounts = [1, 5, 10];
     items.forEach((item, index) => {
-      if (itemCounts[index] === count) {
+      if (productKey && item.dataset.productKey === productKey) {
         item.style.borderColor = 'var(--primary-color)';
         item.style.backgroundColor = 'var(--bg-hover)';
       } else {
@@ -3087,18 +3465,51 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // 모의 결제 실행
-  window.confirmPurchasePass = async function() {
+  window.selectResumePayOption = function(method) {
+    document.querySelectorAll('.resume-pay-option').forEach((el) => {
+      el.style.border = '1.5px solid #e2e8f0';
+      el.style.background = '#fff';
+    });
+    const activeLabel = document.getElementById('resume-label-pay-' + method);
+    if (activeLabel) {
+      activeLabel.style.border = '1.5px solid var(--primary-color)';
+      activeLabel.style.background = '#f0f7ff';
+    }
+  };
+
+  // 결제 신청 팝업 열기
+  window.confirmPurchasePass = function() {
     if (!state.currentUser) {
       alert('로그인이 필요한 서비스입니다.');
       return;
     }
     
-    const count = parseInt(document.getElementById('selected-pass-count').value) || 1;
-    const price = parseInt(document.getElementById('selected-pass-price').value) || 9900;
-    
-    const conf = confirm(`선택하신 상품: 열람권 ${count}회권 (${price.toLocaleString()}원)\n\n테스트 결제를 진행하시겠습니까?`);
-    if (!conf) return;
+    const months = parseInt(document.getElementById('selected-pass-count').value) || 1;
+    const price = parseInt(document.getElementById('selected-pass-price').value) || 20000;
+    const productName = document.getElementById('selected-pass-name')?.value || `${months}개월 구독권`;
+
+    const titleEl = document.getElementById('resume-payment-title');
+    const priceEl = document.getElementById('resume-payment-price');
+    const payBtn = document.getElementById('btn-resume-pay-execute');
+    if (titleEl) titleEl.textContent = `이력서 열람 ${productName}`;
+    if (priceEl) priceEl.textContent = `₩${price.toLocaleString()}`;
+    if (payBtn) payBtn.textContent = `${price.toLocaleString()}원 결제하기`;
+
+    const purchaseDialog = document.getElementById('dialog-purchase-pass');
+    if (purchaseDialog) purchaseDialog.close();
+    const paymentDialog = document.getElementById('dialog-service-payment');
+    if (paymentDialog) paymentDialog.showModal();
+  };
+
+  // 서비스 결제 신청 팝업 내 결제 실행
+  window.executeResumePassPayment = async function() {
+    if (!state.currentUser) {
+      alert('로그인이 필요한 서비스입니다.');
+      return;
+    }
+
+    const months = parseInt(document.getElementById('selected-pass-count').value) || 1;
+    const price = parseInt(document.getElementById('selected-pass-price').value) || 20000;
 
     try {
       const userDocRef = db.collection('users').doc(state.currentUser.uid);
@@ -3106,21 +3517,38 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!doc.exists) return;
       
       const userData = doc.data();
-      const prevPasses = typeof userData.resumePassCount === 'number' ? userData.resumePassCount : 3;
-      const newPasses = prevPasses + count;
+      if (userData.testPaymentEnabled !== true) {
+        alert('현재 이 계정은 테스트 결제가 OFF 상태입니다. 관리자 페이지 회원 목록에서 테스트 결제를 ON으로 변경해 주세요.');
+        return;
+      }
+      const baseMillis = Math.max(Date.now(), getMillisFromDateLike(userData.resumeSubscriptionUntil));
+      const newUntil = new Date(baseMillis);
+      newUntil.setMonth(newUntil.getMonth() + months);
       
       await userDocRef.update({
-        resumePassCount: newPasses
+        resumeSubscriptionUntil: newUntil,
+        resumeSubscriptionMonths: months
       });
 
-      state.currentUser.resumePassCount = newPasses;
+      state.currentUser.resumeSubscriptionUntil = newUntil;
+      state.currentUser.resumeSubscriptionMonths = months;
       
-      alert(`성공적으로 결제가 완료되었습니다!\n이력서 열람권 ${count}장이 충전되었습니다. (보유 열람권: ${newPasses}장)`);
-      
-      const dialog = document.getElementById('dialog-purchase-pass');
-      if (dialog) dialog.close();
+      const paymentDialog = document.getElementById('dialog-service-payment');
+      if (paymentDialog) paymentDialog.close();
       
       updateGymPassBannerUI();
+
+      const talentToOpen = state.pendingPurchaseTalent;
+      state.pendingPurchaseTalent = null;
+      const successMessage = document.getElementById('resume-payment-success-message');
+      if (successMessage) {
+        successMessage.innerHTML = `이력서 열람 구독이 <strong style="color:#2563eb">${formatSubscriptionDate(newUntil)}</strong>까지 활성화되었습니다.`;
+      }
+      const successDialog = document.getElementById('dialog-service-payment-success');
+      if (successDialog) successDialog.showModal();
+      if (talentToOpen) {
+        openTalentDetails(talentToOpen);
+      }
     } catch (e) {
       console.error('결제 처리 오류:', e);
       alert('결제 처리 중 에러가 발생했습니다. 다시 시도해 주세요.');
@@ -3173,10 +3601,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   if (auth) {
     auth.onAuthStateChanged(async (user) => {
+      state.authReady = true;
       const loggedOut = document.getElementById('auth-logged-out');
       const loggedIn  = document.getElementById('auth-logged-in');
       const nameEl    = document.getElementById('auth-user-name');
       const adminLink = document.getElementById('btn-admin-link');
+      const headerPassButton = document.getElementById('btn-header-purchase-pass');
+      const headerApplicationsButton = document.getElementById('btn-header-my-applications');
 
       const inqName = document.getElementById('inquiry-name');
       const inqEmail = document.getElementById('inquiry-email');
@@ -3188,28 +3619,108 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 임시 세팅
         state.currentUser = { uid: user.uid, email: user.email };
+        const showAdminLink = isAdminEmail(user.email);
+        if (adminLink) {
+          adminLink.style.display = showAdminLink ? 'inline-flex' : 'none';
+        }
+        if (headerPassButton) {
+          headerPassButton.style.display = 'none';
+        }
+        if (headerApplicationsButton) {
+          headerApplicationsButton.style.display = 'none';
+        }
 
         // Firestore에서 type 확인
         try {
+          async function restoreUserDocumentFromPendingProfile() {
+            const pending = loadPendingSignupProfile(user.email);
+            const shouldCreateFallback = !pending && window.confirm('회원 기본 정보가 누락되어 관리자 페이지에 표시되지 않습니다. 관장 회원으로 복구하시겠습니까?');
+            if (!pending && !shouldCreateFallback) return null;
+
+            const restoredData = {
+              name: pending?.name || String(user.email || '').split('@')[0] || '관장회원',
+              email: user.email,
+              type: pending ? (pending.type === 'gym' ? 'gym' : 'instructor') : 'gym',
+              agree_age_over_15: pending ? !!pending.agreeAge : true,
+              agree_terms: pending ? !!pending.agreeTerms : true,
+              agree_personalized_ads: pending ? !!pending.agreePersonalized : false,
+              agree_marketing: pending ? !!pending.agreeMarketing : false,
+              agreed_at: firebase.firestore.FieldValue.serverTimestamp(),
+              created_at: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            if (pending?.phone) restoredData.phone = pending.phone;
+
+            if (restoredData.type === 'gym') {
+              restoredData.gym_name = pending?.gymName || pending?.name || restoredData.name || '도장';
+              restoredData.business_number = pending?.businessNumber || '0000000000';
+              restoredData.business_start_date = pending?.businessStartDate || '20000101';
+              restoredData.business_owner_name = pending?.businessOwnerName || pending?.name || restoredData.name || '대표자';
+              restoredData.business_status = pending?.businessStatus || '미확인';
+              restoredData.business_status_code = pending?.businessStatusCode || '00';
+              restoredData.business_valid = pending?.businessValid || '00';
+              restoredData.business_valid_msg = pending?.businessValidMsg || '회원정보 복구';
+              restoredData.business_verified_at = firebase.firestore.FieldValue.serverTimestamp();
+              restoredData.resumePassCount = 0;
+              restoredData.unlockedResumes = [];
+              restoredData.testPaymentEnabled = false;
+            }
+
+            await db.collection('users').doc(user.uid).set(restoredData);
+            await db.collection('account_lookup').doc(user.uid).set({
+              uid: user.uid,
+              name: restoredData.name,
+              name_key: normalizeAccountKey(restoredData.name),
+              type: restoredData.type,
+              masked_email: maskEmail(user.email),
+              created_at: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            clearPendingSignupProfile();
+            return restoredData;
+          }
+
           const snap = await db.collection('users').doc(user.uid).get();
-          const data = snap.data();
+          let data = snap.data();
+          if (!data && user.email) {
+            const emailSnap = await db.collection('users')
+              .where('email', '==', user.email)
+              .limit(1)
+              .get();
+            if (!emailSnap.empty) {
+              data = emailSnap.docs[0].data();
+            }
+          }
+          if (!data) {
+            data = await restoreUserDocumentFromPendingProfile();
+          }
           if (data) {
             if (data.type === 'gym' && typeof data.resumePassCount !== 'number') {
-              data.resumePassCount = 3;
+              data.resumePassCount = 0;
               data.unlockedResumes = data.unlockedResumes || [];
               await db.collection('users').doc(user.uid).update({
-                resumePassCount: 3,
+                resumePassCount: 0,
+                unlockedResumes: data.unlockedResumes
+              });
+            }
+            if (String(user.email || '').toLowerCase() === 'kh1111@gmail.com' && data.type === 'gym' && data.resumePassCount === 3) {
+              data.resumePassCount = 0;
+              data.unlockedResumes = data.unlockedResumes || [];
+              await db.collection('users').doc(user.uid).update({
+                resumePassCount: 0,
                 unlockedResumes: data.unlockedResumes
               });
             }
             state.currentUser = { uid: user.uid, email: user.email, ...data };
             nameEl.textContent = data.name || user.email;
-            // 어드민 계정 이메일에 해당하는 경우에만 관리자 링크 노출
-            const adminEmails = ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com'];
-            if (user.email && adminEmails.includes(user.email.toLowerCase())) {
-              adminLink.style.display = 'inline-flex';
-            } else {
-              adminLink.style.display = 'none';
+            const currentRole = getUserRole();
+            if (adminLink) {
+              adminLink.style.display = showAdminLink ? 'inline-flex' : 'none';
+            }
+            if (headerPassButton) {
+              headerPassButton.style.display = !showAdminLink && currentRole === 'gym' ? 'inline-flex' : 'none';
+            }
+            if (headerApplicationsButton) {
+              headerApplicationsButton.style.display = showAdminLink ? 'none' : 'inline-flex';
+              headerApplicationsButton.textContent = currentRole === 'gym' ? '내 채용 관리' : '내 지원 현황';
             }
 
             // 1:1 문의 폼 자동 입력
@@ -3217,14 +3728,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (inqEmail) inqEmail.value = data.email || user.email || '';
           } else {
             nameEl.textContent = user.email;
-            adminLink.style.display = 'none';
+            if (adminLink) adminLink.style.display = showAdminLink ? 'inline-flex' : 'none';
+            if (headerPassButton) headerPassButton.style.display = 'none';
+            if (headerApplicationsButton) headerApplicationsButton.style.display = 'none';
 
             if (inqName) inqName.value = '';
             if (inqEmail) inqEmail.value = user.email || '';
           }
         } catch (e) {
           nameEl.textContent = user.email;
-          adminLink.style.display = 'none';
+          if (adminLink) adminLink.style.display = showAdminLink ? 'inline-flex' : 'none';
+          if (headerPassButton) headerPassButton.style.display = 'none';
+          if (headerApplicationsButton) headerApplicationsButton.style.display = 'none';
 
           if (inqName) inqName.value = '';
           if (inqEmail) inqEmail.value = user.email || '';
@@ -3235,6 +3750,8 @@ document.addEventListener('DOMContentLoaded', () => {
         loggedOut.style.display = 'flex';
         loggedIn.style.display  = 'none';
         if (adminLink) adminLink.style.display = 'none';
+        if (headerPassButton) headerPassButton.style.display = 'none';
+        if (headerApplicationsButton) headerApplicationsButton.style.display = 'none';
 
         // 1:1 문의 폼 초기화
         if (inqName) inqName.value = '';
@@ -3243,6 +3760,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // 역할에 따른 메뉴 노출 및 탭 제어 적용
       applyRoleBasedUI();
+      handleRoute();
     });
   }
 
@@ -3253,6 +3771,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const jobId = btnApplyJob.dataset.jobId;
       const jobTitle = btnApplyJob.dataset.jobTitle;
       const gymName = btnApplyJob.dataset.gymName;
+      const jobOwnerId = btnApplyJob.dataset.jobOwnerId || '';
       if (!jobId) return;
 
       const currentUser = auth ? auth.currentUser : null;
@@ -3308,6 +3827,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // 4. 지원 등록 (rules에 맞게 4개 필드만 전송)
         const applyData = {
           job_id: jobId,
+          job_owner_id: jobOwnerId,
+          applicant_id: currentUser.uid,
           resume_id: resumeId,
           status: 'pending',
           created_at: firebase.firestore.FieldValue.serverTimestamp()

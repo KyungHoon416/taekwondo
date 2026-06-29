@@ -48,7 +48,7 @@ rules_version = '2';
 // Fields:
 //   - job_id: string (immutable) - Applied job ID
 //   - resume_id: string (immutable) - Applicant's resume ID
-//   - status: string (allowed values: 'pending', 'accepted', 'rejected') - Application status
+//   - status: string (allowed values: 'pending', 'interview', 'accepted', 'rejected') - Application status
 //   - created_at: timestamp (immutable) - Application submit time
 //
 // ===============================================================
@@ -101,17 +101,32 @@ service cloud.firestore {
         getUserData(userId).type == expectedType;
     }
 
+    function isAdmin() {
+      return isAuthenticated() &&
+        request.auth.token.email in ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com'];
+    }
+
     // ===============================================================
     // Domain Validation Functions
     // ===============================================================
 
     function isValidUser(data) {
-      return hasOnlyAllowedFields(['name', 'phone', 'email', 'type', 'gym_name', 'business_number', 'business_status', 'business_status_code', 'business_start_date', 'business_owner_name', 'business_valid', 'business_valid_msg', 'business_verified_at', 'created_at']) &&
+      return hasOnlyAllowedFields(['name', 'phone', 'email', 'type', 'gym_name', 'business_number', 'business_status', 'business_status_code', 'business_start_date', 'business_owner_name', 'business_valid', 'business_valid_msg', 'business_verified_at', 'resumePassCount', 'unlockedResumes', 'resumeSubscriptionUntil', 'resumeSubscriptionMonths', 'testPaymentEnabled', 'agree_age_over_15', 'agree_terms', 'agree_personalized_ads', 'agree_marketing', 'agreed_at', 'created_at']) &&
         hasRequiredFields(['name', 'email', 'type', 'created_at']) &&
         data.name is string && data.name.size() >= 1 && data.name.size() <= 50 &&
         (!data.keys().hasAny(['phone']) || (data.phone is string && data.phone.size() >= 10 && data.phone.size() <= 20)) &&
         data.email is string && isValidEmail(data.email) &&
         data.type is string && (data.type == 'gym' || data.type == 'instructor') &&
+        (!data.keys().hasAny(['agree_age_over_15']) || data.agree_age_over_15 is bool) &&
+        (!data.keys().hasAny(['agree_terms']) || data.agree_terms is bool) &&
+        (!data.keys().hasAny(['agree_personalized_ads']) || data.agree_personalized_ads is bool) &&
+        (!data.keys().hasAny(['agree_marketing']) || data.agree_marketing is bool) &&
+        (!data.keys().hasAny(['agreed_at']) || data.agreed_at is timestamp) &&
+        (!data.keys().hasAny(['resumePassCount']) || data.resumePassCount is int) &&
+        (!data.keys().hasAny(['unlockedResumes']) || data.unlockedResumes is list) &&
+        (!data.keys().hasAny(['resumeSubscriptionUntil']) || data.resumeSubscriptionUntil is timestamp) &&
+        (!data.keys().hasAny(['resumeSubscriptionMonths']) || data.resumeSubscriptionMonths is int) &&
+        (!data.keys().hasAny(['testPaymentEnabled']) || data.testPaymentEnabled is bool) &&
         (
           (data.type == 'gym' &&
             data.keys().hasAll(['gym_name', 'business_number', 'business_status', 'business_status_code', 'business_start_date', 'business_owner_name', 'business_valid', 'business_valid_msg', 'business_verified_at']) &&
@@ -179,11 +194,13 @@ service cloud.firestore {
     }
 
     function isValidApply(data) {
-      return hasOnlyAllowedFields(['job_id', 'resume_id', 'status', 'created_at']) &&
+      return hasOnlyAllowedFields(['job_id', 'job_owner_id', 'applicant_id', 'resume_id', 'status', 'created_at']) &&
         hasRequiredFields(['job_id', 'resume_id', 'status', 'created_at']) &&
         data.job_id is string &&
+        (!data.keys().hasAny(['job_owner_id']) || data.job_owner_id is string) &&
+        (!data.keys().hasAny(['applicant_id']) || data.applicant_id is string) &&
         data.resume_id is string &&
-        data.status is string && (data.status == 'pending' || data.status == 'accepted' || data.status == 'rejected') &&
+        data.status is string && (data.status == 'pending' || data.status == 'interview' || data.status == 'accepted' || data.status == 'rejected') &&
         data.created_at is timestamp;
     }
 
@@ -220,7 +237,15 @@ service cloud.firestore {
       allow get: if isOwner(userId) || (isAuthenticated() && isUserOfType(request.auth.uid, 'gym'));
       allow list: if isAuthenticated();
       allow create: if isOwner(userId) && isValidUser(request.resource.data) && isRecent(request.resource.data.created_at);
-      allow update: if isOwner(userId) && isValidUser(request.resource.data) && areImmutableFieldsUnchanged(['created_at', 'type']);
+      allow update: if (
+        isOwner(userId) &&
+        isValidUser(request.resource.data) &&
+        areImmutableFieldsUnchanged(['created_at', 'type'])
+      ) || (
+        isAdmin() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['testPaymentEnabled']) &&
+        request.resource.data.testPaymentEnabled is bool
+      );
       allow delete: if isOwner(userId);
     }
 
@@ -228,6 +253,27 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if isOwner(userId) && isValidAccountLookup(request.resource.data) && isRecent(request.resource.data.created_at);
       allow delete: if isOwner(userId);
+    }
+
+    match /resume_pass_products/{productId} {
+      allow read: if true;
+      allow create, update: if isAdmin() &&
+        request.resource.data.keys().hasOnly(['name', 'months', 'price', 'active', 'sort', 'created_at', 'updated_at']) &&
+        request.resource.data.keys().hasAll(['name', 'months', 'price', 'active', 'sort', 'updated_at']) &&
+        request.resource.data.name is string &&
+        request.resource.data.name.size() >= 1 &&
+        request.resource.data.name.size() <= 40 &&
+        request.resource.data.months is int &&
+        request.resource.data.months >= 1 &&
+        request.resource.data.months <= 36 &&
+        request.resource.data.price is int &&
+        request.resource.data.price >= 0 &&
+        request.resource.data.price <= 10000000 &&
+        request.resource.data.active is bool &&
+        request.resource.data.sort is int &&
+        (!request.resource.data.keys().hasAny(['created_at']) || request.resource.data.created_at is timestamp) &&
+        request.resource.data.updated_at is timestamp;
+      allow delete: if isAdmin();
     }
 
     // Region master data for location pickers
@@ -299,18 +345,16 @@ service cloud.firestore {
         isRecent(request.resource.data.created_at);
         
       // Update allowed by:
-      // - Gym owner can update status ('accepted' / 'rejected')
-      // - Applicant can update status ('canceled' / 'pending')
+      // - Gym owner can update status ('interview' / 'accepted' / 'rejected')
+      // - Admin can update status
       allow update: if isAuthenticated() &&
         isValidApply(request.resource.data) &&
-        areImmutableFieldsUnchanged(['job_id', 'resume_id', 'created_at']) &&
+        areImmutableFieldsUnchanged(['job_id', 'job_owner_id', 'applicant_id', 'resume_id', 'created_at']) &&
         (
           // Case A: Gym Owner updates status
           (request.auth.uid == get(/databases/$(database)/documents/jobs/$(resource.data.job_id)).data.user_id) ||
-          // Case B: Resume Owner updates status
-          (request.auth.uid == get(/databases/$(database)/documents/resumes/$(resource.data.resume_id)).data.user_id) ||
-          // Case C: Admin (any user of type 'gym') updates status
-          isUserOfType(request.auth.uid, 'gym')
+          // Case B: Admin updates status
+          isAdmin()
         );
 
       allow delete: if isAuthenticated() &&
