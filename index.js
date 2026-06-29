@@ -2850,7 +2850,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => {
                   map.relayout();
                   map.setCenter(coords);
-                }, 100);
+                }, 300);
               } else {
                 const parts = addressStr.split(' ');
                 if (parts.length > 2) {
@@ -2884,7 +2884,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       };
 
-      checkAndLoad();
+      // 모달 오픈 애니메이션(0.3s) 완료 후 지도 초기화
+      setTimeout(checkAndLoad, 350);
     } else {
       if (mapContainer) mapContainer.style.display = 'none';
     }
