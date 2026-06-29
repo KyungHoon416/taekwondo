@@ -545,7 +545,7 @@
         <select class="filter-select" id="resume-position-filter" onchange="filterResumes()">
           <option value="">전체 직무</option>
           <option value="지도관장">지도관장</option>
-          <option value="정사범">정사범</option>
+          <option value="메인사범">메인사범</option>
           <option value="보조사범">보조사범</option>
           <option value="수석사범">수석사범</option>
           <option value="파트타임">파트타임</option>
@@ -619,40 +619,13 @@
       <div class="page-toolbar">
         <div class="page-title-block">
           <h2>배너 등록 / 관리</h2>
-          <p>홈 화면 배너 이미지를 업로드하고 관리합니다. (권장: JPG/WebP, 최대 800KB, 1200×400px)</p>
+          <p>홈 화면 배너 이미지를 업로드하고 클릭 연결 URL을 관리합니다.</p>
         </div>
         <div class="toolbar-actions">
-          <button class="btn btn-primary" onclick="document.getElementById('banner-file-input').click()" style="display:inline-flex;align-items:center;gap:6px;">
+          <button class="btn btn-primary" onclick="openBannerDialog()" style="display:inline-flex;align-items:center;gap:6px;">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             배너 이미지 추가
           </button>
-        </div>
-      </div>
-
-      <!-- 업로드 Drop Zone -->
-      <div id="banner-upload-zone" style="
-        border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2.5rem;
-        text-align: center; margin-bottom: 1.5rem; cursor: pointer;
-        transition: border-color 0.2s, background 0.2s;
-        background: #f8fafc;
-      " onclick="document.getElementById('banner-file-input').click()"
-         ondragover="event.preventDefault();this.style.borderColor='#3b82f6';this.style.background='#eff6ff';"
-         ondragleave="this.style.borderColor='#cbd5e1';this.style.background='#f8fafc';"
-         ondrop="handleBannerDrop(event)">
-        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin-bottom:0.75rem;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        <p style="color:#475569;font-weight:600;margin:0 0 0.25rem;">클릭하거나 이미지를 드래그하여 업로드</p>
-        <p style="color:#94a3b8;font-size:0.82rem;margin:0;">JPG · PNG · WebP · 최대 800KB · 권장 1200×400px</p>
-        <input type="file" id="banner-file-input" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handleBannerFileSelect(event)">
-      </div>
-
-      <!-- 업로드 진행 바 -->
-      <div id="banner-upload-progress" style="display:none;margin-bottom:1.5rem;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
-          <span id="banner-upload-filename" style="font-size:0.85rem;font-weight:600;color:#0f172a;"></span>
-          <span id="banner-upload-pct" style="font-size:0.82rem;color:#3b82f6;font-weight:700;">0%</span>
-        </div>
-        <div style="height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden;">
-          <div id="banner-upload-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#3b82f6,#6366f1);border-radius:99px;transition:width 0.2s;"></div>
         </div>
       </div>
 
@@ -907,6 +880,60 @@
 
 <!-- ════ DIALOGS ════ -->
 
+<!-- Banner Upload Dialog -->
+<dialog id="banner-dialog" class="admin-dialog" style="max-width: 560px;">
+  <div class="dialog-hd">
+    <h3 id="banner-dialog-title">배너 이미지 추가</h3>
+    <button type="button" class="dialog-close-btn" onclick="closeBannerDialog()" aria-label="닫기">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dialog-bd">
+    <div id="banner-current-preview" style="display:none;margin-bottom:1rem;">
+      <div id="banner-current-preview-label" style="font-size:0.85rem;font-weight:700;color:#334155;margin-bottom:0.45rem;">현재 배너 이미지</div>
+      <img id="banner-current-image" alt="현재 배너" style="width:100%;height:130px;object-fit:contain;border:1px solid #e2e8f0;border-radius:10px;background:#fff;">
+    </div>
+
+    <div style="margin-bottom:1rem;">
+      <label for="banner-link-url" style="display:block;font-size:0.85rem;font-weight:700;color:#334155;margin-bottom:0.45rem;">배너 클릭 URL</label>
+      <input id="banner-link-url" type="url" placeholder="https://example.com"
+        style="width:100%;height:44px;border:1px solid #cbd5e1;border-radius:10px;padding:0 0.95rem;font-family:inherit;font-size:0.9rem;color:#0f172a;background:#fff;outline:none;">
+      <p id="banner-dialog-help" style="color:#94a3b8;font-size:0.78rem;margin:0.35rem 0 0;">입력하면 홈 배너 클릭 시 새 탭으로 이동합니다. 비워두면 클릭되지 않습니다.</p>
+    </div>
+
+    <div id="banner-upload-zone" style="
+      border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2.5rem;
+      text-align: center; margin-bottom: 1.25rem; cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: #f8fafc;
+    " onclick="document.getElementById('banner-file-input').click()"
+       ondragover="event.preventDefault();this.style.borderColor='#3b82f6';this.style.background='#eff6ff';"
+       ondragleave="this.style.borderColor='#cbd5e1';this.style.background='#f8fafc';"
+       ondrop="handleBannerDrop(event)">
+      <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin-bottom:0.75rem;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <p id="banner-upload-zone-title" style="color:#475569;font-weight:600;margin:0 0 0.25rem;">클릭하거나 이미지를 드래그하여 업로드</p>
+      <p style="color:#94a3b8;font-size:0.82rem;margin:0;">JPG · PNG · WebP · 자동 압축 · 권장 1200×400px</p>
+      <input type="file" id="banner-file-input" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handleBannerFileSelect(event)">
+    </div>
+
+    <div id="banner-upload-progress" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+        <span id="banner-upload-filename" style="font-size:0.85rem;font-weight:600;color:#0f172a;"></span>
+        <span id="banner-upload-pct" style="font-size:0.82rem;color:#3b82f6;font-weight:700;">0%</span>
+      </div>
+      <div style="height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden;">
+        <div id="banner-upload-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#3b82f6,#6366f1);border-radius:99px;transition:width 0.2s;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="dialog-ft">
+    <button type="button" class="btn btn-secondary" onclick="closeBannerDialog()">취소</button>
+    <button type="button" class="btn btn-secondary" id="banner-save-url-btn" onclick="saveBannerLinkOnly()" style="display:none;">URL만 저장</button>
+    <button type="button" class="btn btn-secondary" id="banner-select-image-btn" onclick="document.getElementById('banner-file-input').click()">이미지 선택</button>
+    <button type="button" class="btn btn-primary" id="banner-submit-btn" onclick="submitBannerDialog()">등록하기</button>
+  </div>
+</dialog>
+
 <!-- Job Post Dialog -->
 <dialog id="job-dialog" class="admin-dialog">
   <div class="dialog-hd">
@@ -932,14 +959,14 @@
     <div class="form-row single">
       <div class="form-field">
         <label>공고 제목</label>
-        <input class="form-control" type="text" placeholder="예: 열정 넘치는 정사범님을 모십니다" id="dlg-job-title">
+        <input class="form-control" type="text" placeholder="예: 열정 넘치는 메인사범님을 모십니다" id="dlg-job-title">
       </div>
     </div>
     <div class="form-row">
       <div class="form-field">
         <label>직무</label>
         <select class="form-control" id="dlg-job-pos">
-          <option>지도관장</option><option>정사범</option><option>보조사범</option><option>수석사범</option><option>파트타임</option><option>유치부 전임</option>
+          <option>지도관장</option><option>메인사범</option><option>보조사범</option><option>수석사범</option><option>파트타임</option><option>유치부 전임</option>
         </select>
       </div>
       <div class="form-field">

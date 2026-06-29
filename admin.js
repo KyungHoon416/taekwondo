@@ -6,6 +6,11 @@
    Firebase 초기화 & 관리자 접근 제어
    ========================================================================== */
 let auth, db, storage;
+let bannerDialogMode = 'create';
+let editingBanner = null;
+let bannerCache = {};
+let selectedBannerFile = null;
+let selectedBannerPreviewUrl = null;
 
 (function initAdminAuth() {
   // Firebase 초기화
@@ -170,37 +175,37 @@ const MEMBERS = [
 ];
 
 const JOBS = [
-  { id: 128, title: '강남 태권도장 정사범 모집', gym: '강남 태권도장', region: '서울', district: '강남구', salary: '월 320만원', position: '정사범', exp: '경력 3년↑', regDate: '2026-05-18', views: 45, status: '게시중' },
+  { id: 128, title: '강남 태권도장 메인사범 모집', gym: '강남 태권도장', region: '서울', district: '강남구', salary: '월 320만원', position: '메인사범', exp: '경력 3년↑', regDate: '2026-05-18', views: 45, status: '게시중' },
   { id: 127, title: '송파 태권도장 보조사범 모집', gym: '송파 태권도장', region: '서울', district: '송파구', salary: '월 260만원', position: '보조사범', exp: '신입 가능', regDate: '2026-05-18', views: 32, status: '게시중' },
-  { id: 126, title: '분당 태권도장 정사범 모집', gym: '분당 태권도장', region: '경기', district: '성남시', salary: '시급 15,000', position: '파트타임', exp: '경력 1년↑', regDate: '2026-05-17', views: 28, status: '검토중' },
-  { id: 125, title: '일산 태권도장 정사범 모집', gym: '일산 태권도장', region: '경기', district: '고양시', salary: '월 300만원', position: '정사범', exp: '경력 2년↑', regDate: '2026-05-17', views: 15, status: '마감됨' },
+  { id: 126, title: '분당 태권도장 메인사범 모집', gym: '분당 태권도장', region: '경기', district: '성남시', salary: '시급 15,000', position: '파트타임', exp: '경력 1년↑', regDate: '2026-05-17', views: 28, status: '검토중' },
+  { id: 125, title: '일산 태권도장 메인사범 모집', gym: '일산 태권도장', region: '경기', district: '고양시', salary: '월 300만원', position: '메인사범', exp: '경력 2년↑', regDate: '2026-05-17', views: 15, status: '마감됨' },
   { id: 124, title: '인천 태권도장 보조사범 모집', gym: '인천 태권도장', region: '인천', district: '연수구', salary: '월 250만원', position: '보조사범', exp: '신입 가능', regDate: '2026-05-16', views: 25, status: '게시중' },
   { id: 123, title: '대전 도장 수석사범 모집', gym: '대전 태권도장', region: '대전', district: '서구', salary: '월 380만원', position: '수석사범', exp: '경력 5년↑', regDate: '2026-05-15', views: 67, status: '게시중' },
-  { id: 122, title: '부산 해운대 정사범 채용', gym: '해운대 태권도장', region: '부산', district: '해운대구', salary: '월 310만원', position: '정사범', exp: '경력 2년↑', regDate: '2026-05-14', views: 52, status: '게시중' },
+  { id: 122, title: '부산 해운대 메인사범 채용', gym: '해운대 태권도장', region: '부산', district: '해운대구', salary: '월 310만원', position: '메인사범', exp: '경력 2년↑', regDate: '2026-05-14', views: 52, status: '게시중' },
   { id: 121, title: '수원 유치부 전임 사범 모집', gym: '수원 태권도장', region: '경기', district: '수원시', salary: '월 280만원', position: '유치부 전임', exp: '경력 1년↑', regDate: '2026-05-13', views: 38, status: '마감됨' },
-  { id: 120, title: '광주 정사범 채용공고', gym: '광주 태권도장', region: '광주', district: '서구', salary: '월 295만원', position: '정사범', exp: '경력 2년↑', regDate: '2026-05-12', views: 41, status: '게시중' },
+  { id: 120, title: '광주 메인사범 채용공고', gym: '광주 태권도장', region: '광주', district: '서구', salary: '월 295만원', position: '메인사범', exp: '경력 2년↑', regDate: '2026-05-12', views: 41, status: '게시중' },
   { id: 119, title: '구리 보조사범 모집', gym: '구리 태권도장', region: '경기', district: '구리시', salary: '월 240만원', position: '보조사범', exp: '신입 가능', regDate: '2026-05-11', views: 19, status: '마감됨' },
 ];
 
 const RESUMES = [
-  { id: 1, name: '김사범', gender: '남', position: '정사범', exp: '경력 5년', area: '서울', salary: '월 320만원↑', grade: '3단', cert: '생활스포츠지도사 2급', regDate: '2026-05-18' },
+  { id: 1, name: '김사범', gender: '남', position: '메인사범', exp: '경력 5년', area: '서울', salary: '월 320만원↑', grade: '3단', cert: '생활스포츠지도사 2급', regDate: '2026-05-18' },
   { id: 2, name: '이사범', gender: '남', position: '보조사범', exp: '경력 2년', area: '경기', salary: '월 260만원↑', grade: '2단', cert: '태권도 지도자', regDate: '2026-05-17' },
   { id: 3, name: '박사범', gender: '여', position: '유치부 전임', exp: '경력 3년', area: '서울/경기', salary: '월 280만원↑', grade: '3단', cert: '유아체육지도사', regDate: '2026-05-16' },
   { id: 4, name: '최사범', gender: '남', position: '수석사범', exp: '경력 8년', area: '전국', salary: '월 400만원↑', grade: '5단', cert: '체육지도자, 생스지 1급', regDate: '2026-05-15' },
-  { id: 5, name: '정사범', gender: '남', position: '정사범', exp: '신입', area: '수도권', salary: '월 250만원↑', grade: '2단', cert: '태권도 지도자', regDate: '2026-05-14' },
+  { id: 5, name: '메인사범', gender: '남', position: '메인사범', exp: '신입', area: '수도권', salary: '월 250만원↑', grade: '2단', cert: '태권도 지도자', regDate: '2026-05-14' },
   { id: 6, name: '한사범', gender: '여', position: '보조사범', exp: '경력 1년', area: '부산', salary: '월 220만원↑', grade: '2단', cert: '생활스포츠지도사 2급', regDate: '2026-05-13' },
   { id: 7, name: '조사범', gender: '남', position: '파트타임', exp: '경력 2년', area: '대전/세종', salary: '시급 15,000↑', grade: '3단', cert: '태권도 지도자', regDate: '2026-05-12' },
 ];
 
 const APPLICATIONS = [
-  { id: 215, applicant: '김사범', job: '강남 태권도장 정사범 모집', gym: '강남 태권도장', applyDate: '2026-05-18', status: '검토중' },
+  { id: 215, applicant: '김사범', job: '강남 태권도장 메인사범 모집', gym: '강남 태권도장', applyDate: '2026-05-18', status: '검토중' },
   { id: 214, applicant: '이사범', job: '송파 태권도장 보조사범 모집', gym: '송파 태권도장', applyDate: '2026-05-18', status: '면접제안' },
   { id: 213, applicant: '박사범', job: '대전 도장 수석사범 모집', gym: '대전 태권도장', applyDate: '2026-05-17', status: '합격' },
-  { id: 212, applicant: '최사범', job: '부산 해운대 정사범 채용', gym: '해운대 태권도장', applyDate: '2026-05-16', status: '검토중' },
-  { id: 211, applicant: '정사범', job: '광주 정사범 채용공고', gym: '광주 태권도장', applyDate: '2026-05-15', status: '불합격' },
-  { id: 210, applicant: '한사범', job: '일산 태권도장 정사범 모집', gym: '일산 태권도장', applyDate: '2026-05-14', status: '합격' },
+  { id: 212, applicant: '최사범', job: '부산 해운대 메인사범 채용', gym: '해운대 태권도장', applyDate: '2026-05-16', status: '검토중' },
+  { id: 211, applicant: '메인사범', job: '광주 메인사범 채용공고', gym: '광주 태권도장', applyDate: '2026-05-15', status: '불합격' },
+  { id: 210, applicant: '한사범', job: '일산 태권도장 메인사범 모집', gym: '일산 태권도장', applyDate: '2026-05-14', status: '합격' },
   { id: 209, applicant: '조사범', job: '인천 태권도장 보조사범 모집', gym: '인천 태권도장', applyDate: '2026-05-13', status: '검토중' },
-  { id: 208, applicant: '윤사범', job: '분당 태권도장 정사범 모집', gym: '분당 태권도장', applyDate: '2026-05-12', status: '면접제안' },
+  { id: 208, applicant: '윤사범', job: '분당 태권도장 메인사범 모집', gym: '분당 태권도장', applyDate: '2026-05-12', status: '면접제안' },
 ];
 
 const INQUIRIES = [];
@@ -342,7 +347,7 @@ async function fetchFirestoreData() {
         userId: r.user_id || '',
         name: r.name || '사범',
         gender: r.gender || '남성',
-        position: r.hope_position || r.hope_position || '정사범',
+        position: r.hope_position || r.hope_position || '메인사범',
         exp: r.career || '경력무관',
         area: r.hope_area || '전국',
         salary: r.hope_salary || '월 280만원↑',
@@ -388,7 +393,7 @@ async function fetchFirestoreData() {
         region: region,
         district: district,
         salary: j.salary || '협의',
-        position: j.position || '정사범',
+        position: j.position || '메인사범',
         exp: j.career || '경력무관',
         regDate: j.created_at ? (j.created_at.toDate ? j.created_at.toDate().toISOString().split('T')[0] : '2026-06-11') : '2026-06-11',
         views: j.views || 0,
@@ -714,7 +719,7 @@ async function submitJob() {
   const gymName = document.getElementById('dlg-gym-name')?.value?.trim();
   const title = document.getElementById('dlg-job-title')?.value?.trim();
   const region = document.getElementById('dlg-job-region')?.value;
-  const position = document.getElementById('dlg-job-pos')?.value || '정사범';
+  const position = document.getElementById('dlg-job-pos')?.value || '메인사범';
   const salary = document.getElementById('dlg-job-salary')?.value?.trim() || '협의';
   const exp = document.getElementById('dlg-job-exp')?.value?.trim() || '경력 무관';
   const statusStr = document.getElementById('dlg-job-status')?.value || '게시중';
@@ -1402,7 +1407,7 @@ function initAnalyticsCharts() {
     new Chart(posCtx, {
       type: 'pie',
       data: {
-        labels: ['지도관장', '정사범', '보조사범', '수석사범', '파트타임', '유치부'],
+        labels: ['지도관장', '메인사범', '보조사범', '수석사범', '파트타임', '유치부'],
         datasets: [{ data: [15, 55, 28, 10, 15, 20], backgroundColor: ['#3b82f6','#2563eb','#10b981','#8b5cf6','#f59e0b','#ef4444'], borderWidth: 3, borderColor: '#fff' }],
       },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, usePointStyle: true } } } },
@@ -2129,6 +2134,8 @@ async function loadBanners() {
     const snap = await db.collection('banners').orderBy('created_at', 'desc').get();
     const banners = [];
     snap.forEach(doc => banners.push({ id: doc.id, ...doc.data() }));
+    bannerCache = {};
+    banners.forEach(b => { bannerCache[b.id] = b; });
 
     if (countEl) countEl.textContent = banners.length;
 
@@ -2155,6 +2162,11 @@ async function loadBanners() {
               <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
               원본
             </a>
+            <button onclick="openEditBannerDialog('${b.id}')"
+              style="background:rgba(37,99,235,0.92);border:none;border-radius:6px;padding:5px 8px;font-size:0.75rem;font-weight:600;cursor:pointer;color:#fff;display:inline-flex;align-items:center;gap:3px;">
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              수정
+            </button>
             <button onclick="deleteBanner('${b.id}', '${b.storagePath || ''}')"
               style="background:rgba(239,68,68,0.9);border:none;border-radius:6px;padding:5px 8px;font-size:0.75rem;font-weight:600;cursor:pointer;color:#fff;display:inline-flex;align-items:center;gap:3px;">
               <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
@@ -2164,6 +2176,7 @@ async function loadBanners() {
         </div>
         <div style="padding:0.75rem 1rem;">
           <div style="font-size:0.82rem;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.name || '배너'}</div>
+          <div style="font-size:0.75rem;color:#64748b;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.linkUrl ? `연결: ${b.linkUrl}` : '연결 URL 없음'}</div>
           <div style="font-size:0.75rem;color:#94a3b8;margin-top:2px;">${b.created_at ? new Date(b.created_at.seconds * 1000).toLocaleDateString('ko-KR') : ''}</div>
         </div>
       </div>
@@ -2174,21 +2187,254 @@ async function loadBanners() {
   }
 }
 
+function resetBannerDialogState() {
+  const linkInput = document.getElementById('banner-link-url');
+  const fileInput = document.getElementById('banner-file-input');
+  const progressWrap = document.getElementById('banner-upload-progress');
+  const filenameEl = document.getElementById('banner-upload-filename');
+  const pctEl = document.getElementById('banner-upload-pct');
+  const barEl = document.getElementById('banner-upload-bar');
+  const zone = document.getElementById('banner-upload-zone');
+  const titleEl = document.getElementById('banner-dialog-title');
+  const previewWrap = document.getElementById('banner-current-preview');
+  const previewImg = document.getElementById('banner-current-image');
+  const previewLabel = document.getElementById('banner-current-preview-label');
+  const uploadTitle = document.getElementById('banner-upload-zone-title');
+  const saveUrlBtn = document.getElementById('banner-save-url-btn');
+  const selectImageBtn = document.getElementById('banner-select-image-btn');
+  const submitBtn = document.getElementById('banner-submit-btn');
+
+  bannerDialogMode = 'create';
+  editingBanner = null;
+  selectedBannerFile = null;
+  if (selectedBannerPreviewUrl) {
+    URL.revokeObjectURL(selectedBannerPreviewUrl);
+    selectedBannerPreviewUrl = null;
+  }
+  if (linkInput) linkInput.value = '';
+  if (fileInput) fileInput.value = '';
+  if (progressWrap) progressWrap.style.display = 'none';
+  if (filenameEl) filenameEl.textContent = '';
+  if (pctEl) pctEl.textContent = '0%';
+  if (barEl) barEl.style.width = '0%';
+  if (titleEl) titleEl.textContent = '배너 이미지 추가';
+  if (previewWrap) previewWrap.style.display = 'none';
+  if (previewImg) previewImg.removeAttribute('src');
+  if (previewLabel) previewLabel.textContent = '선택한 배너 이미지';
+  if (uploadTitle) uploadTitle.textContent = '클릭하거나 이미지를 드래그하여 업로드';
+  if (saveUrlBtn) saveUrlBtn.style.display = 'none';
+  if (selectImageBtn) selectImageBtn.textContent = '이미지 선택';
+  if (submitBtn) submitBtn.textContent = '등록하기';
+  if (zone) {
+    zone.style.borderColor = '#cbd5e1';
+    zone.style.background = '#f8fafc';
+  }
+}
+
+function openBannerDialog() {
+  resetBannerDialogState();
+  const dialog = document.getElementById('banner-dialog');
+  if (dialog && !dialog.open) dialog.showModal();
+}
+
+function openEditBannerDialog(bannerId) {
+  const banner = bannerCache[bannerId];
+  if (!banner) {
+    showToast('수정할 배너 정보를 찾을 수 없습니다.', 'error');
+    return;
+  }
+
+  resetBannerDialogState();
+  bannerDialogMode = 'edit';
+  editingBanner = banner;
+
+  const titleEl = document.getElementById('banner-dialog-title');
+  const linkInput = document.getElementById('banner-link-url');
+  const previewWrap = document.getElementById('banner-current-preview');
+  const previewImg = document.getElementById('banner-current-image');
+  const previewLabel = document.getElementById('banner-current-preview-label');
+  const uploadTitle = document.getElementById('banner-upload-zone-title');
+  const saveUrlBtn = document.getElementById('banner-save-url-btn');
+  const selectImageBtn = document.getElementById('banner-select-image-btn');
+  const submitBtn = document.getElementById('banner-submit-btn');
+
+  if (titleEl) titleEl.textContent = '배너 수정';
+  if (linkInput) linkInput.value = banner.linkUrl || '';
+  if (previewImg) previewImg.src = banner.url || '';
+  if (previewLabel) previewLabel.textContent = '현재 배너 이미지';
+  if (previewWrap) previewWrap.style.display = banner.url ? 'block' : 'none';
+  if (uploadTitle) uploadTitle.textContent = '새 이미지로 교체하려면 클릭하거나 드래그하세요';
+  if (saveUrlBtn) saveUrlBtn.style.display = 'inline-flex';
+  if (selectImageBtn) selectImageBtn.textContent = '이미지 교체';
+  if (submitBtn) submitBtn.textContent = '수정 저장';
+
+  const dialog = document.getElementById('banner-dialog');
+  if (dialog && !dialog.open) dialog.showModal();
+}
+
+function closeBannerDialog() {
+  const dialog = document.getElementById('banner-dialog');
+  if (dialog?.open) dialog.close();
+}
+
+function setSelectedBannerFile(file) {
+  const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  if (!allowed.includes(file.type)) {
+    showToast('JPG, PNG, WebP 형식의 이미지만 선택 가능합니다.', 'error');
+    return;
+  }
+
+  if (selectedBannerPreviewUrl) URL.revokeObjectURL(selectedBannerPreviewUrl);
+  selectedBannerFile = file;
+  selectedBannerPreviewUrl = URL.createObjectURL(file);
+
+  const previewWrap = document.getElementById('banner-current-preview');
+  const previewImg = document.getElementById('banner-current-image');
+  const previewLabel = document.getElementById('banner-current-preview-label');
+  const uploadTitle = document.getElementById('banner-upload-zone-title');
+  const filenameEl = document.getElementById('banner-upload-filename');
+
+  if (previewImg) previewImg.src = selectedBannerPreviewUrl;
+  if (previewWrap) previewWrap.style.display = 'block';
+  if (previewLabel) previewLabel.textContent = '선택한 배너 이미지';
+  if (uploadTitle) uploadTitle.textContent = `${file.name} 선택됨`;
+  if (filenameEl) filenameEl.textContent = `${file.name} 선택됨 · 저장 버튼을 누르면 업로드됩니다.`;
+}
+
+async function submitBannerDialog() {
+  if (selectedBannerFile) {
+    await uploadBannerFile(selectedBannerFile);
+    return;
+  }
+
+  if (bannerDialogMode === 'edit') {
+    await saveBannerLinkOnly();
+    return;
+  }
+
+  showToast('등록할 배너 이미지를 선택해주세요.', 'error');
+}
+
+async function saveBannerLinkOnly() {
+  if (bannerDialogMode !== 'edit' || !editingBanner?.id) return;
+  if (!db) {
+    showToast('Firebase 연결이 필요합니다.', 'error');
+    return;
+  }
+
+  const linkInput = document.getElementById('banner-link-url');
+  const linkUrl = normalizeBannerLinkUrl(linkInput?.value);
+  if (linkUrl === null) {
+    showToast('배너 클릭 URL 형식이 올바르지 않습니다. 예: https://example.com', 'error');
+    return;
+  }
+
+  try {
+    await db.collection('banners').doc(editingBanner.id).update({ linkUrl });
+    closeBannerDialog();
+    showToast('배너 URL이 수정되었습니다.', 'success');
+    loadBanners();
+  } catch (e) {
+    console.error('배너 URL 수정 실패:', e);
+    showToast('배너 URL 수정 중 오류가 발생했습니다.', 'error');
+  }
+}
+
 // 드래그앤드롭 핸들러
 function handleBannerDrop(event) {
   event.preventDefault();
   const zone = document.getElementById('banner-upload-zone');
   if (zone) { zone.style.borderColor = '#cbd5e1'; zone.style.background = '#f8fafc'; }
   const file = event.dataTransfer.files[0];
-  if (file) uploadBannerFile(file);
+  if (file) setSelectedBannerFile(file);
 }
 
 // 파일 선택 핸들러
 function handleBannerFileSelect(event) {
   const file = event.target.files[0];
-  if (file) uploadBannerFile(file);
+  if (file) setSelectedBannerFile(file);
   // 같은 파일 재선택 가능하도록 초기화
   event.target.value = '';
+}
+
+function formatBannerFileSize(bytes) {
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
+}
+
+function normalizeBannerLinkUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+
+  try {
+    const url = new URL(withProtocol);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    return url.href;
+  } catch (_) {
+    return null;
+  }
+}
+
+function canvasToBlob(canvas, type, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error('이미지 압축에 실패했습니다.'));
+    }, type, quality);
+  });
+}
+
+async function compressBannerImage(file, maxBytes = 800 * 1024) {
+  const imageUrl = URL.createObjectURL(file);
+
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error('이미지 파일을 읽을 수 없습니다.'));
+      image.src = imageUrl;
+    });
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('이미지 압축을 지원하지 않는 브라우저입니다.');
+
+    let maxWidth = 1600;
+    const outputType = 'image/webp';
+    let bestBlob = null;
+
+    for (let resizeAttempt = 0; resizeAttempt < 5; resizeAttempt++) {
+      const scale = Math.min(1, maxWidth / img.naturalWidth);
+      canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      for (let quality = 0.86; quality >= 0.48; quality -= 0.08) {
+        const blob = await canvasToBlob(canvas, outputType, quality);
+        bestBlob = blob;
+        if (blob.size <= maxBytes) {
+          const safeBaseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '_') || 'banner';
+          return new File([blob], `${safeBaseName}.webp`, {
+            type: outputType,
+            lastModified: Date.now()
+          });
+        }
+      }
+
+      maxWidth = Math.round(maxWidth * 0.78);
+    }
+
+    if (!bestBlob) throw new Error('이미지 압축에 실패했습니다.');
+    const safeBaseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '_') || 'banner';
+    return new File([bestBlob], `${safeBaseName}.webp`, {
+      type: outputType,
+      lastModified: Date.now()
+    });
+  } finally {
+    URL.revokeObjectURL(imageUrl);
+  }
 }
 
 // 배너 업로드 핵심 함수
@@ -2200,16 +2446,15 @@ async function uploadBannerFile(file) {
     return;
   }
 
-  // 용량 검증 (800KB = 800 * 1024 bytes)
-  const maxBytes = 800 * 1024;
-  if (file.size > maxBytes) {
-    const sizeMB = (file.size / 1024 / 1024).toFixed(2);
-    showToast(`파일 용량이 너무 큽니다. (${sizeMB}MB) 800KB 이하로 압축 후 다시 업로드해주세요.`, 'error');
+  if (!storage) {
+    showToast('Firebase Storage가 초기화되지 않았습니다.', 'error');
     return;
   }
 
-  if (!storage) {
-    showToast('Firebase Storage가 초기화되지 않았습니다.', 'error');
+  const linkInput = document.getElementById('banner-link-url');
+  const linkUrl = normalizeBannerLinkUrl(linkInput?.value);
+  if (linkUrl === null) {
+    showToast('배너 클릭 URL 형식이 올바르지 않습니다. 예: https://example.com', 'error');
     return;
   }
 
@@ -2220,15 +2465,27 @@ async function uploadBannerFile(file) {
   const barEl        = document.getElementById('banner-upload-bar');
 
   if (progressWrap) progressWrap.style.display = 'block';
-  if (filenameEl) filenameEl.textContent = file.name;
+  if (filenameEl) filenameEl.textContent = `${file.name} 압축 중...`;
   if (pctEl) pctEl.textContent = '0%';
   if (barEl) barEl.style.width = '0%';
 
+  let uploadFile;
+  try {
+    uploadFile = await compressBannerImage(file);
+    if (filenameEl) {
+      filenameEl.textContent = `${file.name} (${formatBannerFileSize(file.size)} → ${formatBannerFileSize(uploadFile.size)})`;
+    }
+  } catch (e) {
+    console.error('배너 압축 실패:', e);
+    if (progressWrap) progressWrap.style.display = 'none';
+    showToast(e.message || '이미지 압축 중 오류가 발생했습니다.', 'error');
+    return;
+  }
+
   const timestamp = Date.now();
-  const ext = file.name.split('.').pop();
-  const storagePath = `banners/${timestamp}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+  const storagePath = `banners/${timestamp}_${uploadFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
   const ref = storage.ref(storagePath);
-  const uploadTask = ref.put(file);
+  const uploadTask = ref.put(uploadFile, { contentType: uploadFile.type });
 
   uploadTask.on('state_changed',
     (snapshot) => {
@@ -2245,19 +2502,44 @@ async function uploadBannerFile(file) {
       try {
         const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
 
-        // Firestore에 배너 메타데이터 저장
-        if (db) {
+        if (db && bannerDialogMode === 'edit' && editingBanner?.id) {
+          const oldStoragePath = editingBanner.storagePath;
+          await db.collection('banners').doc(editingBanner.id).update({
+            name: file.name,
+            url: downloadURL,
+            linkUrl,
+            storagePath,
+            size: uploadFile.size
+          });
+
+          if (storage && oldStoragePath && oldStoragePath !== storagePath) {
+            try { await storage.ref(oldStoragePath).delete(); } catch (_) {}
+          }
+        } else if (db) {
           await db.collection('banners').add({
             name: file.name,
             url: downloadURL,
+            linkUrl,
             storagePath,
-            size: file.size,
+            size: uploadFile.size,
             created_at: firebase.firestore.FieldValue.serverTimestamp()
           });
         }
 
         if (progressWrap) progressWrap.style.display = 'none';
-        showToast(`"${file.name}" 배너가 성공적으로 등록되었습니다!`, 'success');
+        if (linkInput) linkInput.value = '';
+        selectedBannerFile = null;
+        if (selectedBannerPreviewUrl) {
+          URL.revokeObjectURL(selectedBannerPreviewUrl);
+          selectedBannerPreviewUrl = null;
+        }
+        closeBannerDialog();
+        showToast(
+          bannerDialogMode === 'edit'
+            ? `"${file.name}" 배너가 수정되었습니다.`
+            : `"${file.name}" 배너가 압축되어 등록되었습니다.`,
+          'success'
+        );
         loadBanners();
       } catch (e) {
         console.error('배너 메타데이터 저장 실패:', e);

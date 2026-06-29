@@ -7,6 +7,7 @@
 // Firebase 초기화 (클로저 외부)
 // ==========================================================================
 let auth, db;
+let homeBannerTimer = null;
 try {
   firebase.initializeApp(FIREBASE_CONFIG);
   auth = firebase.auth();
@@ -147,14 +148,14 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       id: 'job-1',
       gymName: '강남 태권도장',
-      title: '정사범 모집 (우대: 겨루기 선수 출신)',
+      title: '메인사범 모집 (우대: 겨루기 선수 출신)',
       region: '서울 강남구',
       address: '서울특별시 강남구 역삼동 742-10',
       salary: '월 320만원',
       type: '정규직',
       exp: '경력 3년↑',
       hotness: 'NEW',
-      desc: '안녕하세요. 강남 태권도장입니다. \n\n체계적이고 열정적으로 아이들을 지도해주실 유능한 정사범님을 모십니다. \n\n[주요업무]\n- 유치부 및 초등부 태권도 지도\n- 수련생 상담 및 관리\n- 도장 차량 동승 지도\n\n[우대사항]\n- 선수 출신 (겨루기/품새)\n- 인근 거주자 및 즉시 출근 가능자'
+      desc: '안녕하세요. 강남 태권도장입니다. \n\n체계적이고 열정적으로 아이들을 지도해주실 유능한 메인사범님을 모십니다. \n\n[주요업무]\n- 유치부 및 초등부 태권도 지도\n- 수련생 상담 및 관리\n- 도장 차량 동승 지도\n\n[우대사항]\n- 선수 출신 (겨루기/품새)\n- 인근 거주자 및 즉시 출근 가능자'
     },
     {
       id: 'job-2',
@@ -171,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       id: 'job-3',
       gymName: '용인 태권도장',
-      title: '용인대 동문 도장 정사범 급구합니다',
+      title: '용인대 동문 도장 메인사범 급구합니다',
       region: '경기 용인시',
       address: '경기도 용인시 처인구 역북동 445-12',
       salary: '월 300만원',
@@ -211,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
       id: 'talent-1',
       name: '김태권',
       gender: '남성',
-      role: '정사범',
+      role: '메인사범',
       exp: '경력 5년',
       region: '서울 강남구',
       salary: '최저연봉 320만원',
@@ -237,14 +238,14 @@ document.addEventListener('DOMContentLoaded', () => {
       id: 'talent-3',
       name: '박민우',
       gender: '남성',
-      role: '정사범',
+      role: '메인사범',
       exp: '경력 7년',
       region: '인천 연수구',
       salary: '최저연봉 350만원',
       dan: '태권도 4단',
       license: '생활체육지도사',
       colorIndex: 2,
-      intro: '체육관 관리 및 차량 주행 베테랑 정사범 박민우입니다. \n\n대형 운전면허 소지자로 셔틀 운행이 원활하며, 다양한 레크리에이션 프로그램을 운영해본 경험이 있습니다. \n\n아이들이 예의 바르고 바른 인성을 가진 사회적 인재로 자랄 수 있도록 인성교육에 힘쓰겠습니다.'
+      intro: '체육관 관리 및 차량 주행 베테랑 메인사범 박민우입니다. \n\n대형 운전면허 소지자로 셔틀 운행이 원활하며, 다양한 레크리에이션 프로그램을 운영해본 경험이 있습니다. \n\n아이들이 예의 바르고 바른 인성을 가진 사회적 인재로 자랄 수 있도록 인성교육에 힘쓰겠습니다.'
     },
     {
       id: 'talent-4',
@@ -263,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
       id: 'talent-5',
       name: '정도현',
       gender: '남성',
-      role: '정사범',
+      role: '메인사범',
       exp: '경력 4년',
       region: '경기 수원시',
       salary: '최저연봉 300만원',
@@ -282,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
       author: '대호관장', 
       date: '2026.06.07', 
       views: 124,
-      content: '요즘 강남 쪽에서 정사범님 구하기가 하늘의 별 따기네요. 조건은 월 330에 주 5일, 식사 제공인데도 문의전화 한 통 받기가 어렵습니다. 다른 지역 관장님들은 구인 어떠신가요? 혹시 채용공고 올릴 때 특별히 어필하면 좋은 팁이 있을까요?',
+      content: '요즘 강남 쪽에서 메인사범님 구하기가 하늘의 별 따기네요. 조건은 월 330에 주 5일, 식사 제공인데도 문의전화 한 통 받기가 어렵습니다. 다른 지역 관장님들은 구인 어떠신가요? 혹시 채용공고 올릴 때 특별히 어필하면 좋은 팁이 있을까요?',
       comments: [
         { author: '의리사범', content: '요즘 젊은 사범들은 급여도 중요하지만 퇴근 시간 준수를 더 중요하게 보는 것 같습니다.', date: '2026.06.07' },
         { author: '강남태권', content: '강남은 주거비가 비싸서 타지에서 오는 사범님들을 위해 숙소를 지원해 주면 연락이 좀 오는 편입니다.', date: '2026.06.08' }
@@ -554,7 +555,8 @@ document.addEventListener('DOMContentLoaded', () => {
           gymName: j.gymName || '도장',
           title: j.title || '채용공고',
           region: j.location || '전국',
-          address: j.location ? `${j.location} 일대 태권도장` : '전국 일대 태권도장',
+          address: j.address || (j.location ? `${j.location} 일대 태권도장` : '전국 일대 태권도장'),
+          preferred: j.preferred || '-',
           salary: j.salary || '월 300만원',
           type: j.type || '정규직',
           exp: j.career || '경력무관',
@@ -589,7 +591,7 @@ document.addEventListener('DOMContentLoaded', () => {
           id: doc.id,
           name: r.name || '사범',
           gender: r.gender || '남성',
-          role: r.hope_position || r.position || '정사범',
+          role: r.hope_position || r.position || '메인사범',
           exp: r.career || '경력무관',
           region: r.hope_area || '전국',
           salary: r.hope_salary || '월 280만원',
@@ -921,11 +923,137 @@ document.addEventListener('DOMContentLoaded', () => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
+  // 로그인 회원 유형 롤 획득
+  function getUserRole() {
+    if (!state.currentUser) return 'guest';
+    const email = state.currentUser.email ? state.currentUser.email.toLowerCase() : '';
+    const adminEmails = ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com'];
+    if (adminEmails.includes(email)) return 'admin';
+    return state.currentUser.type || 'guest';
+  }
+
+  // 역할에 따른 메뉴 노출 및 레이아웃 제어
+  function applyRoleBasedUI() {
+    const role = getUserRole();
+
+    const menuJobs = document.getElementById('menu-jobs');
+    const menuTalents = document.getElementById('menu-talents');
+    const mMenuJobs = document.getElementById('m-menu-jobs');
+    const mMenuTalents = document.getElementById('m-menu-talents');
+
+    const liJobs = menuJobs ? menuJobs.parentElement : null;
+    const liTalents = menuTalents ? menuTalents.parentElement : null;
+    const mLiJobs = mMenuJobs ? mMenuJobs.parentElement : null;
+    const mLiTalents = mMenuTalents ? mMenuTalents.parentElement : null;
+
+    const homeJobsSection = document.getElementById('home-jobs-section');
+    const homeTalentsSection = document.getElementById('home-talents-section');
+
+    const heroBtnPostJob = document.getElementById('hero-btn-post-job');
+    const boardBtnPostJob = document.getElementById('board-btn-post-job');
+    const heroBtnPostResume = document.getElementById('hero-btn-post-resume');
+    const boardBtnPostResume = document.getElementById('board-btn-post-resume');
+
+    // 1. 관리자 (admin)인 경우: 모두 노출
+    if (role === 'admin') {
+      if (liJobs) liJobs.style.display = 'block';
+      if (liTalents) liTalents.style.display = 'block';
+      if (mLiJobs) mLiJobs.style.display = 'block';
+      if (mLiTalents) mLiTalents.style.display = 'block';
+
+      if (homeJobsSection) homeJobsSection.style.display = 'block';
+      if (homeTalentsSection) homeTalentsSection.style.display = 'block';
+
+      if (heroBtnPostJob) heroBtnPostJob.style.display = 'inline-flex';
+      if (boardBtnPostJob) boardBtnPostJob.style.display = 'inline-flex';
+      if (heroBtnPostResume) heroBtnPostResume.style.display = 'inline-flex';
+      if (boardBtnPostResume) boardBtnPostResume.style.display = 'inline-flex';
+    } 
+    // 2. 사범 (instructor)인 경우: 채용공고 노출, 인재정보 숨김, 이력서 등록은 노출, 공고 등록은 숨김
+    else if (role === 'instructor') {
+      if (liJobs) liJobs.style.display = 'block';
+      if (liTalents) liTalents.style.display = 'none';
+      if (mLiJobs) mLiJobs.style.display = 'block';
+      if (mLiTalents) mLiTalents.style.display = 'none';
+
+      if (homeJobsSection) homeJobsSection.style.display = 'block';
+      if (homeTalentsSection) homeTalentsSection.style.display = 'none';
+
+      if (heroBtnPostJob) heroBtnPostJob.style.display = 'none';
+      if (boardBtnPostJob) boardBtnPostJob.style.display = 'none';
+      if (heroBtnPostResume) heroBtnPostResume.style.display = 'inline-flex';
+      if (boardBtnPostResume) boardBtnPostResume.style.display = 'inline-flex';
+    } 
+    // 3. 관장 (gym)인 경우: 채용공고 숨김, 인재정보 노출, 공고 등록은 노출, 이력서 등록은 숨김
+    else if (role === 'gym') {
+      if (liJobs) liJobs.style.display = 'none';
+      if (liTalents) liTalents.style.display = 'block';
+      if (mLiJobs) mLiJobs.style.display = 'none';
+      if (mLiTalents) mLiTalents.style.display = 'block';
+
+      if (homeJobsSection) homeJobsSection.style.display = 'none';
+      if (homeTalentsSection) homeTalentsSection.style.display = 'block';
+
+      if (heroBtnPostJob) heroBtnPostJob.style.display = 'inline-flex';
+      if (boardBtnPostJob) boardBtnPostJob.style.display = 'inline-flex';
+      if (heroBtnPostResume) heroBtnPostResume.style.display = 'none';
+      if (boardBtnPostResume) boardBtnPostResume.style.display = 'none';
+    }
+    // 4. 비로그인 (guest)인 경우: 탐색을 위해 기본 노출하되 클릭 시 권한 제한
+    else {
+      if (liJobs) liJobs.style.display = 'block';
+      if (liTalents) liTalents.style.display = 'block';
+      if (mLiJobs) mLiJobs.style.display = 'block';
+      if (mLiTalents) mLiTalents.style.display = 'block';
+
+      if (homeJobsSection) homeJobsSection.style.display = 'block';
+      if (homeTalentsSection) homeTalentsSection.style.display = 'block';
+
+      if (heroBtnPostJob) heroBtnPostJob.style.display = 'inline-flex';
+      if (boardBtnPostJob) boardBtnPostJob.style.display = 'inline-flex';
+      if (heroBtnPostResume) heroBtnPostResume.style.display = 'inline-flex';
+      if (boardBtnPostResume) boardBtnPostResume.style.display = 'inline-flex';
+    }
+
+    // 잘못된 해시로 강제 진입 시 가드 처리
+    const hash = window.location.hash || '#home';
+    const cleanHash = hash.split('?')[0];
+    
+    if (cleanHash === '#talents' && (role === 'instructor' || role === 'guest')) {
+      window.location.hash = '#home';
+      if (role === 'guest') {
+        alert('인재 정보 열람은 로그인(관장님/관리자) 후 이용하실 수 있습니다.');
+        if (dialogs.auth) dialogs.auth.showModal();
+      } else {
+        alert('사범 및 일반 회원은 인재 정보를 열람할 권한이 없습니다.');
+      }
+    } else if (cleanHash === '#jobs' && role === 'gym') {
+      window.location.hash = '#home';
+      alert('관장님 회원은 채용공고 목록을 열람할 권한이 없습니다. 공고 등록은 마이페이지나 홈화면 등록 기능을 이용해 주세요.');
+    }
+  }
+
   function handleRoute() {
     const pathname = window.location.pathname;
     const rawHash = window.location.hash;
     const hash = rawHash || '#home';
     const cleanHash = hash.split('?')[0];
+
+    const role = getUserRole();
+    if (cleanHash === '#talents' && (role === 'instructor' || role === 'guest')) {
+      window.location.hash = '#home';
+      if (role === 'guest') {
+        alert('인재 정보 열람은 로그인(관장님/관리자) 후 이용하실 수 있습니다.');
+        if (dialogs.auth) dialogs.auth.showModal();
+      } else {
+        alert('사범 및 일반 회원은 인재 정보를 열람할 권한이 없습니다.');
+      }
+      return;
+    } else if (cleanHash === '#jobs' && role === 'gym') {
+      window.location.hash = '#home';
+      alert('관장님 회원은 채용공고 목록을 열람할 권한이 없습니다. 공고 등록은 마이페이지나 홈화면 등록 기능을 이용해 주세요.');
+      return;
+    }
 
     if (pathname === '/About') {
       if (rawHash && cleanHash !== '#about' && cleanHash !== '#aboutUs') {
@@ -1255,6 +1383,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const section = document.getElementById('home-banner-section');
     if (!section) return;
 
+    if (homeBannerTimer) {
+      clearInterval(homeBannerTimer);
+      homeBannerTimer = null;
+    }
+
     // db가 없으면 배너 숨김
     if (!db) { section.innerHTML = ''; return; }
 
@@ -1268,32 +1401,35 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // 1개면 단순 이미지, 여러 개면 슬라이더
-      if (banners.length === 1) {
-        section.innerHTML = `
-          <div style="width:100%;border-radius:12px;overflow:hidden;margin:0 0 0.5rem;">
-            <img src="${banners[0].url}" alt="배너" style="width:100%;max-height:180px;object-fit:cover;display:block;"
-              onerror="this.parentElement.style.display='none'">
-          </div>`;
-      } else {
-        let currentIdx = 0;
-        const sliderId = 'home-banner-slider-' + Date.now();
-        section.innerHTML = `
-          <div id="${sliderId}" style="position:relative;width:100%;border-radius:12px;overflow:hidden;margin:0 0 0.5rem;user-select:none;">
+      const sliderId = 'home-banner-slider-' + Date.now();
+      section.innerHTML = `
+        <div id="${sliderId}" class="home-banner-frame">
+          <div class="home-banner-track">
             ${banners.map((b, i) => `
-              <div class="banner-slide" style="display:${i === 0 ? 'block' : 'none'};width:100%;">
-                <img src="${b.url}" alt="배너 ${i+1}" style="width:100%;max-height:180px;object-fit:cover;display:block;"
-                  onerror="this.parentElement.style.display='none'">
+              <div class="home-banner-slide ${i === 0 ? 'active' : ''}" data-index="${i}">
+                ${b.linkUrl ? `
+                  <a href="${b.linkUrl}" target="_blank" rel="noopener" class="home-banner-link" draggable="false" aria-label="배너 ${i + 1} 링크 열기">
+                    <img src="${b.url}" alt="배너 ${i + 1}" class="home-banner-image"
+                      draggable="false"
+                      onerror="this.closest('.home-banner-slide').style.display='none'">
+                  </a>` : `
+                  <img src="${b.url}" alt="배너 ${i + 1}" class="home-banner-image"
+                    draggable="false"
+                    onerror="this.closest('.home-banner-slide').style.display='none'">`}
               </div>`).join('')}
-            <button onclick="bannerPrev('${sliderId}')" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.45);border:none;color:#fff;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">&#8249;</button>
-            <button onclick="bannerNext('${sliderId}',${banners.length})" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.45);border:none;color:#fff;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">&#8250;</button>
-            <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;">
-              ${banners.map((_, i) => `<span class="banner-dot" data-i="${i}" style="width:7px;height:7px;border-radius:50%;background:${i===0?'#fff':'rgba(255,255,255,0.45)'};display:inline-block;cursor:pointer;" onclick="bannerGoTo('${sliderId}',${i},${banners.length})"></span>`).join('')}
-            </div>
-          </div>`;
+          </div>
+          ${banners.length > 1 ? `
+            <button type="button" class="home-banner-control prev" onclick="bannerPrev('${sliderId}')" aria-label="이전 배너">&#8249;</button>
+            <button type="button" class="home-banner-control next" onclick="bannerNext('${sliderId}')" aria-label="다음 배너">&#8250;</button>
+            <div class="home-banner-dots" aria-label="배너 순서">
+              ${banners.map((_, i) => `<button type="button" class="home-banner-dot ${i === 0 ? 'active' : ''}" data-i="${i}" onclick="bannerGoTo('${sliderId}',${i})" aria-label="배너 ${i + 1}"></button>`).join('')}
+            </div>` : ''}
+        </div>`;
 
-        // 자동 슬라이드 (5초)
-        setInterval(() => { bannerNext(sliderId, banners.length); }, 5000);
+      if (banners.length > 1) {
+        homeBannerTimer = setInterval(() => {
+          window.bannerNext(sliderId);
+        }, 7000);
       }
     } catch (e) {
       console.warn('홈 배너 로드 실패:', e);
@@ -1302,30 +1438,35 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 배너 슬라이더 컨트롤 함수 (전역 노출 필요)
-  window.bannerGoTo = function(sliderId, idx, total) {
+  window.bannerGoTo = function(sliderId, idx) {
     const slider = document.getElementById(sliderId);
     if (!slider) return;
-    const slides = slider.querySelectorAll('.banner-slide');
-    const dots = slider.querySelectorAll('.banner-dot');
-    slides.forEach((s, i) => s.style.display = i === idx ? 'block' : 'none');
-    dots.forEach((d, i) => d.style.background = i === idx ? '#fff' : 'rgba(255,255,255,0.45)');
+    const track = slider.querySelector('.home-banner-track');
+    const slides = slider.querySelectorAll('.home-banner-slide');
+    const dots = slider.querySelectorAll('.home-banner-dot');
+    if (track) track.style.transform = `translateX(-${idx * 100}%)`;
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    dots.forEach((d, i) => d.classList.toggle('active', i === idx));
   };
 
-  window.bannerNext = function(sliderId, total) {
+  window.bannerNext = function(sliderId) {
     const slider = document.getElementById(sliderId);
     if (!slider) return;
-    const slides = slider.querySelectorAll('.banner-slide');
-    let cur = Array.from(slides).findIndex(s => s.style.display !== 'none');
-    window.bannerGoTo(sliderId, (cur + 1) % total, total);
+    const slides = slider.querySelectorAll('.home-banner-slide');
+    const total = slides.length;
+    let cur = Array.from(slides).findIndex(s => s.classList.contains('active'));
+    if (cur < 0) cur = 0;
+    window.bannerGoTo(sliderId, (cur + 1) % total);
   };
 
   window.bannerPrev = function(sliderId) {
     const slider = document.getElementById(sliderId);
     if (!slider) return;
-    const slides = slider.querySelectorAll('.banner-slide');
+    const slides = slider.querySelectorAll('.home-banner-slide');
     const total = slides.length;
-    let cur = Array.from(slides).findIndex(s => s.style.display !== 'none');
-    window.bannerGoTo(sliderId, (cur - 1 + total) % total, total);
+    let cur = Array.from(slides).findIndex(s => s.classList.contains('active'));
+    if (cur < 0) cur = 0;
+    window.bannerGoTo(sliderId, (cur - 1 + total) % total);
   };
 
   // Render community posts on the Home view
@@ -2190,6 +2331,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const exp = document.getElementById('job-exp').value;
       const hotness = document.getElementById('job-hotness').value;
       const desc = document.getElementById('job-desc').value;
+      const address = document.getElementById('job-address').value.trim();
+      const preferred = document.getElementById('job-preferred').value.trim();
 
       if (!state.selectedJobRegions || !state.selectedJobRegions.length) {
         alert('근무 지역을 1개 이상 선택해주세요.');
@@ -2201,6 +2344,8 @@ document.addEventListener('DOMContentLoaded', () => {
         gymName,
         title: `${title} (${position})`,
         location: region,
+        address,
+        preferred: preferred || '-',
         salary,
         type,
         career: exp,
@@ -2220,7 +2365,8 @@ document.addEventListener('DOMContentLoaded', () => {
             gymName,
             title: `${title} (${position})`,
             region,
-            address: `${region} 일대 태권도장`,
+            address: address || `${region} 일대 태권도장`,
+            preferred: preferred || '-',
             salary,
             type,
             exp,
@@ -2234,6 +2380,8 @@ document.addEventListener('DOMContentLoaded', () => {
           // Close dialog & reset form
           dialogs.postJob.close();
           formPostJob.reset();
+          const jobMapEl = document.getElementById('job-map');
+          if (jobMapEl) jobMapEl.style.display = 'none';
           state.selectedJobRegions = [];
           state.regionPickers.job?.clear();
 
@@ -2642,6 +2790,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('detail-job-region-pos').textContent = `${job.region} | ${job.type}`;
     document.getElementById('detail-job-salary').textContent = job.salary;
     document.getElementById('detail-job-exp').textContent = job.exp;
+    document.getElementById('detail-job-preferred').textContent = job.preferred || '-';
     document.getElementById('detail-job-addr').textContent = job.address;
     document.getElementById('detail-job-desc').textContent = job.desc;
 
@@ -2652,6 +2801,45 @@ document.addEventListener('DOMContentLoaded', () => {
     if (managerEmailEl) managerEmailEl.textContent = job.userEmail || '이메일 정보 없음';
 
     dialogs.jobDetail.showModal();
+
+    // 카카오 지도 연동
+    const mapContainer = document.getElementById('detail-job-map-container');
+    const mapEl = document.getElementById('detail-job-map');
+    
+    if (job.address && typeof kakao !== 'undefined' && kakao.maps) {
+      if (mapContainer) mapContainer.style.display = 'block';
+      setTimeout(() => {
+        try {
+          kakao.maps.load(function() {
+            const geocoder = new kakao.maps.services.Geocoder();
+            geocoder.addressSearch(job.address, function(result, status) {
+              if (status === kakao.maps.services.Status.OK) {
+                const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+                const mapOption = {
+                  center: coords,
+                  level: 3
+                };
+                const map = new kakao.maps.Map(mapEl, mapOption);
+                new kakao.maps.Marker({
+                  map: map,
+                  position: coords
+                });
+                // 모달 노출 후 레이아웃 재정렬 및 중심 위치 조율
+                map.relayout();
+                map.setCenter(coords);
+              } else {
+                if (mapContainer) mapContainer.style.display = 'none';
+              }
+            });
+          });
+        } catch (mapErr) {
+          console.warn('상세 지도 로드 오류:', mapErr);
+          if (mapContainer) mapContainer.style.display = 'none';
+        }
+      }, 250); // 모달 트랜지션 애니메이션 완료를 고려하여 250ms 대기
+    } else {
+      if (mapContainer) mapContainer.style.display = 'none';
+    }
 
     // Asynchronously update Firestore views
     if (db && job.id) {
@@ -2838,6 +3026,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (inqName) inqName.value = '';
         if (inqEmail) inqEmail.value = '';
       }
+
+      // 역할에 따른 메뉴 노출 및 탭 제어 적용
+      applyRoleBasedUI();
     });
   }
 
@@ -3022,6 +3213,141 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     });
+  }
+
+  // ─── 카카오 우편번호 서비스 & 지도 연동 (내장형 및 실시간 타이핑 지원) ───
+  let postcodeEmbedInstance = null;
+  let directInputTimer = null;
+
+  // 내장형 우편번호 찾기 토글
+  window.toggleDaumPostcodeEmbed = function() {
+    if (typeof daum === 'undefined') {
+      alert('우편번호 서비스 스크립트가 아직 로드되지 않았습니다.');
+      return;
+    }
+
+    const container = document.getElementById('job-address-search-container');
+    const inner = document.getElementById('job-address-search-inner');
+    if (!container || !inner) return;
+
+    // 이미 열려있으면 닫기
+    if (container.style.display === 'block') {
+      window.closeDaumPostcodeEmbed();
+      return;
+    }
+
+    container.style.display = 'block';
+
+    new daum.Postcode({
+      oncomplete: function(data) {
+        let addr = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress;
+        
+        const addrEl = document.getElementById('job-address');
+        if (addrEl) addrEl.value = addr;
+
+        // 검색창 닫기
+        window.closeDaumPostcodeEmbed();
+
+        // 지도 갱신
+        updateJobMapByAddress(addr);
+      },
+      width: '100%',
+      height: '100%'
+    }).embed(inner);
+  };
+
+  // 내장형 우편번호 검색창 닫기
+  window.closeDaumPostcodeEmbed = function() {
+    const container = document.getElementById('job-address-search-container');
+    if (container) {
+      container.style.display = 'none';
+    }
+  };
+
+  // 사용자가 주소를 직접 기입할 때 호출 (디바운스 500ms 적용)
+  window.handleAddressDirectInput = function(val) {
+    if (directInputTimer) {
+      clearTimeout(directInputTimer);
+    }
+    
+    const addr = val.trim();
+    if (!addr) {
+      const mapEl = document.getElementById('job-map');
+      if (mapEl) mapEl.style.display = 'none';
+      return;
+    }
+
+    directInputTimer = setTimeout(() => {
+      updateJobMapByAddress(addr);
+    }, 500);
+  };
+
+  // 주소 텍스트 기반 카카오 지도 갱신 공통 함수
+  function updateJobMapByAddress(addr) {
+    // 주소에서 행정구역명을 분석하여 지역 선택 도구 자동 매칭
+    autoSelectRegionFromAddress(addr);
+
+    const mapEl = document.getElementById('job-map');
+    if (mapEl && typeof kakao !== 'undefined' && kakao.maps) {
+      try {
+        kakao.maps.load(function() {
+          const geocoder = new kakao.maps.services.Geocoder();
+          geocoder.addressSearch(addr, function(result, status) {
+            if (status === kakao.maps.services.Status.OK) {
+              mapEl.style.display = 'block';
+              const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+              const mapOption = {
+                center: coords,
+                level: 3
+              };
+              const map = new kakao.maps.Map(mapEl, mapOption);
+              new kakao.maps.Marker({
+                map: map,
+                position: coords
+              });
+              
+              setTimeout(() => {
+                map.relayout();
+                map.setCenter(coords);
+              }, 100);
+            }
+          });
+        });
+      } catch (e) {
+        console.warn('지도 렌더링 실패:', e);
+      }
+    }
+  }
+
+  // 주소 텍스트 파싱을 기반으로 해당 시도/시군구를 분석하여 지역 피커를 자동 세팅하는 함수
+  function autoSelectRegionFromAddress(address) {
+    if (!address || !state.regionPickers.job || !state.regions) return;
+
+    const parts = address.trim().split(/\s+/);
+    if (parts.length < 2) return;
+
+    const sido = parts[0];
+    const sigungu = parts[1];
+
+    // 법정동 지역명 매치용 단축 맵
+    const sidoShortMap = {
+      '서울특별시': '서울', '부산광역시': '부산', '대구광역시': '대구',
+      '인천광역시': '인천', '광주광역시': '광주', '대전광역시': '대전',
+      '울산광역시': '울산', '세종특별자치시': '세종', '세종시': '세종',
+      '경기도': '경기', '강원특별자치도': '강원', '강원도': '강원',
+      '충청북도': '충북', '충청남도': '충남', '전북특별자치도': '전북',
+      '전라북도': '전북', '전라남도': '전남', '경상북도': '경북',
+      '경상남도': '경남', '제주특별자치도': '제주', '제주도': '제주'
+    };
+
+    const normalizedSido = sidoShortMap[sido] || sido.replace(/특별자치도|특별자치시|광역시|특별시|도$/g, '');
+    const targetDisplayName = `${normalizedSido} ${sigungu}`;
+
+    // 실제 데이터에 존재하는 행정구역인지 확인 후 자동 적용
+    const isExist = state.regions.some(r => r.displayName === targetDisplayName);
+    if (isExist) {
+      state.regionPickers.job.setByValue(targetDisplayName);
+    }
   }
 
 });

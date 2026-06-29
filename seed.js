@@ -68,11 +68,11 @@ const mockJobs = [
   {
     id: 'job-1',
     user_id: 'user-gym-1',
-    title: '정사범 모집 (우대: 겨루기 선수 출신)',
+    title: '메인사범 모집 (우대: 겨루기 선수 출신)',
     salary: '월 320만원',
     location: '서울 강남구 역삼동',
     career: '경력 3년 이상',
-    content: '체계적이고 열정적으로 아이들을 지도해주실 유능한 정사범님을 모십니다. 선수 출신 우대합니다.',
+    content: '체계적이고 열정적으로 아이들을 지도해주실 유능한 메인사범님을 모십니다. 선수 출신 우대합니다.',
     status: 'active',
     created_at: Timestamp.now()
   },

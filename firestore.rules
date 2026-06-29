@@ -142,7 +142,7 @@ service cloud.firestore {
     }
 
     function isValidJob(data, authorId) {
-      return hasOnlyAllowedFields(['user_id', 'gymName', 'title', 'location', 'salary', 'type', 'career', 'position', 'status', 'content', 'created_at', 'pinned', 'views', 'viewed_users']) &&
+      return hasOnlyAllowedFields(['user_id', 'gymName', 'title', 'location', 'salary', 'type', 'career', 'position', 'status', 'content', 'created_at', 'pinned', 'views', 'viewed_users', 'address', 'preferred']) &&
         hasRequiredFields(['user_id', 'gymName', 'title', 'location', 'salary', 'career', 'position', 'status', 'content', 'created_at']) &&
         data.user_id is string && data.user_id == authorId &&
         data.gymName is string && data.gymName.size() >= 1 && data.gymName.size() <= 50 &&
@@ -157,7 +157,9 @@ service cloud.firestore {
         data.created_at is timestamp &&
         (!data.keys().hasAny(['pinned']) || data.pinned is bool) &&
         (!data.keys().hasAny(['views']) || data.views is int) &&
-        (!data.keys().hasAny(['viewed_users']) || data.viewed_users is list);
+        (!data.keys().hasAny(['viewed_users']) || data.viewed_users is list) &&
+        (!data.keys().hasAny(['address']) || (data.address is string && data.address.size() <= 200)) &&
+        (!data.keys().hasAny(['preferred']) || (data.preferred is string && data.preferred.size() <= 200));
     }
 
     function isValidResume(data) {
@@ -319,6 +321,49 @@ service cloud.firestore {
     match /inquiries/{inquiryId} {
       allow create: if isValidInquiry(request.resource.data) && isRecent(request.resource.data.created_at);
       allow read, update, delete: if isAuthenticated() && isUserOfType(request.auth.uid, 'gym');
+    }
+
+    // 6. Banners Collection
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow create: if isAuthenticated()
+        && isUserOfType(request.auth.uid, 'gym')
+        && request.resource.data.keys().hasOnly(['name', 'url', 'linkUrl', 'storagePath', 'size', 'created_at'])
+        && request.resource.data.keys().hasAll(['name', 'url', 'linkUrl', 'storagePath', 'size', 'created_at'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.url is string
+        && request.resource.data.url.matches('^https://.*')
+        && request.resource.data.linkUrl is string
+        && request.resource.data.linkUrl.size() <= 500
+        && (request.resource.data.linkUrl == '' || request.resource.data.linkUrl.matches('^https?://.*'))
+        && request.resource.data.storagePath is string
+        && request.resource.data.storagePath.matches('^banners/[^/]+$')
+        && request.resource.data.size is int
+        && request.resource.data.size > 0
+        && request.resource.data.size < 900 * 1024
+        && request.resource.data.created_at is timestamp;
+      allow update: if isAuthenticated()
+        && isUserOfType(request.auth.uid, 'gym')
+        && request.resource.data.keys().hasOnly(['name', 'url', 'linkUrl', 'storagePath', 'size', 'created_at'])
+        && request.resource.data.keys().hasAll(['name', 'url', 'linkUrl', 'storagePath', 'size', 'created_at'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.url is string
+        && request.resource.data.url.matches('^https://.*')
+        && request.resource.data.linkUrl is string
+        && request.resource.data.linkUrl.size() <= 500
+        && (request.resource.data.linkUrl == '' || request.resource.data.linkUrl.matches('^https?://.*'))
+        && request.resource.data.storagePath is string
+        && request.resource.data.storagePath.matches('^banners/[^/]+$')
+        && request.resource.data.size is int
+        && request.resource.data.size > 0
+        && request.resource.data.size < 900 * 1024
+        && request.resource.data.created_at is timestamp
+        && areImmutableFieldsUnchanged(['created_at']);
+      allow delete: if isAuthenticated() && isUserOfType(request.auth.uid, 'gym');
     }
   }
 }
