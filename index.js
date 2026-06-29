@@ -2809,68 +2809,73 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapContainer = document.getElementById('detail-job-map-container');
     const mapEl = document.getElementById('detail-job-map');
     
-    if (job.address && typeof kakao !== 'undefined' && kakao.maps) {
+    if (job.address && typeof kakao !== 'undefined') {
       if (mapContainer) mapContainer.style.display = 'block';
-      setTimeout(() => {
+      
+      const initMap = () => {
         try {
-          kakao.maps.load(function() {
-            if (mapEl) mapEl.innerHTML = ''; // 이전 지도 데이터 비우기
-            
-            const geocoder = new kakao.maps.services.Geocoder();
-            
-            // 상세 건물 층수나 호수, 괄호 뒤 내용 걷어내기
-            let cleanAddress = job.address.split(',')[0].split('(')[0].trim();
-            cleanAddress = cleanAddress.replace(/\s+(?:[0-9]+층|[0-9]+호|[0-9]+-[0-9]+|지하|상가).*$/, '').trim();
+          if (!kakao.maps.services || !kakao.maps.services.Geocoder) {
+            // Geocoder 서비스 로드가 완전히 끝날 때까지 50ms마다 재귀 대기
+            setTimeout(initMap, 50);
+            return;
+          }
 
-            function searchAddressWithFallback(addressStr) {
-              geocoder.addressSearch(addressStr, function(result, status) {
-                if (status === kakao.maps.services.Status.OK) {
-                  const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-                  const mapOption = {
-                    center: coords,
-                    level: 3
-                  };
-                  const map = new kakao.maps.Map(mapEl, mapOption);
-                  
-                  // 마커 생성
-                  const marker = new kakao.maps.Marker({
-                    map: map,
-                    position: coords
+          if (mapEl) mapEl.innerHTML = ''; // 이전 지도 데이터 비우기
+          const geocoder = new kakao.maps.services.Geocoder();
+          
+          let cleanAddress = job.address.split(',')[0].split('(')[0].trim();
+          cleanAddress = cleanAddress.replace(/\s+(?:[0-9]+층|[0-9]+호|[0-9]+-[0-9]+|지하|상가).*$/, '').trim();
+
+          function searchAddressWithFallback(addressStr) {
+            geocoder.addressSearch(addressStr, function(result, status) {
+              if (status === kakao.maps.services.Status.OK) {
+                const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+                const mapOption = {
+                  center: coords,
+                  level: 3
+                };
+                const map = new kakao.maps.Map(mapEl, mapOption);
+                
+                const marker = new kakao.maps.Marker({
+                  map: map,
+                  position: coords
+                });
+                
+                if (job.gymName) {
+                  const infowindow = new kakao.maps.InfoWindow({
+                    content: `<div style="width:150px;text-align:center;padding:6px 0;font-size:0.8rem;font-weight:bold;color:#1e293b;border-radius:6px;border:none;">${job.gymName}</div>`
                   });
-                  
-                  // 마커 클릭 또는 기본 노출을 위한 말풍선(체육관 이름)
-                  if (job.gymName) {
-                    const infowindow = new kakao.maps.InfoWindow({
-                      content: `<div style="width:150px;text-align:center;padding:6px 0;font-size:0.8rem;font-weight:bold;color:#1e293b;border-radius:6px;border:none;">${job.gymName}</div>`
-                    });
-                    infowindow.open(map, marker);
-                  }
-
-                  // 모달 노출 트랜지션 이후 완전 정렬
-                  setTimeout(() => {
-                    map.relayout();
-                    map.setCenter(coords);
-                  }, 100);
-                } else {
-                  // 주소 단어를 뒤에서부터 하나씩 제거하며 폴백 시도
-                  const parts = addressStr.split(' ');
-                  if (parts.length > 2) {
-                    parts.pop();
-                    searchAddressWithFallback(parts.join(' '));
-                  } else {
-                    if (mapContainer) mapContainer.style.display = 'none';
-                  }
+                  infowindow.open(map, marker);
                 }
-              });
-            }
 
-            searchAddressWithFallback(cleanAddress || job.address);
-          });
+                setTimeout(() => {
+                  map.relayout();
+                  map.setCenter(coords);
+                }, 100);
+              } else {
+                const parts = addressStr.split(' ');
+                if (parts.length > 2) {
+                  parts.pop();
+                  searchAddressWithFallback(parts.join(' '));
+                } else {
+                  if (mapContainer) mapContainer.style.display = 'none';
+                }
+              }
+            });
+          }
+
+          searchAddressWithFallback(cleanAddress || job.address);
         } catch (mapErr) {
           console.warn('상세 지도 로드 오류:', mapErr);
           if (mapContainer) mapContainer.style.display = 'none';
         }
-      }, 250); // 모달 트랜지션 애니메이션 완료를 고려하여 250ms 대기
+      };
+
+      if (kakao.maps.load) {
+        kakao.maps.load(initMap);
+      } else {
+        initMap();
+      }
     } else {
       if (mapContainer) mapContainer.style.display = 'none';
     }
@@ -3515,9 +3520,14 @@ document.addEventListener('DOMContentLoaded', () => {
     autoSelectRegionFromAddress(addr);
 
     const mapEl = document.getElementById('job-map');
-    if (mapEl && typeof kakao !== 'undefined' && kakao.maps) {
-      try {
-        kakao.maps.load(function() {
+    if (mapEl && typeof kakao !== 'undefined') {
+      const initMap = () => {
+        try {
+          if (!kakao.maps.services || !kakao.maps.services.Geocoder) {
+            setTimeout(initMap, 50);
+            return;
+          }
+
           if (mapEl) mapEl.innerHTML = '';
           const geocoder = new kakao.maps.services.Geocoder();
           
@@ -3556,9 +3566,15 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           searchAddressWithFallback(cleanAddress || addr);
-        });
-      } catch (e) {
-        console.warn('지도 렌더링 실패:', e);
+        } catch (e) {
+          console.warn('지도 렌더링 실패:', e);
+        }
+      };
+
+      if (kakao.maps.load) {
+        kakao.maps.load(initMap);
+      } else {
+        initMap();
       }
     }
   }
