@@ -2805,68 +2805,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     dialogs.jobDetail.showModal();
 
-    // 카카오 지도 연동
-    const mapContainer = document.getElementById('detail-job-map-container');
-    const mapEl = document.getElementById('detail-job-map');
-    
-    if (job.address) {
-      if (mapContainer) mapContainer.style.display = 'block';
-
-      // 모달 애니메이션 완료 후 지도 초기화 (공식 예제 스타일)
-      setTimeout(() => {
-        try {
-          if (mapEl) mapEl.innerHTML = '';
-
-          var geocoder = new kakao.maps.services.Geocoder();
-
-          var cleanAddress = job.address.split(',')[0].split('(')[0].trim();
-          cleanAddress = cleanAddress.replace(/\s+(?:[0-9]+층|[0-9]+호|[0-9]+-[0-9]+|지하|상가).*$/, '').trim();
-
-          function searchAddressWithFallback(addressStr) {
-            geocoder.addressSearch(addressStr, function(result, status) {
-              if (status === kakao.maps.services.Status.OK) {
-                var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-
-                var map = new kakao.maps.Map(mapEl, {
-                  center: coords,
-                  level: 3
-                });
-
-                var marker = new kakao.maps.Marker({
-                  map: map,
-                  position: coords
-                });
-
-                if (job.gymName) {
-                  var infowindow = new kakao.maps.InfoWindow({
-                    content: `<div style="width:150px;text-align:center;padding:6px 0;font-size:0.8rem;font-weight:bold;color:#1e293b;">${job.gymName}</div>`
-                  });
-                  infowindow.open(map, marker);
-                }
-
-                map.relayout();
-                map.setCenter(coords);
-              } else {
-                var parts = addressStr.split(' ');
-                if (parts.length > 2) {
-                  parts.pop();
-                  searchAddressWithFallback(parts.join(' '));
-                } else {
-                  if (mapContainer) mapContainer.style.display = 'none';
-                }
-              }
-            });
-          }
-
-          searchAddressWithFallback(cleanAddress || job.address);
-        } catch (e) {
-          console.warn('지도 초기화 오류:', e);
-          if (mapContainer) mapContainer.style.display = 'none';
-        }
-      }, 350);
-    } else {
-      if (mapContainer) mapContainer.style.display = 'none';
-    }
 
     // Asynchronously update Firestore views
     if (db && job.id) {
