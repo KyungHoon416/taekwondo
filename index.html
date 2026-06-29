@@ -8,7 +8,7 @@
   
   <!-- Font Preload & stylesheet -->
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
-  <link rel="stylesheet" href="index.css?v=20260629-map2">
+  <link rel="stylesheet" href="index.css?v=20260629-agree1">
   
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥋</text></svg>">
@@ -1246,6 +1246,28 @@
           <button type="button" class="btn-inline-check btn-business-validate" id="btn-business-validate">사업자 확인</button>
           <p class="business-check-result" id="business-validate-result" aria-live="polite"></p>
         </div>
+        <div class="agreement-box" aria-label="회원가입 동의 항목">
+          <label class="agreement-row agreement-row-all">
+            <input type="checkbox" id="reg-agree-all">
+            <span>필수동의 항목 및 개인정보 수집 및 이용 동의(선택), 광고성 정보 수신(선택)에 모두 동의합니다.</span>
+          </label>
+          <label class="agreement-row">
+            <input type="checkbox" id="reg-agree-age" required>
+            <span>[필수] 만 15세 이상입니다</span>
+          </label>
+          <label class="agreement-row">
+            <input type="checkbox" id="reg-agree-terms" required>
+            <span>[필수] 이용약관 동의</span>
+          </label>
+          <label class="agreement-row">
+            <input type="checkbox" id="reg-agree-personalized">
+            <span>[선택] 맞춤형 서비스/광고 개인정보 수집 및 이용 동의</span>
+          </label>
+          <label class="agreement-row">
+            <input type="checkbox" id="reg-agree-marketing">
+            <span>[선택] 광고성 정보 수신 동의</span>
+          </label>
+        </div>
         <button type="submit" class="btn-submit-dialog">회원가입하기</button>
       </form>
     </div>
@@ -1742,6 +1764,6 @@
   <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=28f3ae7ad7bb29db3e5774383d5bebe3&libraries=services&autoload=false"></script>
   <script src="region-sync.js?v=20260612-v6"></script>
-  <script src="index.js?v=20260629-map3"></script>
+  <script src="index.js?v=20260629-agree1"></script>
 </body>
 </html>

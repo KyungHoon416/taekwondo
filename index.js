@@ -1806,6 +1806,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const businessValidateButton = document.getElementById('btn-business-validate');
   const businessStatusResult = document.getElementById('business-status-result');
   const businessValidateResult = document.getElementById('business-validate-result');
+  const agreeAllInput = document.getElementById('reg-agree-all');
+  const agreeAgeInput = document.getElementById('reg-agree-age');
+  const agreeTermsInput = document.getElementById('reg-agree-terms');
+  const agreePersonalizedInput = document.getElementById('reg-agree-personalized');
+  const agreeMarketingInput = document.getElementById('reg-agree-marketing');
+  const agreementInputs = [agreeAgeInput, agreeTermsInput, agreePersonalizedInput, agreeMarketingInput].filter(Boolean);
   const roleInputs = document.querySelectorAll('input[name="user-role"]');
   const regPhoneInput = document.getElementById('reg-phone');
   if (regPhoneInput) {
@@ -1867,6 +1873,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!isGym) input.value = '';
     });
     if (!isGym) resetBusinessChecks();
+  }
+
+  function syncAgreementAllState() {
+    if (!agreeAllInput || agreementInputs.length === 0) return;
+    const checkedCount = agreementInputs.filter((input) => input.checked).length;
+    agreeAllInput.checked = checkedCount === agreementInputs.length;
+    agreeAllInput.indeterminate = checkedCount > 0 && checkedCount < agreementInputs.length;
   }
 
   function setAuthResult(el, msg, type) {
@@ -2040,7 +2053,19 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+  if (agreeAllInput) {
+    agreeAllInput.addEventListener('change', () => {
+      agreementInputs.forEach((input) => {
+        input.checked = agreeAllInput.checked;
+      });
+      syncAgreementAllState();
+    });
+  }
+  agreementInputs.forEach((input) => {
+    input.addEventListener('change', syncAgreementAllState);
+  });
   syncBusinessNumberField();
+  syncAgreementAllState();
 
   // ─── 로그인 폼 제출 (Firebase Auth) ─────────────────────────────────────────
   formLogin.addEventListener('submit', async (e) => {
@@ -2153,6 +2178,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const phone    = document.getElementById('reg-phone') ? document.getElementById('reg-phone').value.trim() : '';
     const password = document.getElementById('reg-password').value;
     const type     = document.querySelector('input[name="user-role"]:checked')?.value || 'instructor';
+    const agreeAge = !!agreeAgeInput?.checked;
+    const agreeTerms = !!agreeTermsInput?.checked;
+    const agreePersonalized = !!agreePersonalizedInput?.checked;
+    const agreeMarketing = !!agreeMarketingInput?.checked;
     const { businessNumber, businessStartDate, businessOwnerName, gymName } = getCurrentBusinessPayload();
     const submitBtn = formRegister.querySelector('button[type="submit"]');
     submitBtn.textContent = '가입 중...';
@@ -2166,6 +2195,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const phoneRegex = /^010-\d{3,4}-\d{4}$/;
       if (!phoneRegex.test(phone)) {
         showAuthError('올바른 휴대폰 번호 형식을 입력해주세요. (예: 010-1234-5678)');
+        submitBtn.textContent = '회원가입하기'; submitBtn.disabled = false;
+        return;
+      }
+      if (!agreeAge) {
+        showAuthError('[필수] 만 15세 이상입니다 항목에 동의해주세요.');
+        submitBtn.textContent = '회원가입하기'; submitBtn.disabled = false;
+        return;
+      }
+      if (!agreeTerms) {
+        showAuthError('[필수] 이용약관에 동의해주세요.');
         submitBtn.textContent = '회원가입하기'; submitBtn.disabled = false;
         return;
       }
@@ -2205,6 +2244,11 @@ document.addEventListener('DOMContentLoaded', () => {
         email,
         phone,
         type,                        // 'gym' | 'instructor'
+        agree_age_over_15: agreeAge,
+        agree_terms: agreeTerms,
+        agree_personalized_ads: agreePersonalized,
+        agree_marketing: agreeMarketing,
+        agreed_at: firebase.firestore.FieldValue.serverTimestamp(),
         created_at: firebase.firestore.FieldValue.serverTimestamp()
       };
 
@@ -2234,6 +2278,7 @@ document.addEventListener('DOMContentLoaded', () => {
       formRegister.reset();
       resetBusinessChecks();
       syncBusinessNumberField();
+      syncAgreementAllState();
     } catch (err) {
       const msg = err.code === 'auth/email-already-in-use'
         ? '이미 사용 중인 이메일입니다.'

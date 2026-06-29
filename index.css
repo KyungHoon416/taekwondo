@@ -1927,6 +1927,43 @@
   color: #dc2626;
 }
 
+.agreement-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0.35rem 0 1rem;
+  padding: 0.95rem;
+  border: 1.5px solid var(--border-main);
+  border-radius: var(--radius-md);
+  background: #f8fafc;
+}
+
+.agreement-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  color: var(--text-main);
+  font-size: 0.86rem;
+  font-weight: 650;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.agreement-row input {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  margin-top: 0.1rem;
+  accent-color: var(--accent-blue);
+}
+
+.agreement-row-all {
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--color-slate-200);
+  color: var(--brand-primary-dark);
+  font-weight: 800;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
