@@ -2811,48 +2811,43 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (job.address) {
       if (mapContainer) mapContainer.style.display = 'block';
-      
-      const renderMap = () => {
-        try {
-          if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services || !window.kakao.maps.services.Geocoder) {
-            setTimeout(renderMap, 50);
-            return;
-          }
 
+      // 모달 애니메이션 완료 후 지도 초기화 (공식 예제 스타일)
+      setTimeout(() => {
+        try {
           if (mapEl) mapEl.innerHTML = '';
-          const geocoder = new kakao.maps.services.Geocoder();
-          
-          let cleanAddress = job.address.split(',')[0].split('(')[0].trim();
+
+          var geocoder = new kakao.maps.services.Geocoder();
+
+          var cleanAddress = job.address.split(',')[0].split('(')[0].trim();
           cleanAddress = cleanAddress.replace(/\s+(?:[0-9]+층|[0-9]+호|[0-9]+-[0-9]+|지하|상가).*$/, '').trim();
 
           function searchAddressWithFallback(addressStr) {
             geocoder.addressSearch(addressStr, function(result, status) {
               if (status === kakao.maps.services.Status.OK) {
-                const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-                const mapOption = {
+                var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+
+                var map = new kakao.maps.Map(mapEl, {
                   center: coords,
                   level: 3
-                };
-                const map = new kakao.maps.Map(mapEl, mapOption);
-                
-                const marker = new kakao.maps.Marker({
+                });
+
+                var marker = new kakao.maps.Marker({
                   map: map,
                   position: coords
                 });
-                
+
                 if (job.gymName) {
-                  const infowindow = new kakao.maps.InfoWindow({
-                    content: `<div style="width:150px;text-align:center;padding:6px 0;font-size:0.8rem;font-weight:bold;color:#1e293b;border-radius:6px;border:none;">${job.gymName}</div>`
+                  var infowindow = new kakao.maps.InfoWindow({
+                    content: `<div style="width:150px;text-align:center;padding:6px 0;font-size:0.8rem;font-weight:bold;color:#1e293b;">${job.gymName}</div>`
                   });
                   infowindow.open(map, marker);
                 }
 
-                setTimeout(() => {
-                  map.relayout();
-                  map.setCenter(coords);
-                }, 300);
+                map.relayout();
+                map.setCenter(coords);
               } else {
-                const parts = addressStr.split(' ');
+                var parts = addressStr.split(' ');
                 if (parts.length > 2) {
                   parts.pop();
                   searchAddressWithFallback(parts.join(' '));
@@ -2864,28 +2859,11 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           searchAddressWithFallback(cleanAddress || job.address);
-        } catch (mapErr) {
-          console.warn('상세 지도 로드 오류:', mapErr);
+        } catch (e) {
+          console.warn('지도 초기화 오류:', e);
           if (mapContainer) mapContainer.style.display = 'none';
         }
-      };
-
-      const checkAndLoad = () => {
-        if (typeof kakao !== 'undefined' && kakao.maps) {
-          if (kakao.maps.services && kakao.maps.services.Geocoder) {
-            renderMap();
-          } else if (kakao.maps.load) {
-            kakao.maps.load(renderMap);
-          } else {
-            setTimeout(checkAndLoad, 100);
-          }
-        } else {
-          setTimeout(checkAndLoad, 100);
-        }
-      };
-
-      // 모달 오픈 애니메이션(0.3s) 완료 후 지도 초기화
-      setTimeout(checkAndLoad, 350);
+      }, 350);
     } else {
       if (mapContainer) mapContainer.style.display = 'none';
     }
@@ -3531,72 +3509,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const mapEl = document.getElementById('job-map');
     if (mapEl) {
-      const renderMap = () => {
-        try {
-          if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services || !window.kakao.maps.services.Geocoder) {
-            setTimeout(renderMap, 50);
-            return;
-          }
+      try {
+        mapEl.innerHTML = '';
+        var geocoder = new kakao.maps.services.Geocoder();
 
-          if (mapEl) mapEl.innerHTML = '';
-          const geocoder = new kakao.maps.services.Geocoder();
-          
-          let cleanAddress = addr.split(',')[0].split('(')[0].trim();
-          cleanAddress = cleanAddress.replace(/\s+(?:[0-9]+층|[0-9]+호|[0-9]+-[0-9]+|지하|상가).*$/, '').trim();
+        var cleanAddress = addr.split(',')[0].split('(')[0].trim();
+        cleanAddress = cleanAddress.replace(/\s+(?:[0-9]+층|[0-9]+호|[0-9]+-[0-9]+|지하|상가).*$/, '').trim();
 
-          function searchAddressWithFallback(addressStr) {
-            geocoder.addressSearch(addressStr, function(result, status) {
-              if (status === kakao.maps.services.Status.OK) {
-                mapEl.style.display = 'block';
-                const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-                const mapOption = {
-                  center: coords,
-                  level: 3
-                };
-                const map = new kakao.maps.Map(mapEl, mapOption);
-                new kakao.maps.Marker({
-                  map: map,
-                  position: coords
-                });
-                
-                setTimeout(() => {
-                  map.relayout();
-                  map.setCenter(coords);
-                }, 100);
+        function searchAddressWithFallback(addressStr) {
+          geocoder.addressSearch(addressStr, function(result, status) {
+            if (status === kakao.maps.services.Status.OK) {
+              mapEl.style.display = 'block';
+              var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+              var map = new kakao.maps.Map(mapEl, { center: coords, level: 3 });
+              new kakao.maps.Marker({ map: map, position: coords });
+              map.relayout();
+              map.setCenter(coords);
+            } else {
+              var parts = addressStr.split(' ');
+              if (parts.length > 2) {
+                parts.pop();
+                searchAddressWithFallback(parts.join(' '));
               } else {
-                const parts = addressStr.split(' ');
-                if (parts.length > 2) {
-                  parts.pop();
-                  searchAddressWithFallback(parts.join(' '));
-                } else {
-                  mapEl.style.display = 'none';
-                }
+                mapEl.style.display = 'none';
               }
-            });
-          }
-
-          searchAddressWithFallback(cleanAddress || addr);
-        } catch (e) {
-          console.warn('지도 렌더링 실패:', e);
-          mapEl.style.display = 'none';
+            }
+          });
         }
-      };
 
-      const checkAndLoad = () => {
-        if (typeof kakao !== 'undefined' && kakao.maps) {
-          if (kakao.maps.services && kakao.maps.services.Geocoder) {
-            renderMap();
-          } else if (kakao.maps.load) {
-            kakao.maps.load(renderMap);
-          } else {
-            setTimeout(checkAndLoad, 100);
-          }
-        } else {
-          setTimeout(checkAndLoad, 100);
-        }
-      };
-
-      checkAndLoad();
+        searchAddressWithFallback(cleanAddress || addr);
+      } catch (e) {
+        console.warn('지도 렌더링 실패:', e);
+        mapEl.style.display = 'none';
+      }
     }
   }
 
