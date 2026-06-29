@@ -2805,6 +2805,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     dialogs.jobDetail.showModal();
 
+    const detailMapAddress = job.address || job.region || '';
+    if (detailMapAddress) {
+      setTimeout(() => {
+        updateJobMapByAddress(detailMapAddress, {
+          mapId: 'detail-job-map',
+          autoSelectRegion: false
+        });
+      }, 80);
+    } else {
+      setJobMapMessage('등록된 근무지 주소가 없습니다.', 'detail-job-map');
+    }
 
     // Asynchronously update Firestore views
     if (db && job.id) {
@@ -3376,6 +3387,108 @@ document.addEventListener('DOMContentLoaded', () => {
   // ─── 카카오 우편번호 서비스 & 지도 연동 (내장형 및 실시간 타이핑 지원) ───
   let postcodeEmbedInstance = null;
   let directInputTimer = null;
+  let kakaoMapsLoadPromise = null;
+
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    }[char]));
+  }
+
+  function getOrCreateKakaoMapLink(mapEl, mapId) {
+    const linkId = `${mapId}-link`;
+    let linkEl = document.getElementById(linkId);
+    if (!linkEl) {
+      linkEl = document.createElement('a');
+      linkEl.id = linkId;
+      linkEl.className = 'kakao-map-link';
+      linkEl.target = '_blank';
+      linkEl.rel = 'noopener noreferrer';
+      linkEl.textContent = '카카오지도에서 보기';
+      mapEl.insertAdjacentElement('afterend', linkEl);
+    }
+    return linkEl;
+  }
+
+  function updateKakaoMapLink(mapId, address, coords) {
+    const mapEl = document.getElementById(mapId);
+    if (!mapEl || !address) return;
+
+    const linkEl = getOrCreateKakaoMapLink(mapEl, mapId);
+    if (coords) {
+      linkEl.href = `https://map.kakao.com/link/map/${encodeURIComponent(address)},${coords.lat},${coords.lng}`;
+    } else {
+      linkEl.href = `https://map.kakao.com/link/search/${encodeURIComponent(address)}`;
+    }
+    linkEl.style.display = 'inline-flex';
+  }
+
+  function setJobMapMessage(message, mapId = 'job-map') {
+    const mapEl = document.getElementById(mapId);
+    if (!mapEl) return;
+    mapEl.style.display = 'flex';
+    mapEl.style.alignItems = 'center';
+    mapEl.style.justifyContent = 'center';
+    mapEl.style.padding = '0 16px';
+    mapEl.style.color = '#64748b';
+    mapEl.style.fontSize = '0.875rem';
+    mapEl.style.fontWeight = '700';
+    mapEl.style.textAlign = 'center';
+    mapEl.innerHTML = message;
+  }
+
+  function resetJobMapElement(mapEl) {
+    mapEl.style.display = 'block';
+    mapEl.style.alignItems = '';
+    mapEl.style.justifyContent = '';
+    mapEl.style.padding = '';
+    mapEl.style.color = '';
+    mapEl.style.fontSize = '';
+    mapEl.style.fontWeight = '';
+    mapEl.style.textAlign = '';
+    mapEl.innerHTML = '';
+  }
+
+  function waitForKakaoMaps() {
+    if (window.kakao?.maps?.services) {
+      return Promise.resolve();
+    }
+
+    if (kakaoMapsLoadPromise) {
+      return kakaoMapsLoadPromise;
+    }
+
+    kakaoMapsLoadPromise = new Promise((resolve, reject) => {
+      const startedAt = Date.now();
+
+      const check = () => {
+        if (!window.kakao?.maps) {
+          if (Date.now() - startedAt > 8000) {
+            reject(new Error('카카오 지도 스크립트 로드 시간 초과'));
+            return;
+          }
+          setTimeout(check, 100);
+          return;
+        }
+
+        window.kakao.maps.load(() => {
+          if (window.kakao?.maps?.services) {
+            resolve();
+          } else {
+            reject(new Error('카카오 지도 services 라이브러리 로드 실패'));
+          }
+        });
+      };
+
+      check();
+    });
+
+    return kakaoMapsLoadPromise;
+  }
 
   // 내장형 우편번호 찾기 토글
   window.toggleDaumPostcodeEmbed = function() {
@@ -3441,14 +3554,23 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // 주소 텍스트 기반 카카오 지도 갱신 공통 함수
-  function updateJobMapByAddress(addr) {
+  function updateJobMapByAddress(addr, options = {}) {
     // 주소에서 행정구역명을 분석하여 지역 선택 도구 자동 매칭
-    autoSelectRegionFromAddress(addr);
+    const mapId = options.mapId || 'job-map';
+    if (options.autoSelectRegion !== false) {
+      autoSelectRegionFromAddress(addr);
+    }
 
-    const mapEl = document.getElementById('job-map');
-    if (mapEl) {
-      try {
-        mapEl.innerHTML = '';
+    const mapEl = document.getElementById(mapId);
+    if (!mapEl) return;
+
+    setJobMapMessage('지도를 불러오는 중입니다.', mapId);
+    updateKakaoMapLink(mapId, addr);
+
+    waitForKakaoMaps()
+      .then(() => {
+        resetJobMapElement(mapEl);
+
         var geocoder = new kakao.maps.services.Geocoder();
 
         var cleanAddress = addr.split(',')[0].split('(')[0].trim();
@@ -3457,30 +3579,34 @@ document.addEventListener('DOMContentLoaded', () => {
         function searchAddressWithFallback(addressStr) {
           geocoder.addressSearch(addressStr, function(result, status) {
             if (status === kakao.maps.services.Status.OK) {
-              mapEl.style.display = 'block';
+              resetJobMapElement(mapEl);
               var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
               var map = new kakao.maps.Map(mapEl, { center: coords, level: 3 });
               new kakao.maps.Marker({ map: map, position: coords });
               map.relayout();
               map.setCenter(coords);
+              updateKakaoMapLink(mapId, addressStr, {
+                lat: result[0].y,
+                lng: result[0].x
+              });
             } else {
               var parts = addressStr.split(' ');
               if (parts.length > 2) {
                 parts.pop();
                 searchAddressWithFallback(parts.join(' '));
               } else {
-                mapEl.style.display = 'none';
+                setJobMapMessage(`${escapeHtml(addr)}<br>입력한 주소의 위치를 찾을 수 없습니다.`, mapId);
               }
             }
           });
         }
 
         searchAddressWithFallback(cleanAddress || addr);
-      } catch (e) {
+      })
+      .catch((e) => {
         console.warn('지도 렌더링 실패:', e);
-        mapEl.style.display = 'none';
-      }
-    }
+        setJobMapMessage('카카오 지도 API를 불러오지 못했습니다.<br>카카오 개발자 콘솔에서 지도/로컬 API 사용 설정을 확인해주세요.', mapId);
+      });
   }
 
   // 주소 텍스트 파싱을 기반으로 해당 시도/시군구를 분석하여 지역 피커를 자동 세팅하는 함수
