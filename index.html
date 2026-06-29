@@ -339,6 +339,23 @@
             <h1>추천 인재정보</h1>
             <p>준비된 태권도 사범님들의 프로필입니다.</p>
           </div>
+
+          <!-- 관장회원 전용 열람권 상태 안내 바 -->
+          <div id="gym-pass-banner" style="display: none; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; justify-content: space-between; align-items: center; gap: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <span style="font-size: 1.5rem;">🥋</span>
+              <div>
+                <strong style="color: #1e3a8a; font-size: 1.05rem; display: block;">관장님 전용 인재 열람권 서비스</strong>
+                <span style="font-size: 0.85rem; color: #1e40af;">사범님 연락처 및 자기소개 열람을 위해 열람권이 필요합니다.</span>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+              <span style="font-size: 0.95rem; color: #1e40af;">보유 열람권: <strong id="gym-pass-count" style="color: #2563eb; font-size: 1.2rem; font-weight: 800;">3</strong>장</span>
+              <button type="button" class="btn-primary-sm" onclick="openPurchasePassModal()" style="background: #2563eb; border-color: #2563eb; color: #ffffff; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s;">
+                🎫 열람권 구매
+              </button>
+            </div>
+          </div>
           
           <div class="board-layout">
             <aside class="board-filters" aria-label="인재 검색 필터">
@@ -1669,6 +1686,55 @@
       </div>
       <div class="detail-footer" style="padding: 1.25rem 1.5rem; display: flex; justify-content: flex-end;">
         <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close();" style="width: auto; padding: 0.5rem 1.5rem;">닫기</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 11. PASS PURCHASE DIALOG -->
+  <dialog id="dialog-purchase-pass" class="modal-dialog auth-dialog" style="max-width: 480px;">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h2>이력서 열람권 구매</h2>
+        <button type="button" class="btn-close-dialog" onclick="document.getElementById('dialog-purchase-pass').close();" aria-label="닫기">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div style="padding: 1.5rem;">
+        <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.25rem; text-align: center;">
+          사범님들의 연락처와 자기소개를 무제한 열람해 보세요!
+        </p>
+        <div class="purchase-products-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <div class="product-item" style="border: 2px solid var(--primary-color); border-radius: 12px; padding: 1rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: var(--bg-hover);" onclick="selectPurchaseProduct(1, 9900)">
+            <div>
+              <strong style="font-size: 1.05rem; display: block; color: var(--text-color);">열람권 1회권</strong>
+              <span style="font-size: 0.85rem; color: var(--text-muted);">맛보기 체험권</span>
+            </div>
+            <strong style="color: var(--primary-color); font-size: 1.15rem;">9,900원</strong>
+          </div>
+          <div class="product-item" style="border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="selectPurchaseProduct(5, 39000)">
+            <div>
+              <strong style="font-size: 1.05rem; display: block; color: var(--text-color);">열람권 5회권 (20% 할인)</strong>
+              <span style="font-size: 0.85rem; color: var(--text-muted);">실속형 패키지</span>
+            </div>
+            <strong style="color: var(--primary-color); font-size: 1.15rem;">39,000원</strong>
+          </div>
+          <div class="product-item" style="border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="selectPurchaseProduct(10, 69000)">
+            <div>
+              <strong style="font-size: 1.05rem; display: block; color: var(--text-color);">열람권 10회권 (30% 할인)</strong>
+              <span style="font-size: 0.85rem; color: var(--text-muted);">추천 베스트 패키지</span>
+            </div>
+            <strong style="color: var(--primary-color); font-size: 1.15rem;">69,000원</strong>
+          </div>
+        </div>
+        <input type="hidden" id="selected-pass-count" value="1">
+        <input type="hidden" id="selected-pass-price" value="9900">
+        
+        <div style="margin-top: 1.5rem; text-align: center; font-size: 0.85rem; color: var(--text-muted);">
+          * 신용카드, 계좌이체, 카카오페이 등 모의 결제가 제공됩니다.
+        </div>
+      </div>
+      <div class="detail-footer">
+        <button type="button" class="btn-action-primary" style="width: 100%;" onclick="confirmPurchasePass()">💳 결제하기 (9,900원)</button>
       </div>
     </div>
   </dialog>

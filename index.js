@@ -1031,6 +1031,9 @@ document.addEventListener('DOMContentLoaded', () => {
       window.location.hash = '#home';
       alert('관장님 회원은 채용공고 목록을 열람할 권한이 없습니다. 공고 등록은 마이페이지나 홈화면 등록 기능을 이용해 주세요.');
     }
+
+    // 관장회원 전용 열람권 상태 안내 바 업데이트
+    updateGymPassBannerUI();
   }
 
   function handleRoute() {
@@ -2915,22 +2918,67 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('detail-talent-region').textContent = talent.region;
     document.getElementById('detail-talent-qual').textContent = `${talent.dan} | ${talent.license}`;
 
-    // 로그인된 관장님(gym) 계정만 전화번호 및 자기소개를 볼 수 있도록 제어
+    // 로그인된 관장님(gym) 계정만 전화번호 및 자기소개를 볼 수 있도록 제어하되,
+    // 열람권을 소모하여 해제(unlockedResumes)한 경우에만 마스킹을 해제합니다.
     const isGym = state.currentUser && state.currentUser.type === 'gym';
+    const isUnlocked = isGym && (
+      (state.currentUser.unlockedResumes && state.currentUser.unlockedResumes.includes(talent.id)) ||
+      talent.userEmail === state.currentUser.email
+    );
     
     const phoneEl = document.getElementById('detail-talent-phone');
     const descEl = document.getElementById('detail-talent-desc');
+    
+    const btnInterview = document.getElementById('btn-interview-suggest');
+    
+    // 이전의 잠금해제 버튼 영역이 남아있다면 제거
+    let btnUnlockArea = document.getElementById('talent-detail-unlock-area');
+    if (btnUnlockArea) btnUnlockArea.remove();
 
     if (isGym) {
-      if (phoneEl) phoneEl.textContent = talent.phone || '등록된 연락처 없음';
-      if (descEl) descEl.textContent = talent.intro || '소개글이 없습니다.';
+      if (isUnlocked) {
+        if (phoneEl) phoneEl.textContent = talent.phone || '등록된 연락처 없음';
+        if (descEl) descEl.textContent = talent.intro || '소개글이 없습니다.';
+        if (btnInterview) btnInterview.style.display = 'inline-block';
+      } else {
+        if (phoneEl) phoneEl.innerHTML = `<span style="color: var(--text-muted); font-size: 0.88rem; font-weight: 500;">🔒 [열람권을 소모하여 열람해 주세요]</span>`;
+        if (descEl) descEl.innerHTML = `<div style="text-align: center; padding: 2rem 1rem; background: var(--bg-hover); border-radius: 8px; border: 1.5px dashed var(--border-color); color: var(--text-muted);">
+          <p style="font-weight: 700; margin-bottom: 0.4rem; color: var(--text-color); font-size: 0.95rem;">🔒 비공개 정보</p>
+          <p style="font-size: 0.8rem; line-height: 1.5; max-width: 280px; margin: 0 auto;">열람권을 1장 사용하여 이 사범님의 연락처와 상세 포부글을 확인하실 수 있습니다.</p>
+        </div>`;
+        
+        if (btnInterview) btnInterview.style.display = 'none';
+
+        // 잠금 해제 전용 꼬리말 영역 버튼 추가
+        const footer = document.querySelector('#dialog-talent-detail .detail-footer');
+        if (footer) {
+          btnUnlockArea = document.createElement('div');
+          btnUnlockArea.id = 'talent-detail-unlock-area';
+          btnUnlockArea.style.display = 'flex';
+          btnUnlockArea.style.gap = '0.5rem';
+          btnUnlockArea.style.width = '100%';
+          btnUnlockArea.innerHTML = `
+            <button type="button" class="btn-action-primary" id="btn-unlock-talent" style="flex: 2; background: #059669; border-color: #059669; font-weight: 700;">🔑 열람권 1장 소모 후 열람</button>
+            <button type="button" class="btn-action-secondary" id="btn-buy-pass-inside" style="flex: 1; font-weight: 600;">🎫 열람권 구매</button>
+          `;
+          footer.insertBefore(btnUnlockArea, footer.firstChild);
+
+          // 이벤트 리스너 바인딩
+          document.getElementById('btn-unlock-talent').addEventListener('click', () => {
+            unlockResumeWithPass(talent);
+          });
+          document.getElementById('btn-buy-pass-inside').addEventListener('click', () => {
+            openPurchasePassModal();
+          });
+        }
+      }
     } else {
       if (phoneEl) phoneEl.textContent = '관장님 회원만 열람 가능';
       if (descEl) descEl.textContent = '관장님 회원만 열람 가능합니다. 로그인 또는 회원가입 후 확인해 주세요.';
+      if (btnInterview) btnInterview.style.display = 'inline-block';
     }
 
     // 면접 제안하기 버튼 이벤트 동적 처리
-    const btnInterview = document.getElementById('btn-interview-suggest');
     if (btnInterview) {
       const newBtn = btnInterview.cloneNode(true);
       btnInterview.parentNode.replaceChild(newBtn, btnInterview);
@@ -2951,6 +2999,146 @@ document.addEventListener('DOMContentLoaded', () => {
 
     dialogs.talentDetail.showModal();
   }
+
+  // 열람권을 소모하여 이력서의 잠금을 푸는 함수
+  async function unlockResumeWithPass(talent) {
+    if (!state.currentUser) return;
+    
+    const userDocRef = db.collection('users').doc(state.currentUser.uid);
+    try {
+      const doc = await userDocRef.get();
+      if (!doc.exists) return;
+      
+      const userData = doc.data();
+      let currentPasses = typeof userData.resumePassCount === 'number' ? userData.resumePassCount : 3;
+      let unlockedList = userData.unlockedResumes || [];
+      
+      if (currentPasses <= 0) {
+        if (confirm('보유하신 이력서 열람권이 부족합니다. 열람권을 충전하러 가시겠습니까?')) {
+          openPurchasePassModal();
+        }
+        return;
+      }
+      
+      const conf = confirm(`열람권을 1장 사용하여 이 사범님의 연락처와 상세 프로필을 열람하시겠습니까?\n(현재 보유 열람권: ${currentPasses}장)`);
+      if (!conf) return;
+      
+      currentPasses -= 1;
+      unlockedList.push(talent.id);
+      
+      await userDocRef.update({
+        resumePassCount: currentPasses,
+        unlockedResumes: unlockedList
+      });
+      
+      state.currentUser.resumePassCount = currentPasses;
+      state.currentUser.unlockedResumes = unlockedList;
+      
+      alert('성공적으로 열람 처리가 완료되었습니다.');
+      
+      updateGymPassBannerUI();
+      openTalentDetails(talent);
+    } catch (err) {
+      console.error('열람권 차감 처리 중 에러 발생:', err);
+      alert('열람 처리에 실패했습니다. 다시 시도해 주세요.');
+    }
+  }
+
+  // 관장 회원 전용 열람권 상태 안내 바(배너) UI 업데이트 함수
+  function updateGymPassBannerUI() {
+    const banner = document.getElementById('gym-pass-banner');
+    const countEl = document.getElementById('gym-pass-count');
+    
+    if (!banner || !countEl) return;
+    
+    const role = getUserRole();
+    if (role === 'gym' && state.currentUser) {
+      banner.style.display = 'flex';
+      const currentPasses = typeof state.currentUser.resumePassCount === 'number' 
+        ? state.currentUser.resumePassCount 
+        : 3;
+      countEl.textContent = currentPasses;
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  // 이력서 열람권 구매 팝업 열기
+  window.openPurchasePassModal = function() {
+    const dialog = document.getElementById('dialog-purchase-pass');
+    if (dialog) {
+      selectPurchaseProduct(1, 9900);
+      dialog.showModal();
+    }
+  };
+
+  // 구매할 상품 선택 시 하이라이트 토글
+  window.selectPurchaseProduct = function(count, price) {
+    const hiddenCount = document.getElementById('selected-pass-count');
+    const hiddenPrice = document.getElementById('selected-pass-price');
+    const dialog = document.getElementById('dialog-purchase-pass');
+    if (!dialog || !hiddenCount || !hiddenPrice) return;
+
+    hiddenCount.value = count;
+    hiddenPrice.value = price;
+
+    const items = dialog.querySelectorAll('.product-item');
+    const itemCounts = [1, 5, 10];
+    items.forEach((item, index) => {
+      if (itemCounts[index] === count) {
+        item.style.borderColor = 'var(--primary-color)';
+        item.style.backgroundColor = 'var(--bg-hover)';
+      } else {
+        item.style.borderColor = 'var(--border-color)';
+        item.style.backgroundColor = 'transparent';
+      }
+    });
+
+    const payBtn = dialog.querySelector('.detail-footer button');
+    if (payBtn) {
+      payBtn.textContent = `💳 결제하기 (${price.toLocaleString()}원)`;
+    }
+  };
+
+  // 모의 결제 실행
+  window.confirmPurchasePass = async function() {
+    if (!state.currentUser) {
+      alert('로그인이 필요한 서비스입니다.');
+      return;
+    }
+    
+    const count = parseInt(document.getElementById('selected-pass-count').value) || 1;
+    const price = parseInt(document.getElementById('selected-pass-price').value) || 9900;
+    
+    const conf = confirm(`선택하신 상품: 열람권 ${count}회권 (${price.toLocaleString()}원)\n\n테스트 결제를 진행하시겠습니까?`);
+    if (!conf) return;
+
+    try {
+      const userDocRef = db.collection('users').doc(state.currentUser.uid);
+      const doc = await userDocRef.get();
+      if (!doc.exists) return;
+      
+      const userData = doc.data();
+      const prevPasses = typeof userData.resumePassCount === 'number' ? userData.resumePassCount : 3;
+      const newPasses = prevPasses + count;
+      
+      await userDocRef.update({
+        resumePassCount: newPasses
+      });
+
+      state.currentUser.resumePassCount = newPasses;
+      
+      alert(`성공적으로 결제가 완료되었습니다!\n이력서 열람권 ${count}장이 충전되었습니다. (보유 열람권: ${newPasses}장)`);
+      
+      const dialog = document.getElementById('dialog-purchase-pass');
+      if (dialog) dialog.close();
+      
+      updateGymPassBannerUI();
+    } catch (e) {
+      console.error('결제 처리 오류:', e);
+      alert('결제 처리 중 에러가 발생했습니다. 다시 시도해 주세요.');
+    }
+  };
 
   // Premium View Products alert
   const premiumBtn = document.getElementById('btn-premium-products');
@@ -3019,6 +3207,14 @@ document.addEventListener('DOMContentLoaded', () => {
           const snap = await db.collection('users').doc(user.uid).get();
           const data = snap.data();
           if (data) {
+            if (data.type === 'gym' && typeof data.resumePassCount !== 'number') {
+              data.resumePassCount = 3;
+              data.unlockedResumes = data.unlockedResumes || [];
+              await db.collection('users').doc(user.uid).update({
+                resumePassCount: 3,
+                unlockedResumes: data.unlockedResumes
+              });
+            }
             state.currentUser = { uid: user.uid, email: user.email, ...data };
             nameEl.textContent = data.name || user.email;
             // 어드민 계정 이메일에 해당하는 경우에만 관리자 링크 노출
