@@ -2288,22 +2288,7 @@ function setSelectedBannerFile(file) {
     showToast('JPG, PNG, WebP 형식의 이미지만 선택 가능합니다.', 'error');
     return;
   }
-
-  if (selectedBannerPreviewUrl) URL.revokeObjectURL(selectedBannerPreviewUrl);
-  selectedBannerFile = file;
-  selectedBannerPreviewUrl = URL.createObjectURL(file);
-
-  const previewWrap = document.getElementById('banner-current-preview');
-  const previewImg = document.getElementById('banner-current-image');
-  const previewLabel = document.getElementById('banner-current-preview-label');
-  const uploadTitle = document.getElementById('banner-upload-zone-title');
-  const filenameEl = document.getElementById('banner-upload-filename');
-
-  if (previewImg) previewImg.src = selectedBannerPreviewUrl;
-  if (previewWrap) previewWrap.style.display = 'block';
-  if (previewLabel) previewLabel.textContent = '선택한 배너 이미지';
-  if (uploadTitle) uploadTitle.textContent = `${file.name} 선택됨`;
-  if (filenameEl) filenameEl.textContent = `${file.name} 선택됨 · 저장 버튼을 누르면 업로드됩니다.`;
+  openBannerCropper(file);
 }
 
 async function submitBannerDialog() {
@@ -2405,30 +2390,50 @@ async function compressBannerImage(file, maxBytes = 800 * 1024) {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('이미지 압축을 지원하지 않는 브라우저입니다.');
 
-    let maxWidth = 1600;
+    // 1200 * 240 px (5:1 비율)로 Center Crop 계산
+    const targetWidth = 1200;
+    const targetHeight = 240;
+    const targetRatio = targetWidth / targetHeight; // 5.0
+
+    const imgWidth = img.naturalWidth;
+    const imgHeight = img.naturalHeight;
+    const imgRatio = imgWidth / imgHeight;
+
+    let sx, sy, sWidth, sHeight;
+
+    if (imgRatio > targetRatio) {
+      // 이미지가 비율상 더 넓음 (가로를 잘라냄)
+      sHeight = imgHeight;
+      sWidth = imgHeight * targetRatio;
+      sx = (imgWidth - sWidth) / 2;
+      sy = 0;
+    } else {
+      // 이미지가 비율상 더 좁거나 같음 (세로를 잘라냄)
+      sWidth = imgWidth;
+      sHeight = imgWidth / targetRatio;
+      sx = 0;
+      sy = (imgHeight - sHeight) / 2;
+    }
+
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    ctx.clearRect(0, 0, targetWidth, targetHeight);
+    ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
+
     const outputType = 'image/webp';
     let bestBlob = null;
 
-    for (let resizeAttempt = 0; resizeAttempt < 5; resizeAttempt++) {
-      const scale = Math.min(1, maxWidth / img.naturalWidth);
-      canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
-      canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-      for (let quality = 0.86; quality >= 0.48; quality -= 0.08) {
-        const blob = await canvasToBlob(canvas, outputType, quality);
-        bestBlob = blob;
-        if (blob.size <= maxBytes) {
-          const safeBaseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '_') || 'banner';
-          return new File([blob], `${safeBaseName}.webp`, {
-            type: outputType,
-            lastModified: Date.now()
-          });
-        }
+    // 용량이 초과할 경우 품질을 낮추어 압축
+    for (let quality = 0.90; quality >= 0.50; quality -= 0.10) {
+      const blob = await canvasToBlob(canvas, outputType, quality);
+      bestBlob = blob;
+      if (blob.size <= maxBytes) {
+        const safeBaseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '_') || 'banner';
+        return new File([blob], `${safeBaseName}.webp`, {
+          type: outputType,
+          lastModified: Date.now()
+        });
       }
-
-      maxWidth = Math.round(maxWidth * 0.78);
     }
 
     if (!bestBlob) throw new Error('이미지 압축에 실패했습니다.');
@@ -2729,4 +2734,110 @@ window.saveAdminTerms = async function() {
     console.error('약관 저장 실패:', e);
     showToast('약관 저장 중 오류가 발생했습니다.', 'error');
   }
+}
+
+// ─── 배너 이미지 시각적 크로퍼 (Cropper.js) 연동 로직 ──────────────────────
+let bannerCropper = null;
+let originalBannerFile = null;
+
+window.openBannerCropper = function(file) {
+  originalBannerFile = file;
+  const cropperDialog = document.getElementById('banner-cropper-dialog');
+  const cropperImg = document.getElementById('banner-cropper-image');
+  
+  if (!cropperDialog || !cropperImg) return;
+  
+  // 이전 preview Url 해제
+  if (cropperImg.src && cropperImg.src.startsWith('blob:')) {
+    URL.revokeObjectURL(cropperImg.src);
+  }
+  
+  const objectUrl = URL.createObjectURL(file);
+  cropperImg.src = objectUrl;
+  
+  cropperDialog.showModal();
+  
+  // 모달이 노출된 후 크로퍼를 생성해야 레이아웃이 깨지지 않습니다
+  setTimeout(() => {
+    if (bannerCropper) {
+      bannerCropper.destroy();
+    }
+    bannerCropper = new Cropper(cropperImg, {
+      aspectRatio: 5, // 1200 * 240 px (5:1 비율) 고정
+      viewMode: 1,
+      dragMode: 'move',
+      autoCropArea: 0.9,
+      restore: false,
+      guides: true,
+      center: true,
+      highlight: false,
+      cropBoxMovable: true,
+      cropBoxResizable: true,
+      toggleDragModeOnDblclick: false,
+      background: true
+    });
+  }, 150);
+}
+
+window.closeBannerCropperDialog = function() {
+  const cropperDialog = document.getElementById('banner-cropper-dialog');
+  if (cropperDialog?.open) cropperDialog.close();
+  if (bannerCropper) {
+    bannerCropper.destroy();
+    bannerCropper = null;
+  }
+  originalBannerFile = null;
+}
+
+window.applyBannerCrop = function() {
+  if (!bannerCropper || !originalBannerFile) return;
+  
+  // 1200 * 240px 크기로 캔버스 렌더링
+  const canvas = bannerCropper.getCroppedCanvas({
+    width: 1200,
+    height: 240,
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: 'high'
+  });
+  
+  if (!canvas) {
+    showToast('이미지 크롭 캔버스 생성에 실패했습니다.', 'error');
+    return;
+  }
+  
+  canvas.toBlob((blob) => {
+    if (!blob) {
+      showToast('이미지 변환에 실패했습니다.', 'error');
+      return;
+    }
+    
+    // 크롭 및 WebP 변환 완료된 파일 생성
+    const nameWithoutExt = originalBannerFile.name.replace(/\.[^.]+$/, '');
+    const croppedFile = new File([blob], `${nameWithoutExt}_cropped.webp`, {
+      type: 'image/webp',
+      lastModified: Date.now()
+    });
+    
+    // 업로드 대상 파일 지정
+    selectedBannerFile = croppedFile;
+    
+    // 업로드 모달의 배너 미리보기 갱신
+    if (selectedBannerPreviewUrl) URL.revokeObjectURL(selectedBannerPreviewUrl);
+    selectedBannerPreviewUrl = URL.createObjectURL(croppedFile);
+    
+    const previewWrap = document.getElementById('banner-current-preview');
+    const previewImg = document.getElementById('banner-current-image');
+    const previewLabel = document.getElementById('banner-current-preview-label');
+    const uploadTitle = document.getElementById('banner-upload-zone-title');
+    const filenameEl = document.getElementById('banner-upload-filename');
+
+    if (previewImg) previewImg.src = selectedBannerPreviewUrl;
+    if (previewWrap) previewWrap.style.display = 'block';
+    if (previewLabel) previewLabel.textContent = '선택한 배너 이미지 (자르기 적용됨)';
+    if (uploadTitle) uploadTitle.textContent = `${originalBannerFile.name} (편집됨)`;
+    if (filenameEl) filenameEl.textContent = `${originalBannerFile.name} (편집됨) · 저장 버튼을 누르면 업로드됩니다.`;
+    
+    closeBannerCropperDialog();
+    showToast('이미지 자르기가 정상 적용되었습니다. [등록하기]를 눌러 완료해 주세요.', 'success');
+  }, 'image/webp', 0.92);
 }

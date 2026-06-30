@@ -505,7 +505,9 @@ document.addEventListener('DOMContentLoaded', () => {
     regions: [],
     selectedResumeRegions: [],
     selectedJobRegions: [],
-    regionPickers: {}
+    regionPickers: {},
+    communityPageSize: 25,
+    communityCurrentPage: 1
   };
 
   // Migrate older community post categories to 'free' and seed 'contest' data if missing
@@ -840,7 +842,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (selected.some((item) => item.regionCode === sidoRegion.regionCode)) {
           selected = selected.filter((item) => item.regionCode !== sidoRegion.regionCode);
         } else {
-          selected = selected.filter((item) => item.sidoShort !== activeSido);
+          const candidateSelected = selected.filter((item) => item.sidoShort !== activeSido);
+          if (candidateSelected.length >= 5) {
+            alert('지역은 최대 5개까지만 선택할 수 있습니다.');
+            return;
+          }
+          selected = candidateSelected;
           selected.push(sidoRegion);
         }
         renderDistricts();
@@ -860,7 +867,12 @@ document.addEventListener('DOMContentLoaded', () => {
           } else if (selected.some((item) => item.regionCode === region.regionCode)) {
             selected = selected.filter((item) => item.regionCode !== region.regionCode);
           } else {
-            selected = selected.filter((item) => item.regionCode !== `sido-${region.sidoShort}`);
+            const candidateSelected = selected.filter((item) => item.regionCode !== `sido-${region.sidoShort}`);
+            if (candidateSelected.length >= 5) {
+              alert('지역은 최대 5개까지만 선택할 수 있습니다.');
+              return;
+            }
+            selected = candidateSelected;
             selected.push(region);
           }
           renderDistricts();
@@ -911,6 +923,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sidos.includes(item)) return [createSidoRegion(item)];
         return state.regions.filter((region) => regionMatchesValue(region, item));
       });
+      if (selected.length > 5) {
+        selected = selected.slice(0, 5);
+      }
       if (selected[0]) activeSido = selected[0].sidoShort;
       renderSidos();
       renderDistricts();
@@ -1472,6 +1487,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       case '#community':
         navigateToView('community');
+        state.communityCurrentPage = 1;
         setupCommunityTab('free');
         break;
       case '#customer-service':
@@ -2128,8 +2144,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Render corresponding posts with checkbox filtering
     const container = document.getElementById('community-posts-container');
     const countEl = document.getElementById('community-posts-count');
+    const paginationContainer = document.getElementById('community-pagination-container');
+    const pageSizeSelect = document.getElementById('community-pagesize-select');
+    
     if (!container) return;
     container.innerHTML = '';
+    if (paginationContainer) paginationContainer.innerHTML = '';
+
+    // Sync page size selector
+    if (pageSizeSelect) {
+      pageSizeSelect.value = state.communityPageSize;
+    }
 
     // Extract active filter checkbox categories
     const checkedChks = document.querySelectorAll('.comm-filter-chk:checked');
@@ -2153,7 +2178,83 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    filteredPosts.forEach(post => {
+    // Pagination logic: only paginate if total posts exceeds the selected page size
+    const enablePagination = filteredPosts.length > state.communityPageSize;
+    let pagePosts = filteredPosts;
+
+    if (enablePagination) {
+      const pageSize = state.communityPageSize;
+      const totalPages = Math.ceil(filteredPosts.length / pageSize);
+
+      // Normalize current page bounds
+      if (state.communityCurrentPage > totalPages) {
+        state.communityCurrentPage = totalPages;
+      }
+      if (state.communityCurrentPage < 1) {
+        state.communityCurrentPage = 1;
+      }
+
+      const startIndex = (state.communityCurrentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      pagePosts = filteredPosts.slice(startIndex, endIndex);
+
+      // Build Pagination Buttons
+      if (paginationContainer) {
+        // Previous Button
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'pagination-btn' + (state.communityCurrentPage === 1 ? ' disabled' : '');
+        prevBtn.innerHTML = '‹';
+        prevBtn.type = 'button';
+        if (state.communityCurrentPage > 1) {
+          prevBtn.addEventListener('click', () => {
+            state.communityCurrentPage--;
+            setupCommunityTab(tabName);
+            const sectionEl = document.getElementById('view-community');
+            if (sectionEl) sectionEl.scrollIntoView({ behavior: 'smooth' });
+          });
+        }
+        paginationContainer.appendChild(prevBtn);
+
+        // Numeric Page Buttons (max 5 visible)
+        let startPage = Math.max(1, state.communityCurrentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        if (endPage - startPage < 4) {
+          startPage = Math.max(1, endPage - 4);
+        }
+
+        for (let p = startPage; p <= endPage; p++) {
+          const pageBtn = document.createElement('button');
+          pageBtn.className = 'pagination-btn' + (p === state.communityCurrentPage ? ' active' : '');
+          pageBtn.textContent = p;
+          pageBtn.type = 'button';
+          pageBtn.addEventListener('click', () => {
+            state.communityCurrentPage = p;
+            setupCommunityTab(tabName);
+            const sectionEl = document.getElementById('view-community');
+            if (sectionEl) sectionEl.scrollIntoView({ behavior: 'smooth' });
+          });
+          paginationContainer.appendChild(pageBtn);
+        }
+
+        // Next Button
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'pagination-btn' + (state.communityCurrentPage === totalPages ? ' disabled' : '');
+        nextBtn.innerHTML = '›';
+        nextBtn.type = 'button';
+        if (state.communityCurrentPage < totalPages) {
+          nextBtn.addEventListener('click', () => {
+            state.communityCurrentPage++;
+            setupCommunityTab(tabName);
+            const sectionEl = document.getElementById('view-community');
+            if (sectionEl) sectionEl.scrollIntoView({ behavior: 'smooth' });
+          });
+        }
+        paginationContainer.appendChild(nextBtn);
+      }
+    }
+
+    // Render current page posts
+    pagePosts.forEach(post => {
       const row = document.createElement('div');
       row.className = 'post-row';
       row.innerHTML = `
@@ -2182,15 +2283,28 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.comm-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
       window.location.hash = '#community';
+      state.communityCurrentPage = 1;
+      setupCommunityTab('free');
     });
   });
 
   // Bind change event to community filters
   document.querySelectorAll('.comm-filter-chk').forEach(chk => {
     chk.addEventListener('change', () => {
+      state.communityCurrentPage = 1;
       setupCommunityTab('free');
     });
   });
+
+  // Bind page size change event
+  const pageSizeSelect = document.getElementById('community-pagesize-select');
+  if (pageSizeSelect) {
+    pageSizeSelect.addEventListener('change', (e) => {
+      state.communityPageSize = parseInt(e.target.value, 10);
+      state.communityCurrentPage = 1;
+      setupCommunityTab('free');
+    });
+  }
 
 
   // ==========================================================================
@@ -3383,6 +3497,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // 작성한 글 작성 후 커뮤니티 갱신 및 자유게시판(free) 로드
       window.location.hash = '#community';
+      state.communityCurrentPage = 1;
       setupCommunityTab('free');
       renderHomeCommunityPosts();
       

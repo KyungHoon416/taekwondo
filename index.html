@@ -452,13 +452,25 @@
 
           <div class="board-layout">
             <div class="board-content full-width">
-              <div class="board-meta">
-                <span class="results-count" id="community-posts-count">글 목록 (5개)</span>
+              <div class="board-meta" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <span class="results-count" id="community-posts-count" style="margin-right: 0.25rem;">글 목록 (5개)</span>
+                  <select id="community-pagesize-select" style="padding: 0.3rem 0.6rem; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); border: 1.5px solid var(--border-main); border-radius: var(--radius-md); outline: none; background: white; cursor: pointer; transition: border-color 0.15s ease;">
+                    <option value="10">10개씩 보기</option>
+                    <option value="25" selected>25개씩 보기</option>
+                    <option value="50">50개씩 보기</option>
+                  </select>
+                </div>
                 <button type="button" class="btn-primary-sm" id="btn-community-write">글쓰기</button>
               </div>
               
               <div class="community-posts-list" id="community-posts-container">
                 <!-- Filled dynamically by JS based on active tab -->
+              </div>
+
+              <!-- Pagination Container -->
+              <div id="community-pagination-container" class="pagination-wrapper">
+                <!-- Dynamically filled with pagination buttons -->
               </div>
             </div>
           </div>
