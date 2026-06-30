@@ -1011,9 +1011,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (link) link.classList.remove('active');
     });
 
-    // Remove active state from mobile bottom nav links
-    Object.values(mobileNavLinks).forEach(link => {
-      if (link) link.classList.remove('active');
+    // Remove active state from mobile bottom nav links dynamically
+    document.querySelectorAll('#mobile-bottom-nav-list a').forEach(link => {
+      link.classList.remove('active');
     });
 
     // Show selected view
@@ -1028,10 +1028,20 @@ document.addEventListener('DOMContentLoaded', () => {
       activeLink.classList.add('active');
     }
 
-    // Set active class on mobile bottom nav link
-    const activeMobileLink = mobileNavLinks[viewId];
-    if (activeMobileLink) {
-      activeMobileLink.classList.add('active');
+    // Set active class on mobile bottom nav link dynamically
+    let targetHref = '';
+    if (viewId === 'home') targetHref = '#home';
+    else if (viewId === 'jobs') targetHref = '#jobs';
+    else if (viewId === 'talents') targetHref = '#talents';
+    else if (viewId === 'community') targetHref = '#community';
+    else if (viewId === 'myApplications') targetHref = '#my-applications';
+    else if (viewId === 'customerService') targetHref = '/Customer_Service';
+
+    if (targetHref) {
+      const activeMobileLink = document.querySelector(`#mobile-bottom-nav-list a[href="${targetHref}"]`);
+      if (activeMobileLink) {
+        activeMobileLink.classList.add('active');
+      }
     }
 
     if (viewId === 'termsOfUse') {
@@ -4151,6 +4161,152 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   handleRoute();
 
+  // ─── 모바일 하단 네비게이션 바 동적 렌더링 ──────────────────────
+  function renderMobileBottomNav() {
+    const container = document.getElementById('mobile-bottom-nav-list');
+    if (!container) return;
+
+    const user = auth ? auth.currentUser : null;
+    const currentRole = getUserRole();
+    const showAdminLink = user ? isAdminEmail(user.email) : false;
+
+    let items = [];
+
+    // 홈 (공통)
+    items.push({
+      href: '#home',
+      label: '홈',
+      icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`
+    });
+
+    if (!user) {
+      // 비로그인 상태: 홈 | 채용공고 | 인재정보 | 커뮤니티 | 로그인
+      items.push(
+        {
+          href: '#jobs',
+          label: '채용공고',
+          icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`
+        },
+        {
+          href: '#talents',
+          label: '인재정보',
+          icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`
+        },
+        {
+          href: '#community',
+          label: '커뮤니티',
+          icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`
+        },
+        {
+          href: 'javascript:openAuthModal()',
+          label: '로그인',
+          icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>`
+        }
+      );
+    } else if (showAdminLink) {
+      // 관리자 로그인 상태: 홈 | 채용공고 | 인재정보 | 커뮤니티 | 로그아웃
+      items.push(
+        {
+          href: '#jobs',
+          label: '채용공고',
+          icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`
+        },
+        {
+          href: '#talents',
+          label: '인재정보',
+          icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`
+        },
+        {
+          href: '#community',
+          label: '커뮤니티',
+          icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`
+        },
+        {
+          href: 'javascript:handleLogout()',
+          label: '로그아웃',
+          icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`
+        }
+      );
+    } else if (currentRole === 'gym') {
+      // 관장님 로그인 상태: 홈 | 인재정보 | 커뮤니티 | 내 채용 관리 | 로그아웃
+      items.push(
+        {
+          href: '#talents',
+          label: '인재정보',
+          icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`
+        },
+        {
+          href: '#community',
+          label: '커뮤니티',
+          icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`
+        },
+        {
+          href: '#my-applications',
+          label: '내 채용 관리',
+          icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`
+        },
+        {
+          href: 'javascript:handleLogout()',
+          label: '로그아웃',
+          icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`
+        }
+      );
+    } else {
+      // 사범님 로그인 상태: 홈 | 채용공고 | 커뮤니티 | 내 지원 현황 | 로그아웃
+      items.push(
+        {
+          href: '#jobs',
+          label: '채용공고',
+          icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`
+        },
+        {
+          href: '#community',
+          label: '커뮤니티',
+          icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`
+        },
+        {
+          href: '#my-applications',
+          label: '내 지원 현황',
+          icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`
+        },
+        {
+          href: 'javascript:handleLogout()',
+          label: '로그아웃',
+          icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`
+        }
+      );
+    }
+
+    container.innerHTML = items.map(item => `
+      <li>
+        <a href="${item.href}" class="m-nav-link">
+          ${item.icon}
+          <span>${item.label}</span>
+        </a>
+      </li>
+    `).join('');
+
+    // 액티브 클래스 부여
+    const currentHash = window.location.hash || '#home';
+    let targetHref = currentHash;
+    if (window.location.pathname.includes('/Customer_Service')) {
+      targetHref = '/Customer_Service';
+    }
+    
+    const activeLink = container.querySelector(`a[href="${targetHref}"]`);
+    if (activeLink) {
+      activeLink.classList.add('active');
+    }
+  }
+
+  window.openAuthModal = function(pane = 'login') {
+    openAuthDialog(pane);
+  };
+
+  window.handleLogout = async function() {
+    if (auth) await auth.signOut();
+  };
+
   // ==========================================================================
   // 11. Firebase Auth 상태 감지 → 헤더 UI 업데이트
   // ==========================================================================
@@ -4315,6 +4471,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // 역할에 따른 메뉴 노출 및 탭 제어 적용
       applyRoleBasedUI();
+      renderMobileBottomNav();
       handleRoute();
     });
   }

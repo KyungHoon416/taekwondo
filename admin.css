@@ -1090,3 +1090,51 @@ select.form-control {
     grid-column: span 1;
   }
 }
+
+/* ============================================================
+   배너 크로퍼 모바일 반응형 스타일 (Cropper Mobile Responsive)
+   ============================================================ */
+.cropper-container-box {
+  max-height: 420px;
+  overflow: hidden;
+  background: #f8fafc;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  position: relative;
+  width: 100%;
+}
+
+#banner-cropper-image {
+  max-width: 100%;
+  max-height: 420px;
+  display: block;
+}
+
+#banner-cropper-dialog .dialog-bd {
+  max-height: 72vh;
+  overflow: hidden !important; /* 모바일에서 드래그 시 스크롤 중복 발생 방지 */
+}
+
+@media (max-width: 768px) {
+  #banner-cropper-dialog {
+    max-width: 96% !important;
+    width: 96% !important;
+    margin: auto;
+  }
+  .cropper-container-box {
+    max-height: 260px; /* 모바일 화면 높이에 맞게 크로핑 영역 축소 */
+  }
+  #banner-cropper-image {
+    max-height: 260px;
+  }
+  #banner-cropper-dialog .dialog-bd {
+    padding: 0.75rem;
+  }
+  #banner-cropper-dialog p {
+    font-size: 0.78rem;
+    margin-bottom: 0.5rem;
+  }
+}
