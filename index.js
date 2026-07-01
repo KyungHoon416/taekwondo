@@ -153,6 +153,17 @@ async function checkBusinessStatus(businessNumber) {
   }
 
   const result = await response.json();
+  
+  if (['REQUEST_DATA_MALFORMED', 'INTERNAL_ERROR', 'HTTP_ERROR'].includes(result.status_code)) {
+    return {
+      b_stt_cd: '01',
+      b_stt: '확인중',
+      tax_type: '확인중',
+      isBypassed: true,
+      originalError: result.status_code
+    };
+  }
+
   const business = result?.data?.[0];
   if (!business) {
     throw new Error('사업자 상태확인 결과를 받지 못했습니다.');
@@ -195,6 +206,16 @@ async function verifyBusinessInfo({ businessNumber, startDate, ownerName, busine
   }
 
   const result = await response.json();
+  
+  if (['REQUEST_DATA_MALFORMED', 'INTERNAL_ERROR', 'HTTP_ERROR'].includes(result.status_code)) {
+    return {
+      valid: '01',
+      valid_msg: '정상 사업자(API 지연 우회승인)',
+      isBypassed: true,
+      originalError: result.status_code
+    };
+  }
+
   const business = result?.data?.[0];
   if (!business) {
     throw new Error('사업자등록정보 진위확인 결과를 받지 못했습니다.');
@@ -344,123 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   ];
 
-  const mockPosts = [
-    { 
-      id: 'post-1', 
-      category: 'recruit', 
-      title: '강남 지역 사범님 구인 현황 어떤가요?', 
-      author: '대호관장', 
-      date: '2026.06.07', 
-      views: 124,
-      content: '요즘 강남 쪽에서 메인사범님 구하기가 하늘의 별 따기네요. 조건은 월 330에 주 5일, 식사 제공인데도 문의전화 한 통 받기가 어렵습니다. 다른 지역 관장님들은 구인 어떠신가요? 혹시 채용공고 올릴 때 특별히 어필하면 좋은 팁이 있을까요?',
-      comments: [
-        { author: '의리사범', content: '요즘 젊은 사범들은 급여도 중요하지만 퇴근 시간 준수를 더 중요하게 보는 것 같습니다.', date: '2026.06.07' },
-        { author: '강남태권', content: '강남은 주거비가 비싸서 타지에서 오는 사범님들을 위해 숙소를 지원해 주면 연락이 좀 오는 편입니다.', date: '2026.06.08' }
-      ]
-    },
-    { 
-      id: 'post-2', 
-      category: 'recruit', 
-      title: '초보 사범 면접 시 질문 팁 공유드립니다.', 
-      author: '정통관장', 
-      date: '2026.06.06', 
-      views: 245,
-      content: '신입 사범님 면접 보실 때 단수나 시범 기술도 중요하지만, 무엇보다 아이들을 대하는 태도와 인성을 보셔야 합니다. 저 같은 경우는 "가장 통제하기 힘든 관원이 있을 때 어떻게 대처할 것인가?" 라는 상황 질문을 던집니다. 꼬리 질문을 던지면 평소 생각이나 태도가 잘 드러납니다.',
-      comments: [
-        { author: '열혈관장', content: '공감합니다. 기술은 도장 와서 배울 수 있지만 아이들을 사랑하는 마음은 가르칠 수 없으니까요.', date: '2026.06.06' }
-      ]
-    },
-    { 
-      id: 'post-3', 
-      category: 'knowhow', 
-      title: '원생 150명 돌파한 방학 특강 프로그램 기획서', 
-      author: '스마트태권', 
-      date: '2026.06.05', 
-      views: 412,
-      content: '올해 겨울방학 특강으로 성공했던 음악 줄넘기와 쌍절곤 연계 특강 기획안을 공유합니다. 학부모님들은 방학 동안 아이들의 기초 체력 증진과 흥미 유발을 원합니다. 특강 마지막 주에 부모님들을 초청하여 작은 발표회를 가진 것이 원생 재등록률을 95% 이상 끌어올린 핵심 비결이었습니다.',
-      comments: [
-        { author: '새싹관장', content: '특강 발표회 기획서 정보 감사합니다! 이번 여름방학 때 꼭 벤치마킹해서 시도해보고 싶네요.', date: '2026.06.05' }
-      ]
-    },
-    { 
-      id: 'post-4', 
-      category: 'knowhow', 
-      title: '학부모 소통 앱(클래스업) 연동 팁 공유', 
-      author: '혁신관장', 
-      date: '2026.06.03', 
-      views: 301,
-      content: '수련 모습을 매일 사진과 짧은 영상으로 학부모 앱에 공유하고 있습니다. 처음에는 일이 많아서 힘들었지만 사범님들과 요일을 나누어 분담하니 정착되었습니다. 부모님들의 신뢰도가 크게 올라가고 추천 입관률이 눈에 띄게 증가했습니다. 소통 앱을 적극 활용해 보세요.',
-      comments: [
-        { author: '소통사범', content: '사범 입장에서도 학부모 피드백이 실시간으로 오니 보람을 더 느끼는 것 같습니다.', date: '2026.06.04' }
-      ]
-    },
-    { 
-      id: 'post-5', 
-      category: 'news', 
-      title: '세계태권도연맹, 새로운 룰 도입 발표', 
-      author: '태권뉴스', 
-      date: '2026.06.02', 
-      views: 520,
-      content: '세계태권도연맹(WT)이 경기력 향상과 관중 친화적인 시합을 위해 회전 발차기 점수 배점과 감점 요소를 보완한 새로운 경기 규정을 발표했습니다. 이번 규정은 하반기 국제 대회부터 공식 적용될 예정이며, 일선 도장의 겨루기 선수반 지도 방식에도 변화가 필요해 보입니다.',
-      comments: []
-    },
-    { 
-      id: 'post-6', 
-      category: 'news', 
-      title: '제50회 전국태권도대회 일정 확정 안내', 
-      author: '협회소식', 
-      date: '2026.06.01', 
-      views: 388,
-      content: '대한태권도협회가 주최하는 제50회 전국태권도대회의 개최 일정이 오는 9월 15일부터 5일간으로 확정되었습니다. 신청 접수는 8월 1일부터 개시되며 전국 선수 및 동호인들의 많은 참여 바랍니다.',
-      comments: []
-    },
-    { 
-      id: 'post-7', 
-      category: 'free', 
-      title: '오늘 수련시간에 너무 감동적인 일이 있었습니다.', 
-      author: '해피사범', 
-      date: '2026.06.08', 
-      views: 89,
-      content: '평소에 장난기가 심해서 지도가 어려웠던 8살 수련생이 오늘 수련이 끝나고 수줍게 사탕 하나를 주면서 "사범님 늘 재밌게 가르쳐 주셔서 감사해요" 하고 뛰어가네요. 이 맛에 힘들어도 사범 생활을 계속하게 되는 것 같습니다. 마음이 참 따뜻해집니다.',
-      comments: [
-        { author: '동감관장', content: '그 사탕 하나가 사범님껜 보약이네요. 힘내세요!', date: '2026.06.08' }
-      ]
-    },
-    { 
-      id: 'post-8', 
-      category: 'free', 
-      title: '주말 당직 서시는 사범님들 힘내세요!', 
-      author: '의리사범', 
-      date: '2026.06.07', 
-      views: 110,
-      content: '주말에도 특강차량 운행이나 야외 체험 학습 때문에 당직 서시는 사범님들 많으실 텐데 힘냅시다! 날씨가 더우니 건강 챙기시면서 수고하십시오. 화이팅입니다!',
-      comments: [
-        { author: '겨루기왕', content: '사범님도 힘내세요! 주말 보강 수업 가는 길인데 힘이 나네요.', date: '2026.06.07' }
-      ]
-    },
-    { 
-      id: 'post-9', 
-      category: 'archive', 
-      title: '[자료] 신입 관원 입학원서 양식 (한글파일)', 
-      author: '태권도잡', 
-      date: '2026.06.05', 
-      views: 615,
-      content: '일선 도장에서 편리하게 수정하여 사용할 수 있는 신입 관원 입학원서 한글(HWP) 서식입니다. 기본적인 동의서(개인정보 제공 및 초상권 등) 문항도 깔끔하게 정돈되어 있습니다. 도장 상황에 맞추어 상호와 로고를 넣어 유용하게 사용하시기 바랍니다.',
-      comments: [
-        { author: '초보관장', content: '마침 새로 만들려고 했는데 소중한 자료 공유 너무 감사합니다!', date: '2026.06.06' }
-      ]
-    },
-    { 
-      id: 'post-10', 
-      category: 'archive', 
-      title: '[자료] 줄넘기 급수표 및 심사 서식 공유', 
-      author: '체육자료', 
-      date: '2026.05.28', 
-      views: 803,
-      content: '급수별 줄넘기 미션과 평가 기준이 담긴 심사 서식 파일입니다. 기초 줄넘기부터 이중 뛰기까지 단계별로 체계적으로 구성되어 있어 학부모님께 심사 결과 전달용으로 쓰시기 좋습니다.',
-      comments: []
-    }
-  ];
+  const mockPosts = [];
 
   const avatarGradients = [
     'linear-gradient(135deg, #2563eb, #1e3a8a)',
@@ -475,27 +380,28 @@ document.addEventListener('DOMContentLoaded', () => {
   // 2. DOM Elements & State
   // ==========================================================================
   
-  // Load community posts from localStorage or fallback to mockPosts
+  // Load community posts from localStorage or fallback to empty
   let initialPosts = [];
   try {
     const savedPosts = localStorage.getItem('taekwondo_community_posts');
     if (savedPosts) {
-      initialPosts = JSON.parse(savedPosts);
-    } else {
-      initialPosts = [...mockPosts];
-      localStorage.setItem('taekwondo_community_posts', JSON.stringify(initialPosts));
+      const parsed = JSON.parse(savedPosts);
+      if (parsed && parsed.length > 0 && !parsed.some(p => p.id && String(p.id).startsWith('post-'))) {
+        initialPosts = parsed;
+      }
     }
   } catch (e) {
-    console.warn("Failed to load community posts from localStorage", e);
-    initialPosts = [...mockPosts];
+    console.warn('Failed to load community posts from localStorage', e);
   }
+
 
   // App state
   const state = {
     currentUser: null,
     authReady: false,
-    jobsList: [...mockJobs],
-    talentsList: [...mockTalents],
+    dbLoaded: false,
+    jobsList: typeof db === 'undefined' || !db ? [...mockJobs] : [],
+    talentsList: typeof db === 'undefined' || !db ? [...mockTalents] : [],
     applicationsList: [],
     communityPosts: initialPosts,
     filters: {
@@ -710,6 +616,185 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('Firestore 지원 데이터 로드 생략 또는 에러:', e);
       state.applicationsList = [];
     }
+
+    // 4. 자유게시판 데이터 로드
+    try {
+      const commSnap = await db.collection('community').orderBy('created_at', 'desc').get();
+      const dbPosts = [];
+      commSnap.forEach((doc) => {
+        const p = doc.data();
+        dbPosts.push({
+          id: doc.id,
+          category: p.category || 'knowhow',
+          title: p.title || '',
+          author: p.author || '익명',
+          author_id: p.author_id || '',
+          date: p.date || (p.created_at ? (p.created_at.toDate ? p.created_at.toDate().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\s/g, '').slice(0, -1) : '') : ''),
+          views: p.views || 0,
+          content: p.content || '',
+          imageUrl: p.imageUrl || '',
+          comments: p.comments || [],
+          isPinned: p.isPinned || false
+        });
+      });
+      if (dbPosts.length > 0) {
+        state.communityPosts = dbPosts;
+        try {
+          localStorage.setItem('taekwondo_community_posts', JSON.stringify(dbPosts));
+        } catch (e) {}
+      } else {
+        // DB에 자유게시판 글이 하나도 없는 경우 초기 Mock 데이터를 DB에 등록합니다.
+        const seedData = [
+          {
+            category: 'free',
+            title: '강남 지역 사범님 구인 현황 어떤가요?',
+            author: '대호관장',
+            date: '2026.06.07',
+            views: 124,
+            content: '요즘 강남 쪽에서 메인사범님 구하기가 하늘의 별 따기네요. 조건은 월 330에 주 5일, 식사 제공인데도 문의전화 한 통 받기가 어렵습니다. 다른 지역 관장님들은 구인 어떠신가요? 혹시 채용공고 올릴 때 특별히 어필하면 좋은 팁이 있을까요?',
+            comments: [
+              { author: '의리사범', content: '요즘 젊은 사범들은 급여도 중요하지만 퇴근 시간 준수를 더 중요하게 보는 것 같습니다.', date: '2026.06.07' },
+              { author: '강남태권', content: '강남은 주거비가 비싸서 타지에서 오는 사범님들을 위해 숙소를 지원해 주면 연락이 좀 오는 편입니다.', date: '2026.06.08' }
+            ]
+          },
+          {
+            category: 'knowhow',
+            title: '초보 사범 면접 시 질문 팁 공유드립니다.',
+            author: '정통관장',
+            date: '2026.06.06',
+            views: 245,
+            content: '신입 사범님 면접 보실 때 단수나 시범 기술도 중요하지만, 무엇보다 아이들을 대하는 태도와 인성을 보셔야 합니다. 저 같은 경우는 "가장 통제하기 힘든 관원이 있을 때 어떻게 대처할 것인가?" 라는 상황 질문을 던집니다. 꼬리 질문을 던지면 평소 생각이나 태도가 잘 드러납니다.',
+            comments: [
+              { author: '열혈관장', content: '공감합니다. 기술은 도장 와서 배울 수 있지만 아이들을 사랑하는 마음은 가르칠 수 없으니까요.', date: '2026.06.06' }
+            ]
+          },
+          {
+            category: 'knowhow',
+            title: '원생 150명 돌파한 방학 특강 프로그램 기획서',
+            author: '스마트태권',
+            date: '2026.06.05',
+            views: 412,
+            content: '올해 겨울방학 특강으로 성공했던 음악 줄넘기와 쌍절곤 연계 특강 기획안을 공유합니다. 학부모님들은 방학 동안 아이들의 기초 체력 증진과 흥미 유발을 원합니다. 특강 마지막 주에 부모님들을 초청하여 작은 발표회를 가진 것이 원생 재등록률을 95% 이상 끌어올린 핵심 비결이었습니다.',
+            comments: [
+              { author: '새싹관장', content: '특강 발표회 기획서 정보 감사합니다! 이번 여름방학 때 꼭 벤치마킹해서 시도해보고 싶네요.', date: '2026.06.05' }
+            ]
+          },
+          {
+            category: 'knowhow',
+            title: '학부모 소통 앱(클래스업) 연동 팁 공유',
+            author: '혁신관장',
+            date: '2026.06.03',
+            views: 301,
+            content: '수련 모습을 매일 사진과 짧은 영상으로 학부모 앱에 공유하고 있습니다. 처음에는 일이 많아서 힘들었지만 사범님들과 요일을 나누어 분담하니 정착되었습니다. 부모님들의 신뢰도가 크게 올라가고 추천 입관률이 눈에 띄게 증가했습니다. 소통 앱을 적극 활용해 보세요.',
+            comments: [
+              { author: '소통사범', content: '사범 입장에서도 학부모 피드백이 실시간으로 오니 보람을 더 느끼는 것 같습니다.', date: '2026.06.04' }
+            ]
+          },
+          {
+            category: 'news',
+            title: '세계태권도연맹, 새로운 룰 도입 발표',
+            author: '태권뉴스',
+            date: '2026.06.02',
+            views: 520,
+            content: '세계태권도연맹(WT)이 경기력 향상과 관중 친화적인 시합을 위해 회전 발차기 점수 배점과 감점 요소를 보완한 새로운 경기 규정을 발표했습니다. 이번 규정은 하반기 국제 대회부터 공식 적용될 예정이며, 일선 도장의 겨루기 선수반 지도 방식에도 변화가 필요해 보입니다.',
+            comments: []
+          },
+          {
+            category: 'news',
+            title: '제50회 전국태권도대회 일정 확정 안내',
+            author: '협회소식',
+            date: '2026.06.01',
+            views: 388,
+            content: '대한태권도협회가 주최하는 제50회 전국태권도대회의 개최 일정이 오는 9월 15일부터 5일간으로 확정되었습니다. 신청 접수는 8월 1일부터 개시되며 전국 선수 및 동호인들의 많은 참여 바랍니다.',
+            comments: []
+          },
+          {
+            category: 'free',
+            title: '오늘 수련시간에 너무 감동적인 일이 있었습니다.',
+            author: '해피사범',
+            date: '2026.06.08',
+            views: 89,
+            content: '평소에 장난기가 심해서 지도가 어려웠던 8살 수련생이 오늘 수련이 끝나고 수줍게 사탕 하나를 주면서 "사범님 늘 재밌게 가르쳐 주셔서 감사해요" 하고 뛰어가네요. 이 맛에 힘들어도 사범 생활을 계속하게 되는 것 같습니다. 마음이 참 따뜻해집니다.',
+            comments: [
+              { author: '동감관장', content: '그 사탕 하나가 사범님껜 보약이네요. 힘내세요!', date: '2026.06.08' }
+            ]
+          },
+          {
+            category: 'free',
+            title: '주말 당직 서시는 사범님들 힘내세요!',
+            author: '의리사범',
+            date: '2026.06.07',
+            views: 110,
+            content: '주말에도 특강차량 운행이나 야외 체험 학습 때문에 당직 서시는 사범님들 많으실 텐데 힘냅시다! 날씨가 더우니 건강 챙기시면서 수고하십시오. 화이팅입니다!',
+            comments: [
+              { author: '겨루기왕', content: '사범님도 힘내세요! 주말 보강 수업 가는 길인데 힘이 나네요.', date: '2026.06.07' }
+            ]
+          },
+          {
+            category: 'free',
+            title: '[자료] 신입 관원 입학원서 양식 (한글파일)',
+            author: '태권도잡',
+            date: '2026.06.05',
+            views: 615,
+            content: '일선 도장에서 편리하게 수정하여 사용할 수 있는 신입 관원 입학원서 한글(HWP) 서식입니다. 기본적인 동의서(개인정보 제공 및 초상권 등) 문항도 깔끔하게 정돈되어 있습니다. 도장 상황에 맞추어 상호와 로고를 넣어 유용하게 사용하시기 바랍니다.',
+            comments: [
+              { author: '초보관장', content: '마침 새로 만들려고 했는데 소중한 자료 공유 너무 감사합니다!', date: '2026.06.06' }
+            ]
+          },
+          {
+            category: 'free',
+            title: '[자료] 줄넘기 급수표 및 심사 서식 공유',
+            author: '체육자료',
+            date: '2026.05.28',
+            views: 803,
+            content: '급수별 줄넘기 미션과 평가 기준이 담긴 심사 서식 파일입니다. 기초 줄넘기부터 이중 뛰기까지 단계별로 체계적으로 구성되어 있어 학부모님께 심사 결과 전달용으로 쓰시기 좋습니다.',
+            comments: []
+          },
+          {
+            category: 'contest',
+            title: '2026 하반기 전국 시도대항 태권도대회 접수 개시',
+            author: '대회연맹',
+            date: '2026.06.15',
+            views: 142,
+            content: '2026년도 하반기 전국 시도대항 태권도대회 참가 신청이 시작되었습니다. 품새 및 겨루기 부문 접수 요강 파일을 다운로드하여 기일 내에 신청 바랍니다.',
+            comments: []
+          },
+          {
+            category: 'contest',
+            title: '제15회 도지사기 태권도 품새대회 개최 알림',
+            author: '품새협회',
+            date: '2026.06.12',
+            views: 98,
+            content: '지방 체육의 활성화와 꿈나무 육성을 위한 제15회 도지사기 태권도 품새대회 일정을 공지하오니 각 도장 선수단의 많은 참가를 부탁드립니다.',
+            comments: []
+          }
+        ];
+
+        try {
+          const promises = seedData.map((post, idx) => {
+            const customTime = new Date(Date.now() - (idx * 60000));
+            return db.collection('community').add({
+              ...post,
+              created_at: firebase.firestore.Timestamp.fromDate(customTime)
+            }).then(docRef => ({
+              id: docRef.id,
+              ...post
+            }));
+          });
+          const seededPosts = await Promise.all(promises);
+          state.communityPosts = seededPosts;
+          try {
+            localStorage.setItem('taekwondo_community_posts', JSON.stringify(seededPosts));
+          } catch (e) {}
+        } catch (seedErr) {
+          console.warn('자유게시판 초기 시딩 에러:', seedErr);
+        }
+      }
+    } catch (e) {
+      console.warn('Firestore 커뮤니티 데이터 로드 생략 또는 에러:', e);
+    }
+
+    state.dbLoaded = true;
   }
 
   function populateRegionSelects(regions) {
@@ -1476,6 +1561,9 @@ document.addEventListener('DOMContentLoaded', () => {
         window.history.replaceState({}, '', '/' + rawHash);
       } else {
         navigateToView('customerService');
+        if (window.loadMyInquiries) {
+          window.loadMyInquiries();
+        }
         window.scrollTo(0, 0);
         return;
       }
@@ -1769,6 +1857,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderHomeJobs() {
     const grid = document.getElementById('realtime-jobs-grid');
     if (!grid) return;
+    if (typeof db !== 'undefined' && db && !state.dbLoaded && state.jobsList.length === 0) {
+      return; // Keep loading placeholder
+    }
     grid.innerHTML = '';
     
     // Render first 5 jobs matching mockup layout
@@ -1782,6 +1873,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderHomeTalents() {
     const grid = document.getElementById('recommended-talents-grid');
     if (!grid) return;
+    if (typeof db !== 'undefined' && db && !state.dbLoaded && state.talentsList.length === 0) {
+      return; // Keep loading placeholder
+    }
     grid.innerHTML = '';
     
     // Render first 5 talents
@@ -2066,6 +2160,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const grid = document.getElementById('board-jobs-grid');
     const countEl = document.getElementById('jobs-results-count');
     if (!grid) return;
+    if (typeof db !== 'undefined' && db && !state.dbLoaded && state.jobsList.length === 0) {
+      grid.innerHTML = '<div class="loading-placeholder">공고를 불러오는 중입니다...</div>';
+      if (countEl) countEl.textContent = '불러오는 중...';
+      return;
+    }
     grid.innerHTML = '';
 
     const filtered = state.jobsList.filter(job => {
@@ -2095,6 +2194,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const grid = document.getElementById('board-talents-grid');
     const countEl = document.getElementById('talents-results-count');
     if (!grid) return;
+    if (typeof db !== 'undefined' && db && !state.dbLoaded && state.talentsList.length === 0) {
+      grid.innerHTML = '<div class="loading-placeholder">인재정보를 불러오는 중입니다...</div>';
+      if (countEl) countEl.textContent = '불러오는 중...';
+      return;
+    }
     grid.innerHTML = '';
 
     const filtered = state.talentsList.filter(talent => {
@@ -2670,7 +2774,8 @@ document.addEventListener('DOMContentLoaded', () => {
           businessStartDate,
           businessOwnerName,
           valid: validationInfo.valid || '',
-          validMsg: validationInfo.valid_msg || ''
+          validMsg: validationInfo.valid_msg || '',
+          isBypassed: validationInfo.isBypassed || false
         };
 
         setBusinessResult(businessValidateResult, '진위확인 완료. 계속사업자 상태조회 중입니다.', '');
@@ -2680,9 +2785,15 @@ document.addEventListener('DOMContentLoaded', () => {
           businessNumber,
           status: statusInfo.b_stt || '',
           statusCode: statusInfo.b_stt_cd || '',
-          taxType: statusInfo.tax_type || ''
+          taxType: statusInfo.tax_type || '',
+          isBypassed: statusInfo.isBypassed || false
         };
-        setBusinessResult(businessValidateResult, '사업자 정보가 일치하고 계속사업자로 확인되었습니다.', 'success');
+        
+        if (validationInfo.isBypassed || statusInfo.isBypassed) {
+          setBusinessResult(businessValidateResult, '국세청 시스템 장애로 인증이 지연되어 우선 승인되었습니다. (추후 인증 필요)', 'success');
+        } else {
+          setBusinessResult(businessValidateResult, '사업자 정보가 일치하고 계속사업자로 확인되었습니다.', 'success');
+        }
       } catch (err) {
         businessStatusCheck = {
           businessNumber,
@@ -2701,6 +2812,72 @@ document.addEventListener('DOMContentLoaded', () => {
       } finally {
         businessValidateButton.disabled = false;
         businessValidateButton.textContent = '사업자 확인';
+      }
+    });
+  }
+  
+  const reverifyBizNumInput = document.getElementById('reverify-biz-number');
+  if (reverifyBizNumInput) reverifyBizNumInput.addEventListener('input', () => reverifyBizNumInput.value = formatBusinessNumber(reverifyBizNumInput.value));
+  
+  const reverifyStartDateInput = document.getElementById('reverify-start-date');
+  if (reverifyStartDateInput) reverifyStartDateInput.addEventListener('input', () => reverifyStartDateInput.value = formatBusinessStartDate(reverifyStartDateInput.value));
+  
+  const btnReverifySubmit = document.getElementById('btn-reverify-submit');
+  if (btnReverifySubmit) {
+    btnReverifySubmit.addEventListener('click', async () => {
+      const gymName = document.getElementById('reverify-gym-name')?.value.trim();
+      const bizNumberRaw = document.getElementById('reverify-biz-number')?.value.trim();
+      const ownerName = document.getElementById('reverify-owner-name')?.value.trim();
+      const startDateRaw = document.getElementById('reverify-start-date')?.value.trim();
+      const resultDiv = document.getElementById('reverify-result');
+      
+      const bizNumber = getBusinessNumberDigits(bizNumberRaw);
+      const startDate = getBusinessDateDigits(startDateRaw);
+      
+      if (!gymName || bizNumber.length !== 10 || !ownerName || startDate.length !== 8) {
+        if (resultDiv) { resultDiv.textContent = '모든 정보를 올바르게 입력해주세요.'; resultDiv.style.color = 'var(--red)'; }
+        return;
+      }
+      
+      btnReverifySubmit.disabled = true;
+      btnReverifySubmit.textContent = '인증 중...';
+      if (resultDiv) { resultDiv.textContent = '인증 중입니다...'; resultDiv.style.color = 'var(--blue)'; }
+      
+      try {
+        const validInfo = await verifyBusinessInfo({ businessNumber: bizNumber, startDate, ownerName, businessName: gymName });
+        if (validInfo.isBypassed) throw new Error('국세청 시스템 응답 지연 (잠시 후 다시 시도해주세요)');
+        const statusInfo = await checkBusinessStatus(bizNumber);
+        if (statusInfo.isBypassed) throw new Error('국세청 시스템 응답 지연 (잠시 후 다시 시도해주세요)');
+        
+        if (state.currentUser && state.currentUser.uid) {
+          await db.collection('users').doc(state.currentUser.uid).update({
+            gym_name: gymName,
+            business_number: bizNumber,
+            business_start_date: startDate,
+            business_owner_name: ownerName,
+            bizStatus: 'verified',
+            business_status: statusInfo.b_stt || '미확인',
+            business_status_code: statusInfo.b_stt_cd || '00',
+            business_valid: validInfo.valid || '00',
+            business_valid_msg: validInfo.valid_msg || '조회 안됨',
+            business_verified_at: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          
+           state.currentUser.bizStatus = 'verified';
+          
+          const bizBadge = document.getElementById('auth-biz-badge');
+          if (bizBadge) {
+            bizBadge.style.display = 'inline-block';
+          }
+
+          document.getElementById('dialog-biz-reverify').close();
+          showToast('사업자 재인증이 완료되었습니다.', 'success');
+        }
+      } catch (err) {
+        if (resultDiv) { resultDiv.textContent = err.message || '인증에 실패했습니다. 정보를 다시 확인해주세요.'; resultDiv.style.color = 'var(--red)'; }
+      } finally {
+        btnReverifySubmit.disabled = false;
+        btnReverifySubmit.textContent = '인증';
       }
     });
   }
@@ -3072,6 +3249,13 @@ document.addEventListener('DOMContentLoaded', () => {
         userData.business_valid = businessValidation?.valid || '00';
         userData.business_valid_msg = businessValidation?.validMsg || '조회 안됨';
         userData.business_verified_at = firebase.firestore.FieldValue.serverTimestamp();
+        
+        if (businessValidation?.isBypassed || businessStatusCheck?.isBypassed) {
+          userData.bizStatus = 'pending';
+        } else {
+          userData.bizStatus = 'verified';
+        }
+        
         userData.resumePassCount = 0;
         userData.unlockedResumes = [];
         userData.testPaymentEnabled = false;
@@ -3186,7 +3370,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const salary = document.getElementById('job-salary').value;
       const type = document.getElementById('job-type').value;
       const exp = document.getElementById('job-exp').value;
-      const hotness = document.getElementById('job-hotness').value;
+      const hotness = 'NEW';
       const desc = document.getElementById('job-desc').value;
       const address = document.getElementById('job-address').value.trim();
       const preferred = document.getElementById('job-preferred').value.trim();
@@ -3228,7 +3412,13 @@ document.addEventListener('DOMContentLoaded', () => {
             type,
             exp,
             hotness,
-            desc
+            desc,
+            pinned: false,
+            views: 0,
+            viewedUsers: [],
+            userId: userId,
+            userName: state.currentUser ? (state.currentUser.name || '관장님') : '관장님',
+            userEmail: state.currentUser ? (state.currentUser.email || '이메일 정보 없음') : '이메일 정보 없음'
           };
 
           // Add to front of database
@@ -3477,11 +3667,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      const newPost = {
-        id: 'post-' + Date.now(),
+      const newPostData = {
         category: category,
         title: title,
         author: authorName,
+        author_id: currentUser.uid,
         date: dateStr,
         views: 0,
         content: content,
@@ -3489,7 +3679,29 @@ document.addEventListener('DOMContentLoaded', () => {
         comments: []
       };
 
-      state.communityPosts.unshift(newPost);
+      if (typeof db !== 'undefined' && db) {
+        try {
+          const postToSave = {
+            ...newPostData,
+            created_at: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          const docRef = await db.collection('community').add(postToSave);
+          state.communityPosts.unshift({
+            id: docRef.id,
+            ...newPostData
+          });
+        } catch (dbErr) {
+          console.error("Failed to save post to Firestore", dbErr);
+          alert('게시글 등록에 실패했습니다. 다시 시도해주세요.');
+          return;
+        }
+      } else {
+        const newPost = {
+          id: 'post-' + Date.now(),
+          ...newPostData
+        };
+        state.communityPosts.unshift(newPost);
+      }
       
       try {
         localStorage.setItem('taekwondo_community_posts', JSON.stringify(state.communityPosts));
@@ -3526,6 +3738,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Increment views locally
     post.views = (post.views || 0) + 1;
 
+    if (typeof db !== 'undefined' && db && !post.id.startsWith('post-')) {
+      try {
+        db.collection('community').doc(post.id).update({
+          views: post.views
+        });
+      } catch (err) {
+        console.warn("Failed to increment views in Firestore", err);
+      }
+    }
+
     try {
       localStorage.setItem('taekwondo_community_posts', JSON.stringify(state.communityPosts));
     } catch (err) {
@@ -3543,6 +3765,19 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('detail-post-title').textContent = post.title;
     document.getElementById('detail-post-meta').textContent = `작성자: ${post.author} | 작성일: ${post.date}`;
     document.getElementById('detail-post-views').textContent = post.views;
+
+    const imgWrap = document.getElementById('detail-post-image-wrap');
+    const imgEl = document.getElementById('detail-post-image');
+    if (imgWrap && imgEl) {
+      if (post.imageUrl) {
+        imgEl.src = post.imageUrl;
+        imgWrap.style.display = 'block';
+      } else {
+        imgEl.src = '';
+        imgWrap.style.display = 'none';
+      }
+    }
+
     document.getElementById('detail-post-desc').textContent = post.content || '본문 내용이 없습니다.';
 
     // Bind Comments
@@ -3582,6 +3817,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!post.comments) post.comments = [];
         post.comments.push(newComment);
         
+        if (typeof db !== 'undefined' && db && !post.id.startsWith('post-')) {
+          try {
+            db.collection('community').doc(post.id).update({
+              comments: post.comments
+            });
+          } catch (err) {
+            console.error("Failed to add comment in Firestore", err);
+          }
+        }
+
         try {
           localStorage.setItem('taekwondo_community_posts', JSON.stringify(state.communityPosts));
         } catch (err) {
@@ -4422,6 +4667,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             state.currentUser = { uid: user.uid, email: user.email, ...data };
             nameEl.textContent = data.name || user.email;
+            
+            // 사업자 인증 완료 뱃지 표시 제어
+            const bizBadge = document.getElementById('auth-biz-badge');
+            if (bizBadge) {
+              const isBizVerified = data.type === 'gym' && (data.bizStatus === 'verified' || (data.business_valid === '01' && data.business_status_code === '01' && data.bizStatus !== 'pending'));
+              bizBadge.style.display = isBizVerified ? 'inline-block' : 'none';
+            }
             const currentRole = getUserRole();
             if (adminLink) {
               adminLink.style.display = showAdminLink ? 'inline-flex' : 'none';
@@ -4437,6 +4689,27 @@ document.addEventListener('DOMContentLoaded', () => {
             // 1:1 문의 폼 자동 입력
             if (inqName) inqName.value = data.name || '';
             if (inqEmail) inqEmail.value = data.email || user.email || '';
+
+            // 사업자 재인증 팝업 트리거
+            const isBizPending = data.bizStatus === 'pending' || (!data.bizStatus && (data.business_valid !== '01' || data.business_status_code !== '01'));
+            if (data.type === 'gym' && isBizPending) {
+              const reverifyDialog = document.getElementById('dialog-biz-reverify');
+              if (reverifyDialog) {
+                const gymNameInput = document.getElementById('reverify-gym-name');
+                const bizNumInput = document.getElementById('reverify-biz-number');
+                const ownerInput = document.getElementById('reverify-owner-name');
+                const startDateInput = document.getElementById('reverify-start-date');
+                if (gymNameInput) gymNameInput.value = data.gym_name || '';
+                if (bizNumInput) bizNumInput.value = data.business_number || '';
+                if (ownerInput) ownerInput.value = data.business_owner_name || '';
+                if (startDateInput) startDateInput.value = data.business_start_date || '';
+                
+                const resultDiv = document.getElementById('reverify-result');
+                if (resultDiv) resultDiv.innerHTML = '';
+                
+                reverifyDialog.showModal();
+              }
+            }
           } else {
             nameEl.textContent = user.email;
             if (adminLink) adminLink.style.display = showAdminLink ? 'inline-flex' : 'none';
@@ -4463,6 +4736,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (adminLink) adminLink.style.display = 'none';
         if (headerPassButton) headerPassButton.style.display = 'none';
         if (headerApplicationsButton) headerApplicationsButton.style.display = 'none';
+        
+        const bizBadge = document.getElementById('auth-biz-badge');
+        if (bizBadge) bizBadge.style.display = 'none';
 
         // 1:1 문의 폼 초기화
         if (inqName) inqName.value = '';
@@ -4600,6 +4876,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       try {
+        const currentUser = auth ? auth.currentUser : null;
         const inquiryData = {
           name: name,
           email: email,
@@ -4609,6 +4886,9 @@ document.addEventListener('DOMContentLoaded', () => {
           status: 'pending',
           created_at: firebase.firestore.FieldValue.serverTimestamp()
         };
+        if (currentUser) {
+          inquiryData.user_id = currentUser.uid;
+        }
 
         // 1. Firestore 저장
         let docId = '';
@@ -4620,7 +4900,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. LocalStorage 백업 저장
         try {
           const localInquiries = JSON.parse(localStorage.getItem('taekwondo_inquiries') || '[]');
-          localInquiries.push({
+          const localItem = {
             id: docId || Math.random().toString(36).substring(2, 9),
             name: name,
             email: email,
@@ -4629,7 +4909,11 @@ document.addEventListener('DOMContentLoaded', () => {
             content: content,
             status: 'pending',
             created_at: new Date().toISOString()
-          });
+          };
+          if (currentUser) {
+            localItem.user_id = currentUser.uid;
+          }
+          localInquiries.push(localItem);
           localStorage.setItem('taekwondo_inquiries', JSON.stringify(localInquiries));
         } catch (storageErr) {
           console.warn('LocalStorage 저장 실패:', storageErr);
@@ -4638,8 +4922,12 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('문의가 정상적으로 접수되었습니다. 최대한 신속하게 답변해 드리겠습니다.');
         formInquiry.reset();
         
+        // 내 문의 내역 갱신
+        if (window.loadMyInquiries) {
+          window.loadMyInquiries();
+        }
+        
         // 로그인 상태인 경우 입력 정보 다시 세팅
-        const currentUser = auth ? auth.currentUser : null;
         if (currentUser && db) {
           const snap = await db.collection('users').doc(currentUser.uid).get();
           const data = snap.data();
@@ -4661,6 +4949,166 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // ─── 1:1 문의 조회 및 렌더링 ───
+  window.loadMyInquiries = async function() {
+    const listEl = document.getElementById('my-inquiries-list');
+    const sectionEl = document.getElementById('my-inquiries-section');
+    if (!listEl || !sectionEl) return;
+
+    // Show section
+    sectionEl.style.display = 'block';
+
+    listEl.innerHTML = '<div class="loading-placeholder" style="text-align:center;padding:2rem;color:var(--text-muted)">문의 내역을 불러오는 중입니다...</div>';
+
+    // 1. LocalStorage에서 불러오기
+    let localInquiries = [];
+    try {
+      localInquiries = JSON.parse(localStorage.getItem('taekwondo_inquiries') || '[]');
+    } catch (e) {
+      console.warn('LocalStorage 문의 내역 로드 실패:', e);
+    }
+
+    // 2. 로그인되어 있으면 Firestore에서 불러오기
+    let dbInquiries = [];
+    const currentUser = auth ? auth.currentUser : null;
+    if (currentUser && db) {
+      try {
+        // Query by user_id
+        const snapUid = await db.collection('inquiries')
+          .where('user_id', '==', currentUser.uid)
+          .get();
+          
+        snapUid.forEach(doc => {
+          const data = doc.data();
+          dbInquiries.push({
+            id: doc.id,
+            name: data.name,
+            email: data.email,
+            type: data.type,
+            title: data.title,
+            content: data.content,
+            status: data.status,
+            answer: data.answer || '',
+            created_at: data.created_at ? (data.created_at.toDate ? data.created_at.toDate().toISOString() : data.created_at) : null
+          });
+        });
+
+        // Query by email to fetch legacy inquiries (without user_id)
+        if (currentUser.email) {
+          const snapEmail = await db.collection('inquiries')
+            .where('email', '==', currentUser.email)
+            .get();
+            
+          snapEmail.forEach(doc => {
+            if (!dbInquiries.some(item => item.id === doc.id)) {
+              const data = doc.data();
+              dbInquiries.push({
+                id: doc.id,
+                name: data.name,
+                email: data.email,
+                type: data.type,
+                title: data.title,
+                content: data.content,
+                status: data.status,
+                answer: data.answer || '',
+                created_at: data.created_at ? (data.created_at.toDate ? data.created_at.toDate().toISOString() : data.created_at) : null
+              });
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Firestore 문의 내역 로드 실패:', err);
+      }
+    }
+
+    // 3. 병합 (ID 중복 제거)
+    const mergedMap = new Map();
+    // LocalStorage를 먼저 넣고
+    localInquiries.forEach(item => {
+      mergedMap.set(item.id, item);
+    });
+    // Firestore 정보를 덮어씀 (Firestore가 더 최신 상태(답변 포함)를 가지고 있으므로)
+    dbInquiries.forEach(item => {
+      mergedMap.set(item.id, item);
+    });
+
+    const mergedList = Array.from(mergedMap.values());
+    
+    // 4. 날짜 정렬 (최신순)
+    mergedList.sort((a, b) => {
+      const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
+      const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
+      return dateB - dateA;
+    });
+
+    // 5. 렌더링
+    if (mergedList.length === 0) {
+      listEl.innerHTML = `
+        <div class="inquiry-empty-state">
+          <p>접수된 1:1 문의사항이 없습니다.</p>
+        </div>`;
+      return;
+    }
+
+    listEl.innerHTML = mergedList.map(item => {
+      const isAnswered = item.status === 'answered';
+      const statusClass = isAnswered ? 'answered' : 'pending';
+      const statusText = isAnswered ? '답변 완료' : '답변 대기';
+      
+      const dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }) : '-';
+
+      const escTitle = escapeHtml(item.title);
+      const escType = escapeHtml(item.type);
+      const escContent = escapeHtml(item.content);
+      const escAnswer = isAnswered ? escapeHtml(item.answer) : '';
+
+      return `
+        <div class="inquiry-track-card" id="inq-card-${item.id}">
+          <div class="inquiry-track-header" onclick="toggleInquiryCard('${item.id}')">
+            <div class="inquiry-track-info">
+              <div class="inquiry-track-meta">
+                <span class="inquiry-track-type">${escType}</span>
+                <span>${dateStr}</span>
+                <span class="inquiry-track-badge ${statusClass}">${statusText}</span>
+              </div>
+              <div class="inquiry-track-title">${escTitle}</div>
+            </div>
+            <div class="inquiry-track-chevron">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+          <div class="inquiry-track-body">
+            <div class="inquiry-detail-q">
+              <div class="inquiry-detail-label">문의 내용</div>
+              <div class="inquiry-detail-text">${escContent}</div>
+            </div>
+            ${isAnswered ? `
+              <div class="inquiry-detail-a">
+                <div class="inquiry-detail-label">답변 내용</div>
+                <div class="inquiry-detail-text">${escAnswer}</div>
+              </div>
+            ` : `
+              <div class="inquiry-detail-a" style="background:#f1f5f9;border-left-color:#94a3b8">
+                <div class="inquiry-detail-text" style="color:var(--text-muted)">담당자가 문의 내용을 검토 중입니다. 조금만 기다려 주시기 바랍니다.</div>
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }).join('');
+  };
+
+  window.toggleInquiryCard = function(id) {
+    const card = document.getElementById(`inq-card-${id}`);
+    if (card) {
+      card.classList.toggle('open');
+    }
+  };
 
   // ─── 카카오 우편번호 서비스 & 지도 연동 (내장형 및 실시간 타이핑 지원) ───
   let postcodeEmbedInstance = null;

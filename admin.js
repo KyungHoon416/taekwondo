@@ -6,6 +6,7 @@
    Firebase 초기화 & 관리자 접근 제어
    ========================================================================== */
 let auth, db, storage;
+let dbLoaded = false;
 let bannerDialogMode = 'create';
 let editingBanner = null;
 let bannerCache = {};
@@ -172,7 +173,7 @@ function escapeHtml(value) {
 
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
-const MEMBERS = [
+const MEMBERS = typeof db === 'undefined' || !db ? [
   { id: 1, name: '이강남', email: 'leegangnam@gmail.com', businessNumber: '107-81-83669', type: 'gym', joinDate: '2026-05-01', status: 'active' },
   { id: 2, name: '김사범', email: 'kimsabum@naver.com', businessNumber: '-', type: 'instructor', joinDate: '2026-05-03', status: 'active' },
   { id: 3, name: '박관장', email: 'parkgj@kakao.com', businessNumber: '214-82-01928', type: 'gym', joinDate: '2026-05-05', status: 'active' },
@@ -188,9 +189,9 @@ const MEMBERS = [
   { id: 13, name: '서관장', email: 'seogj@gmail.com', businessNumber: '113-14-15161', type: 'gym', joinDate: '2026-05-18', status: 'inactive' },
   { id: 14, name: '권사범', email: 'kwonsabum@naver.com', businessNumber: '-', type: 'instructor', joinDate: '2026-05-19', status: 'active' },
   { id: 15, name: '황관장', email: 'hwanggj@kakao.com', businessNumber: '101-12-34567', type: 'gym', joinDate: '2026-05-20', status: 'active' },
-];
+] : [];
 
-const JOBS = [
+const JOBS = typeof db === 'undefined' || !db ? [
   { id: 128, title: '강남 태권도장 메인사범 모집', gym: '강남 태권도장', region: '서울', district: '강남구', salary: '월 320만원', position: '메인사범', exp: '경력 3년↑', regDate: '2026-05-18', views: 45, status: '게시중' },
   { id: 127, title: '송파 태권도장 보조사범 모집', gym: '송파 태권도장', region: '서울', district: '송파구', salary: '월 260만원', position: '보조사범', exp: '신입 가능', regDate: '2026-05-18', views: 32, status: '게시중' },
   { id: 126, title: '분당 태권도장 메인사범 모집', gym: '분당 태권도장', region: '경기', district: '성남시', salary: '시급 15,000', position: '파트타임', exp: '경력 1년↑', regDate: '2026-05-17', views: 28, status: '검토중' },
@@ -201,9 +202,9 @@ const JOBS = [
   { id: 121, title: '수원 유치부 전임 사범 모집', gym: '수원 태권도장', region: '경기', district: '수원시', salary: '월 280만원', position: '유치부 전임', exp: '경력 1년↑', regDate: '2026-05-13', views: 38, status: '마감됨' },
   { id: 120, title: '광주 메인사범 채용공고', gym: '광주 태권도장', region: '광주', district: '서구', salary: '월 295만원', position: '메인사범', exp: '경력 2년↑', regDate: '2026-05-12', views: 41, status: '게시중' },
   { id: 119, title: '구리 보조사범 모집', gym: '구리 태권도장', region: '경기', district: '구리시', salary: '월 240만원', position: '보조사범', exp: '신입 가능', regDate: '2026-05-11', views: 19, status: '마감됨' },
-];
+] : [];
 
-const RESUMES = [
+const RESUMES = typeof db === 'undefined' || !db ? [
   { id: 1, name: '김사범', gender: '남', position: '메인사범', exp: '경력 5년', area: '서울', salary: '월 320만원↑', grade: '3단', cert: '생활스포츠지도사 2급', regDate: '2026-05-18' },
   { id: 2, name: '이사범', gender: '남', position: '보조사범', exp: '경력 2년', area: '경기', salary: '월 260만원↑', grade: '2단', cert: '태권도 지도자', regDate: '2026-05-17' },
   { id: 3, name: '박사범', gender: '여', position: '유치부 전임', exp: '경력 3년', area: '서울/경기', salary: '월 280만원↑', grade: '3단', cert: '유아체육지도사', regDate: '2026-05-16' },
@@ -211,9 +212,9 @@ const RESUMES = [
   { id: 5, name: '메인사범', gender: '남', position: '메인사범', exp: '신입', area: '수도권', salary: '월 250만원↑', grade: '2단', cert: '태권도 지도자', regDate: '2026-05-14' },
   { id: 6, name: '한사범', gender: '여', position: '보조사범', exp: '경력 1년', area: '부산', salary: '월 220만원↑', grade: '2단', cert: '생활스포츠지도사 2급', regDate: '2026-05-13' },
   { id: 7, name: '조사범', gender: '남', position: '파트타임', exp: '경력 2년', area: '대전/세종', salary: '시급 15,000↑', grade: '3단', cert: '태권도 지도자', regDate: '2026-05-12' },
-];
+] : [];
 
-const APPLICATIONS = [
+const APPLICATIONS = typeof db === 'undefined' || !db ? [
   { id: 215, applicant: '김사범', job: '강남 태권도장 메인사범 모집', gym: '강남 태권도장', applyDate: '2026-05-18', status: '검토중' },
   { id: 214, applicant: '이사범', job: '송파 태권도장 보조사범 모집', gym: '송파 태권도장', applyDate: '2026-05-18', status: '면접제안' },
   { id: 213, applicant: '박사범', job: '대전 도장 수석사범 모집', gym: '대전 태권도장', applyDate: '2026-05-17', status: '합격' },
@@ -222,7 +223,7 @@ const APPLICATIONS = [
   { id: 210, applicant: '한사범', job: '일산 태권도장 메인사범 모집', gym: '일산 태권도장', applyDate: '2026-05-14', status: '합격' },
   { id: 209, applicant: '조사범', job: '인천 태권도장 보조사범 모집', gym: '인천 태권도장', applyDate: '2026-05-13', status: '검토중' },
   { id: 208, applicant: '윤사범', job: '분당 태권도장 메인사범 모집', gym: '분당 태권도장', applyDate: '2026-05-12', status: '면접제안' },
-];
+] : [];
 
 const INQUIRIES = [];
 
@@ -265,7 +266,7 @@ async function navigateTo(viewId, clickedItem) {
   if (el) el.textContent = title;
 
   // 탭 이동 시 최신 Firestore 데이터를 자동으로 동기화(새로 가져오기)
-  if (['dashboard', 'members', 'jobs', 'resumes', 'applications', 'inquiries'].includes(viewId)) {
+  if (['dashboard', 'members', 'jobs', 'resumes', 'applications', 'inquiries', 'notices'].includes(viewId)) {
     try {
       await fetchFirestoreData();
     } catch (e) {
@@ -283,6 +284,7 @@ async function navigateTo(viewId, clickedItem) {
   if (viewId === 'resumes') filterResumes();
   if (viewId === 'applications') filterApplications();
   if (viewId === 'inquiries') populateInquiries();
+  if (viewId === 'notices') populateNotices();
   if (viewId === 'analytics') initAnalyticsCharts();
   if (viewId === 'banners') loadBanners();
   if (viewId === 'terms') {
@@ -313,8 +315,7 @@ window.refreshAdminData = async function(viewId) {
     } else if (viewId === 'inquiries') {
       populateInquiries();
     } else if (viewId === 'notices') {
-      // 공지사항은 현재 정적 마크업이므로 로딩 지연 시뮬레이션
-      await new Promise(resolve => setTimeout(resolve, 300));
+      populateNotices();
     }
 
     showToast('데이터 새로고침 완료', 'success');
@@ -343,6 +344,7 @@ async function fetchFirestoreData() {
         businessStatus: u.business_status || '',
         businessStatusCode: u.business_status_code || '',
         businessValid: u.business_valid || '',
+        bizStatus: u.bizStatus || '',
         testPaymentEnabled: u.testPaymentEnabled === true,
         resumeSubscriptionUntil: u.resumeSubscriptionUntil || null,
         resumeSubscriptionMonths: u.resumeSubscriptionMonths || 0,
@@ -509,8 +511,35 @@ async function fetchFirestoreData() {
     showToast('문의 목록 조회 실패: ' + err.message, 'error');
   }
 
+  // 6. 자유게시판 목록 (community 컬렉션)
+  try {
+    const commSnap = await db.collection('community').orderBy('created_at', 'desc').get();
+    const dbPosts = [];
+    commSnap.forEach((doc) => {
+      const p = doc.data();
+      dbPosts.push({
+        id: doc.id,
+        category: p.category || 'knowhow',
+        title: p.title || '',
+        author: p.author || '관리자',
+        date: p.date || (p.created_at ? (p.created_at.toDate ? p.created_at.toDate().toISOString().split('T')[0] : '') : ''),
+        views: p.views || 0,
+        content: p.content || '',
+        imageUrl: p.imageUrl || '',
+        imageStoragePath: p.imageStoragePath || '',
+        comments: p.comments || [],
+        isPinned: p.isPinned || false
+      });
+    });
+    NOTICES.length = 0;
+    NOTICES.push(...dbPosts);
+  } catch (err) {
+    console.warn('Firestore 커뮤니티 데이터 조회 중 실패:', err);
+  }
+
   // 사이드바 메뉴 뱃지 일괄 갱신
   updateSidebarBadges();
+  dbLoaded = true;
 }
 
 function updateSidebarBadges() {
@@ -565,27 +594,39 @@ function populateDashboard() {
   // Recent jobs (5 rows)
   const tbody = document.getElementById('dash-jobs-tbody');
   if (tbody) {
-    tbody.innerHTML = JOBS.slice(0, 5).map(j => `
-      <tr>
-        <td><span style="color:var(--muted);font-size:0.78rem">#${j.id}</span></td>
-        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600">${j.title}</td>
-        <td>${j.gym}</td>
-        <td>${j.region} ${j.district}</td>
-        <td style="color:var(--blue);font-weight:700">${j.salary}</td>
-        <td style="color:var(--muted)">${j.regDate}</td>
-        <td>${statusBadge(j.status)}</td>
-      </tr>`).join('');
+    if (typeof db !== 'undefined' && db && !dbLoaded && JOBS.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="loading-state" style="text-align:center;padding:1.5rem;color:var(--muted)">데이터를 불러오는 중입니다...</div></td></tr>`;
+    } else if (JOBS.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><p>등록된 채용공고가 없습니다.</p></div></td></tr>`;
+    } else {
+      tbody.innerHTML = JOBS.slice(0, 5).map(j => `
+        <tr>
+          <td><span style="color:var(--muted);font-size:0.78rem">#${j.id}</span></td>
+          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600">${j.title}</td>
+          <td>${j.gym}</td>
+          <td>${j.region} ${j.district}</td>
+          <td style="color:var(--blue);font-weight:700">${j.salary}</td>
+          <td style="color:var(--muted)">${j.regDate}</td>
+          <td>${statusBadge(j.status)}</td>
+        </tr>`).join('');
+    }
   }
 
   // Recent applications (5 rows)
   const atbody = document.getElementById('dash-apps-tbody');
   if (atbody) {
-    atbody.innerHTML = APPLICATIONS.slice(0, 5).map(a => `
-      <tr>
-        <td style="font-weight:700">${a.applicant}</td>
-        <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)">${a.job}</td>
-        <td>${appStatusBadge(a.status)}</td>
-      </tr>`).join('');
+    if (typeof db !== 'undefined' && db && !dbLoaded && APPLICATIONS.length === 0) {
+      atbody.innerHTML = `<tr><td colspan="3"><div class="loading-state" style="text-align:center;padding:1.5rem;color:var(--muted)">데이터를 불러오는 중입니다...</div></td></tr>`;
+    } else if (APPLICATIONS.length === 0) {
+      atbody.innerHTML = `<tr><td colspan="3"><div class="empty-state"><p>접수된 지원서가 없습니다.</p></div></td></tr>`;
+    } else {
+      atbody.innerHTML = APPLICATIONS.slice(0, 5).map(a => `
+        <tr>
+          <td style="font-weight:700">${a.applicant}</td>
+          <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)">${a.job}</td>
+          <td>${appStatusBadge(a.status)}</td>
+        </tr>`).join('');
+    }
   }
 }
 
@@ -611,12 +652,20 @@ function renderMembers() {
   const items = filtered.slice(start, start + PAGE_SIZE);
 
   const countEl = document.getElementById('member-count');
-  if (countEl) countEl.innerHTML = `전체 <strong>${filtered.length}</strong>명`;
+  if (countEl) {
+    if (typeof db !== 'undefined' && db && !dbLoaded && MEMBERS.length === 0) {
+      countEl.innerHTML = `불러오는 중...`;
+    } else {
+      countEl.innerHTML = `전체 <strong>${filtered.length}</strong>명`;
+    }
+  }
 
   const tbody = document.getElementById('members-tbody');
   if (!tbody) return;
 
-  if (items.length === 0) {
+  if (typeof db !== 'undefined' && db && !dbLoaded && MEMBERS.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="11"><div class="loading-state" style="text-align:center;padding:2rem;color:var(--muted)">데이터를 불러오는 중입니다...</div></td></tr>`;
+  } else if (items.length === 0) {
     tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>검색 결과가 없습니다.</p></div></td></tr>`;
   } else {
     tbody.innerHTML = items.map(m => `
@@ -631,7 +680,7 @@ function renderMembers() {
         <td>
           ${memberStatusBadge(m.status)}
           ${m.type === 'gym' ? (
-            m.businessValid === '01' && m.businessStatusCode === '01'
+            m.bizStatus === 'verified' || (m.businessValid === '01' && m.businessStatusCode === '01' && m.bizStatus !== 'pending')
               ? '<span class="badge badge-blue" style="margin-left:4px">검증완료</span>'
               : '<span class="badge badge-amber" style="margin-left:4px">확인중</span>'
           ) : ''}
@@ -753,12 +802,20 @@ function renderJobs() {
   const items = filtered.slice(start, start + PAGE_SIZE);
 
   const countEl = document.getElementById('jobs-count');
-  if (countEl) countEl.innerHTML = `전체 <strong>${filtered.length}</strong>건`;
+  if (countEl) {
+    if (typeof db !== 'undefined' && db && !dbLoaded && JOBS.length === 0) {
+      countEl.innerHTML = `불러오는 중...`;
+    } else {
+      countEl.innerHTML = `전체 <strong>${filtered.length}</strong>건`;
+    }
+  }
 
   const tbody = document.getElementById('jobs-tbody');
   if (!tbody) return;
 
-  if (items.length === 0) {
+  if (typeof db !== 'undefined' && db && !dbLoaded && JOBS.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="12"><div class="loading-state" style="text-align:center;padding:2rem;color:var(--muted)">데이터를 불러오는 중입니다...</div></td></tr>`;
+  } else if (items.length === 0) {
     tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state"><p>검색 결과가 없습니다.</p></div></td></tr>`;
   } else {
     tbody.innerHTML = items.map(j => `
@@ -791,12 +848,44 @@ function renderJobs() {
   renderPagination('jobs-pagination', filtered.length, page, 'jobs');
 }
 
-function deleteJob(id) {
-  const idx = JOBS.findIndex(j => j.id === id);
-  if (idx !== -1) {
-    JOBS.splice(idx, 1);
-    showToast('채용공고가 삭제되었습니다.', 'error');
-    filterJobs();
+async function deleteJob(id) {
+  if (!confirm('정말로 이 채용공고를 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.')) {
+    return;
+  }
+
+  const job = JOBS.find(j => j.id === id);
+  if (!job) return;
+
+  const fullId = job.fullId || id;
+
+  if (typeof db !== 'undefined' && db) {
+    try {
+      showToast('채용공고를 삭제하는 중입니다...', 'warning');
+      await db.collection('jobs').doc(fullId).delete();
+      
+      const idx = JOBS.findIndex(j => j.id === id);
+      if (idx !== -1) {
+        JOBS.splice(idx, 1);
+      }
+      
+      showToast('채용공고가 성공적으로 삭제되었습니다.', 'error');
+      
+      filterJobs();
+      updateDashboardStats();
+      populateDashboard();
+    } catch (err) {
+      console.error('채용공고 삭제 중 오류 발생:', err);
+      showToast('삭제 실패: ' + err.message, 'error');
+    }
+  } else {
+    const idx = JOBS.findIndex(j => j.id === id);
+    if (idx !== -1) {
+      JOBS.splice(idx, 1);
+      showToast('채용공고가 삭제되었습니다 (로컬).', 'error');
+      filterJobs();
+      updateDashboardStats();
+      populateDashboard();
+    }
   }
 }
 
@@ -948,10 +1037,26 @@ function renderResumes() {
   const items = filtered.slice(start, start + PAGE_SIZE);
 
   const countEl = document.getElementById('resumes-count');
-  if (countEl) countEl.innerHTML = `전체 <strong>${filtered.length}</strong>건`;
+  if (countEl) {
+    if (typeof db !== 'undefined' && db && !dbLoaded && RESUMES.length === 0) {
+      countEl.innerHTML = `불러오는 중...`;
+    } else {
+      countEl.innerHTML = `전체 <strong>${filtered.length}</strong>건`;
+    }
+  }
 
   const tbody = document.getElementById('resumes-tbody');
   if (!tbody) return;
+
+  if (typeof db !== 'undefined' && db && !dbLoaded && RESUMES.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="11"><div class="loading-state" style="text-align:center;padding:2rem;color:var(--muted)">데이터를 불러오는 중입니다...</div></td></tr>`;
+    return;
+  }
+
+  if (items.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><p>검색 결과가 없습니다.</p></div></td></tr>`;
+    return;
+  }
 
   tbody.innerHTML = items.map(r => `
     <tr>
@@ -1000,10 +1105,26 @@ function renderApplications() {
   const items = filtered.slice(start, start + PAGE_SIZE);
 
   const countEl = document.getElementById('apps-count');
-  if (countEl) countEl.innerHTML = `전체 <strong>${filtered.length}</strong>건`;
+  if (countEl) {
+    if (typeof db !== 'undefined' && db && !dbLoaded && APPLICATIONS.length === 0) {
+      countEl.innerHTML = `불러오는 중...`;
+    } else {
+      countEl.innerHTML = `전체 <strong>${filtered.length}</strong>건`;
+    }
+  }
 
   const tbody = document.getElementById('apps-tbody');
   if (!tbody) return;
+
+  if (typeof db !== 'undefined' && db && !dbLoaded && APPLICATIONS.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="loading-state" style="text-align:center;padding:2rem;color:var(--muted)">데이터를 불러오는 중입니다...</div></td></tr>`;
+    return;
+  }
+
+  if (items.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><p>검색 결과가 없습니다.</p></div></td></tr>`;
+    return;
+  }
 
   tbody.innerHTML = items.map(a => `
     <tr>
@@ -1063,13 +1184,30 @@ function populateInquiries() {
   const pendingCountEl = document.getElementById('inquiries-pending-count');
   const tbody = document.getElementById('inquiries-tbody');
   
-  if (totalCountEl) totalCountEl.textContent = INQUIRIES.length;
+  if (totalCountEl) {
+    if (typeof db !== 'undefined' && db && !dbLoaded && INQUIRIES.length === 0) {
+      totalCountEl.textContent = '...';
+    } else {
+      totalCountEl.textContent = INQUIRIES.length;
+    }
+  }
   const pendingCount = INQUIRIES.filter(i => i.status === 'pending').length;
-  if (pendingCountEl) pendingCountEl.textContent = pendingCount;
+  if (pendingCountEl) {
+    if (typeof db !== 'undefined' && db && !dbLoaded && INQUIRIES.length === 0) {
+      pendingCountEl.textContent = '...';
+    } else {
+      pendingCountEl.textContent = pendingCount;
+    }
+  }
   
   updateSidebarBadges();
   
   if (!tbody) return;
+  
+  if (typeof db !== 'undefined' && db && !dbLoaded && INQUIRIES.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">데이터를 불러오는 중입니다...</td></tr>`;
+    return;
+  }
   
   if (INQUIRIES.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">등록된 1:1 문의사항이 없습니다.</td></tr>`;
@@ -1656,104 +1794,21 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ─── Notices Data & CRUD ─────────────────────────────────────────────────────
-const DEFAULT_NOTICES = [
-  {
-    id: 'notice-1',
-    category: '필독',
-    categoryClass: 'badge-red',
-    isPinned: true,
-    title: '태권잡 서비스 이용약관 개정 안내',
-    date: '2026-06-01',
-    views: '1,205',
-    content: `안녕하세요, 태권잡 운영팀입니다.
-
-태권잡 서비스를 이용해 주시는 회원님들께 깊은 감사를 드리며, 새로운 서비스 이용약관 개정 사항에 대해 안내해 드립니다.
-
-■ 개정 대상: 태권잡 서비스 이용약관 및 개인정보 처리방침
-■ 개정 공지일: 2026-06-01
-■ 개정 적용일: 2026-07-01
-
-■ 주요 개정 내용:
-1. 국내 PG사(토스페이먼츠) 연동에 따른 결제 조항 정비
-2. 채용공고 최상단 고정 노출(상위 노출) 권한 관련 약관 구체화
-3. 1:1 문의 채널 고도화에 따른 개인정보 수집 항목(연락처 삭제 등) 현행화
-
-본 개정 약관에 동의하지 않으시는 경우 회원 탈퇴를 요청하실 수 있으며, 적용일 전까지 별도의 거부 의사를 표시하지 않으실 경우 본 개정 약관에 동의하신 것으로 간주됩니다. 관련 문의 사항은 고객센터를 통해 문의해 주시기 바랍니다.`
-  },
-  {
-    id: 'notice-2',
-    category: '공지',
-    categoryClass: 'badge-blue',
-    isPinned: true,
-    title: '2026년 6월 서버 점검 안내 (06/15 02:00~04:00)',
-    date: '2026-05-30',
-    views: '892',
-    content: `안녕하세요, 태권잡 운영팀입니다.
-
-더욱 안정적이고 빠른 서비스 제공을 위해 시스템 정기 점검 및 인프라 서버 확장을 진행할 예정입니다.
-점검 시간 동안에는 플랫폼 전체 서비스 이용(로그인, 공고 등록, 이력서 열람 등)이 일시 중단되오니 서비스 이용에 참고하시기 바랍니다.
-
-■ 점검 일시: 2026년 6월 15일 (월) 02:00 ~ 04:00 (약 2시간)
-■ 점검 내용: 데이터베이스 처리 성능 최적화 및 보안 패치 적용
-■ 영향 범위: 태권잡 웹사이트 및 관리자 웹 콘솔 전체 서비스 접속 불가
-
-점검 작업은 예정된 시간 내에 신속히 완료할 수 있도록 최선을 다하겠습니다. 이용에 불편을 드려 대단히 죄송합니다.`
-  },
-  {
-    id: 'notice-3',
-    category: '업데이트',
-    categoryClass: 'badge-green',
-    isPinned: false,
-    title: '프리미엄 채용공고 기능 업데이트 안내',
-    date: '2026-05-20',
-    views: '445',
-    content: `안녕하세요, 태권잡 운영팀입니다.
-
-관장님들의 빠르고 확실한 사범님 채용을 지원하기 위해 '채용공고 상위 노출 30일권' 서비스가 공식 오픈되었습니다!
-
-■ 주요 내용:
-- 채용공고 관리 화면에서 [상위노출 결제]를 진행할 수 있습니다.
-- 상위 노출이 설정된 공고는 메인 화면 최상단 구역에 고정 노출되어 높은 주목도를 보장합니다.
-- 토스페이먼츠(Toss Payments)를 통한 편리한 신용카드 및 페이 결제(카카오페이, 네이버페이 등)를 제공합니다.
-
-많은 이용 바라며, 관장님들의 원활한 인재 채용을 위해 최선을 다하겠습니다. 감사합니다.`
-  },
-  {
-    id: 'notice-4',
-    category: '일반',
-    categoryClass: 'badge-gray',
-    isPinned: false,
-    title: '개인정보 처리방침 개정 안내',
-    date: '2026-05-10',
-    views: '312',
-    content: `안녕하세요, 태권잡 운영팀입니다.
-
-개인정보 처리 위탁 정보 및 개인정보 수집 최소화 방침에 따라 개인정보 처리방침이 일부 변경되어 안내해 드립니다.
-
-■ 개정 공지일: 2026-05-10
-■ 개정 적용일: 2026-05-17
-
-■ 개정 내용:
-1. 1:1 문의 폼 내 전화번호(연락처) 수집 정보 제외 및 불필요한 개인정보 보유 파기 기준 정비
-2. 서비스 연동 외부 결제 대행업체 정보 현행화 (토스페이먼츠 추가)
-
-개정 사항에 대한 문의는 고객센터 이메일을 통해 접수해 주시면 성심껏 답변해 드리겠습니다. 감사합니다.`
-  }
-];
+const DEFAULT_NOTICES = [];
 
 let NOTICES = [];
 try {
   const localData = localStorage.getItem('taekwondo_admin_notices');
   if (localData) {
-    NOTICES = JSON.parse(localData);
-  } else {
-    NOTICES = [...DEFAULT_NOTICES];
-    localStorage.setItem('taekwondo_admin_notices', JSON.stringify(NOTICES));
+    const parsed = JSON.parse(localData);
+    if (parsed && parsed.length > 0 && !parsed.some(n => n.id && String(n.id).startsWith('notice-'))) {
+      NOTICES = parsed;
+    }
   }
 } catch (e) {
   console.error('공지사항 초기화 에러:', e);
-  NOTICES = [...DEFAULT_NOTICES];
 }
+
 
 window.populateNotices = function() {
   const container = document.getElementById('notice-list-container');
@@ -1772,6 +1827,18 @@ window.populateNotices = function() {
     return new Date(b.date) - new Date(a.date);
   });
 
+  const categoryLabels = {
+    knowhow: '도장 운영 노하우',
+    news: '태권도 뉴스',
+    contest: '대회정보'
+  };
+
+  const categoryClasses = {
+    knowhow: 'badge-blue',
+    news: 'badge-green',
+    contest: 'badge-red'
+  };
+
   sorted.forEach(n => {
     const isPinned = n.isPinned === true || n.isPinned === 'true';
     const row = document.createElement('div');
@@ -1779,11 +1846,14 @@ window.populateNotices = function() {
     row.style.cursor = 'pointer';
     row.onclick = () => showDetail('notice', n.id);
 
+    const categoryLabel = categoryLabels[n.category] || n.category;
+    const categoryClass = categoryClasses[n.category] || 'badge-gray';
+
     row.innerHTML = `
       ${isPinned
         ? `<svg class="notice-pin" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2l2.5 6H21l-5 3.5 2 6L12 14l-6 3.5 2-6L3 8h6.5z"/></svg>`
         : `<span style="width:14px"></span>`}
-      <span class="notice-category"><span class="badge ${n.categoryClass || 'badge-gray'}">${n.category}</span></span>
+      <span class="notice-category"><span class="badge ${categoryClass}">${categoryLabel}</span></span>
       <span class="notice-title">${n.title}</span>
       <span class="notice-date">${n.date}</span>
       <span class="notice-views">👁 ${n.views || 0}</span>
@@ -1796,13 +1866,94 @@ window.populateNotices = function() {
   });
 };
 
+// 게시글 이미지 첨부 관련 상태 변수
+let noticeSelectedImageFile = null;
+let noticeExistingImageUrl = '';
+let noticeExistingStoragePath = '';
+
+function setNoticeImageDropState(state = '') {
+  const zone = document.getElementById('notice-image-drop-zone');
+  if (!zone) return;
+  zone.classList.toggle('is-dragging', state === 'dragging');
+  zone.classList.toggle('is-selected', state === 'selected');
+}
+
+function updateNoticeImagePreview(src = '', metaText = '') {
+  const previewWrap = document.getElementById('notice-dlg-image-preview-wrap');
+  const previewImg = document.getElementById('notice-dlg-image-preview');
+  const meta = document.getElementById('notice-image-meta');
+  const hasImage = Boolean(src);
+
+  if (previewWrap && previewImg) {
+    previewImg.src = src;
+    previewWrap.style.display = hasImage ? 'block' : 'none';
+  }
+
+  if (meta) {
+    meta.textContent = metaText;
+    meta.style.display = hasImage && metaText ? 'block' : 'none';
+  }
+
+  setNoticeImageDropState(hasImage ? 'selected' : '');
+}
+
+function setNoticeImageFile(file) {
+  if (!file) return;
+  const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  if (!allowed.includes(file.type)) {
+    showToast('JPG, PNG, WebP 형식의 이미지만 첨부 가능합니다.', 'error');
+    return;
+  }
+
+  noticeSelectedImageFile = file;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    updateNoticeImagePreview(e.target.result, `${file.name} · ${formatBannerFileSize(file.size)}`);
+  };
+  reader.readAsDataURL(file);
+}
+
+window.previewNoticeImage = function(event) {
+  const file = event.target.files[0];
+  setNoticeImageFile(file);
+  event.target.value = '';
+};
+
+window.handleNoticeImageDragOver = function(event) {
+  event.preventDefault();
+  setNoticeImageDropState('dragging');
+};
+
+window.handleNoticeImageDragLeave = function(event) {
+  event.preventDefault();
+  setNoticeImageDropState((noticeSelectedImageFile || noticeExistingImageUrl) ? 'selected' : '');
+};
+
+window.handleNoticeImageDrop = function(event) {
+  event.preventDefault();
+  setNoticeImageDropState((noticeSelectedImageFile || noticeExistingImageUrl) ? 'selected' : '');
+  const file = event.dataTransfer.files[0];
+  setNoticeImageFile(file);
+};
+
+window.removeNoticeImage = function() {
+  noticeSelectedImageFile = null;
+  noticeExistingImageUrl = '';
+  noticeExistingStoragePath = '';
+  
+  const fileInput = document.getElementById('notice-dlg-image');
+  if (fileInput) fileInput.value = '';
+
+  updateNoticeImagePreview();
+};
+
 let editingNoticeId = null;
 
 window.openCreateNoticeDialog = function() {
   editingNoticeId = null;
   const header = document.getElementById('notice-dlg-header');
   const submitBtn = document.getElementById('notice-dlg-submit-btn');
-  if (header) header.textContent = '공지사항 작성';
+  if (header) header.textContent = '게시글 작성';
   if (submitBtn) submitBtn.textContent = '등록하기';
 
   const categorySelect = document.getElementById('notice-dlg-category');
@@ -1810,22 +1961,29 @@ window.openCreateNoticeDialog = function() {
   const titleInput = document.getElementById('notice-dlg-title');
   const contentInput = document.getElementById('notice-dlg-content');
 
-  if (categorySelect) categorySelect.value = '공지';
+  if (categorySelect) categorySelect.value = 'knowhow';
   if (pinnedSelect) pinnedSelect.value = 'false';
   if (titleInput) titleInput.value = '';
   if (contentInput) contentInput.value = '';
+
+  noticeSelectedImageFile = null;
+  noticeExistingImageUrl = '';
+  noticeExistingStoragePath = '';
+  const fileInput = document.getElementById('notice-dlg-image');
+  if (fileInput) fileInput.value = '';
+  updateNoticeImagePreview();
 
   openDialog('notice-dialog');
 };
 
 window.openEditNoticeDialog = function(id) {
   const n = NOTICES.find(x => x.id === id);
-  if (!n) { showToast('공지사항을 찾을 수 없습니다.', 'error'); return; }
+  if (!n) { showToast('게시글을 찾을 수 없습니다.', 'error'); return; }
 
   editingNoticeId = id;
   const header = document.getElementById('notice-dlg-header');
   const submitBtn = document.getElementById('notice-dlg-submit-btn');
-  if (header) header.textContent = '공지사항 수정';
+  if (header) header.textContent = '게시글 수정';
   if (submitBtn) submitBtn.textContent = '수정완료';
 
   const categorySelect = document.getElementById('notice-dlg-category');
@@ -1838,16 +1996,24 @@ window.openEditNoticeDialog = function(id) {
   if (titleInput) titleInput.value = n.title;
   if (contentInput) contentInput.value = n.content;
 
+  noticeSelectedImageFile = null;
+  noticeExistingImageUrl = n.imageUrl || '';
+  noticeExistingStoragePath = n.imageStoragePath || '';
+  const fileInput = document.getElementById('notice-dlg-image');
+  if (fileInput) fileInput.value = '';
+
+  updateNoticeImagePreview(n.imageUrl || '', n.imageUrl ? '기존 첨부 이미지' : '');
+
   openDialog('notice-dialog');
 };
 
-window.submitNotice = function() {
+window.submitNotice = async function() {
   const categorySelect = document.getElementById('notice-dlg-category');
   const pinnedSelect = document.getElementById('notice-dlg-pinned');
   const titleInput = document.getElementById('notice-dlg-title');
   const contentInput = document.getElementById('notice-dlg-content');
 
-  const category = categorySelect ? categorySelect.value : '공지';
+  const category = categorySelect ? categorySelect.value : 'knowhow';
   const isPinned = pinnedSelect ? pinnedSelect.value === 'true' : false;
   const title = titleInput ? titleInput.value.trim() : '';
   const content = contentInput ? contentInput.value.trim() : '';
@@ -1855,51 +2021,191 @@ window.submitNotice = function() {
   if (!title) { showToast('제목을 입력해 주세요.', 'error'); return; }
   if (!content) { showToast('내용을 입력해 주세요.', 'error'); return; }
 
-  const categoryClasses = {
-    '필독': 'badge-red',
-    '공지': 'badge-blue',
-    '업데이트': 'badge-green',
-    '일반': 'badge-gray'
-  };
-  const categoryClass = categoryClasses[category] || 'badge-gray';
+  const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\s/g, '').slice(0, -1);
 
-  if (editingNoticeId) {
-    const idx = NOTICES.findIndex(x => x.id === editingNoticeId);
-    if (idx !== -1) {
-      NOTICES[idx].category = category;
-      NOTICES[idx].categoryClass = categoryClass;
-      NOTICES[idx].isPinned = isPinned;
-      NOTICES[idx].title = title;
-      NOTICES[idx].content = content;
-      showToast('공지사항이 수정되었습니다.', 'success');
-    }
-  } else {
-    const today = new Date().toISOString().split('T')[0];
-    const newNotice = {
-      id: 'notice-' + Date.now(),
-      category: category,
-      categoryClass: categoryClass,
-      isPinned: isPinned,
-      title: title,
-      date: today,
-      views: '0',
-      content: content
-    };
-    NOTICES.push(newNotice);
-    showToast('공지사항이 등록되었습니다.', 'success');
+  const submitBtn = document.getElementById('notice-dlg-submit-btn');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = '업로드 중...';
   }
 
-  localStorage.setItem('taekwondo_admin_notices', JSON.stringify(NOTICES));
+  let imageUrl = noticeExistingImageUrl;
+  let imageStoragePath = noticeExistingStoragePath;
+
+  try {
+    if (noticeSelectedImageFile) {
+      if (typeof storage === 'undefined' || !storage) {
+        showToast('Firebase Storage가 초기화되지 않았습니다.', 'error');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = editingNoticeId ? '수정완료' : '등록하기';
+        }
+        return;
+      }
+
+      if (noticeExistingStoragePath) {
+        try {
+          await storage.ref(noticeExistingStoragePath).delete();
+        } catch (e) {
+          console.warn('기존 이미지 삭제 실패:', e);
+        }
+      }
+
+      const timestamp = Date.now();
+      imageStoragePath = `community_images/${timestamp}_${noticeSelectedImageFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const ref = storage.ref(imageStoragePath);
+      await ref.put(noticeSelectedImageFile);
+      imageUrl = await ref.getDownloadURL();
+    } else if (imageUrl === '') {
+      if (noticeExistingStoragePath) {
+        try {
+          await storage.ref(noticeExistingStoragePath).delete();
+        } catch (e) {
+          console.warn('기존 이미지 삭제 실패:', e);
+        }
+        imageStoragePath = '';
+      }
+    }
+  } catch (uploadErr) {
+    console.error('이미지 업로드 실패:', uploadErr);
+    showToast('이미지 업로드 실패: ' + uploadErr.message, 'error');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = editingNoticeId ? '수정완료' : '등록하기';
+    }
+    return;
+  }
+
+  if (typeof db !== 'undefined' && db) {
+    try {
+      if (editingNoticeId) {
+        await db.collection('community').doc(editingNoticeId).update({
+          category: category,
+          title: title,
+          content: content,
+          isPinned: isPinned,
+          imageUrl: imageUrl,
+          imageStoragePath: imageStoragePath
+        });
+
+        const idx = NOTICES.findIndex(x => x.id === editingNoticeId);
+        if (idx !== -1) {
+          NOTICES[idx].category = category;
+          NOTICES[idx].title = title;
+          NOTICES[idx].content = content;
+          NOTICES[idx].isPinned = isPinned;
+          NOTICES[idx].imageUrl = imageUrl;
+          NOTICES[idx].imageStoragePath = imageStoragePath;
+        }
+        showToast('게시글이 수정되었습니다.', 'success');
+      } else {
+        const newPost = {
+          category: category,
+          title: title,
+          content: content,
+          author: '관리자',
+          date: today,
+          views: 0,
+          imageUrl: imageUrl,
+          imageStoragePath: imageStoragePath,
+          comments: [],
+          isPinned: isPinned,
+          created_at: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        const docRef = await db.collection('community').add(newPost);
+
+        NOTICES.unshift({
+          id: docRef.id,
+          ...newPost,
+          date: today
+        });
+        showToast('게시글이 등록되었습니다.', 'success');
+      }
+    } catch (err) {
+      console.error('게시글 저장 실패:', err);
+      showToast('게시글 저장 실패: ' + err.message, 'error');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = editingNoticeId ? '수정완료' : '등록하기';
+      }
+      return;
+    }
+  } else {
+    // LocalStorage fallback
+    const categoryClasses = {
+      knowhow: 'badge-blue',
+      news: 'badge-green',
+      contest: 'badge-red'
+    };
+    const categoryClass = categoryClasses[category] || 'badge-gray';
+
+    if (editingNoticeId) {
+      const idx = NOTICES.findIndex(x => x.id === editingNoticeId);
+      if (idx !== -1) {
+        NOTICES[idx].category = category;
+        NOTICES[idx].categoryClass = categoryClass;
+        NOTICES[idx].isPinned = isPinned;
+        NOTICES[idx].title = title;
+        NOTICES[idx].content = content;
+        NOTICES[idx].imageUrl = imageUrl;
+        NOTICES[idx].imageStoragePath = imageStoragePath;
+        showToast('게시글이 수정되었습니다.', 'success');
+      }
+    } else {
+      const newNotice = {
+        id: 'notice-' + Date.now(),
+        category: category,
+        categoryClass: categoryClass,
+        isPinned: isPinned,
+        title: title,
+        date: today,
+        views: 0,
+        content: content,
+        imageUrl: imageUrl,
+        imageStoragePath: imageStoragePath,
+        comments: []
+      };
+      NOTICES.unshift(newNotice);
+      showToast('게시글이 등록되었습니다.', 'success');
+    }
+    localStorage.setItem('taekwondo_admin_notices', JSON.stringify(NOTICES));
+  }
+
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = editingNoticeId ? '수정완료' : '등록하기';
+  }
+
   window.populateNotices();
   closeDialog('notice-dialog');
 };
 
-window.deleteNotice = function(id) {
-  if (!confirm('정말 이 공지사항을 삭제하시겠습니까?')) return;
-  NOTICES = NOTICES.filter(x => x.id !== id);
-  localStorage.setItem('taekwondo_admin_notices', JSON.stringify(NOTICES));
+window.deleteNotice = async function(id) {
+  if (!confirm('정말 이 게시글을 삭제하시겠습니까?')) return;
+  const n = NOTICES.find(x => x.id === id);
+  if (typeof db !== 'undefined' && db) {
+    try {
+      if (n && n.imageStoragePath && typeof storage !== 'undefined' && storage) {
+        try {
+          await storage.ref(n.imageStoragePath).delete();
+        } catch (storageErr) {
+          console.warn('이미지 파일 삭제 실패:', storageErr);
+        }
+      }
+      await db.collection('community').doc(id).delete();
+      NOTICES = NOTICES.filter(x => x.id !== id);
+      showToast('삭제하였습니다.', 'error');
+    } catch (err) {
+      console.error('게시글 삭제 실패:', err);
+      showToast('삭제 실패: ' + err.message, 'error');
+      return;
+    }
+  } else {
+    NOTICES = NOTICES.filter(x => x.id !== id);
+    localStorage.setItem('taekwondo_admin_notices', JSON.stringify(NOTICES));
+    showToast('삭제하였습니다.', 'error');
+  }
   window.populateNotices();
-  showToast('삭제하였습니다.', 'error');
 };
 
 // ─── Detail Modal populator ──────────────────────────────────────────────────
@@ -1926,7 +2232,7 @@ window.showDetail = function(type, id) {
         ${m.type === 'gym' ? `
           <div class="detail-item"><strong>사업자 검증</strong>
             <span>
-              ${m.businessValid === '01' && m.businessStatusCode === '01'
+              ${m.bizStatus === 'verified' || (m.businessValid === '01' && m.businessStatusCode === '01' && m.bizStatus !== 'pending')
                 ? '<span class="badge badge-blue">검증완료</span>'
                 : '<span class="badge badge-amber">확인중</span>'}
             </span>
@@ -2015,16 +2321,41 @@ window.showDetail = function(type, id) {
     `;
   } else if (type === 'notice') {
     const n = NOTICES.find(x => x.id === id);
-    if (!n) { showToast('공지사항을 찾을 수 없습니다.', 'error'); return; }
-    title = '공지사항 상세 정보';
+    if (!n) { showToast('게시글을 찾을 수 없습니다.', 'error'); return; }
+
+    const categoryLabels = {
+      knowhow: '도장 운영 노하우',
+      news: '태권도 뉴스',
+      contest: '대회정보'
+    };
+    const categoryLabel = categoryLabels[n.category] || n.category;
+
+    const categoryClasses = {
+      knowhow: 'badge-blue',
+      news: 'badge-green',
+      contest: 'badge-red'
+    };
+    const categoryClass = categoryClasses[n.category] || 'badge-gray';
+
+    let imageHtml = '';
+    if (n.imageUrl) {
+      imageHtml = `
+        <div class="detail-full" style="text-align: center; margin-bottom: 1rem;">
+          <img src="${n.imageUrl}" alt="첨부 이미지" style="max-width: 100%; max-height: 300px; border-radius: 8px; object-fit: contain;">
+        </div>
+      `;
+    }
+
+    title = '게시글 상세 정보';
     html = `
       <div class="detail-grid">
-        <div class="detail-item"><strong>구분</strong><span><span class="badge ${n.categoryClass}">${n.category}</span></span></div>
+        <div class="detail-item"><strong>구분</strong><span><span class="badge ${categoryClass}">${categoryLabel}</span></span></div>
         <div class="detail-item"><strong>등록일</strong><span>${n.date}</span></div>
         <div class="detail-item"><strong>조회수</strong><span>${n.views}회</span></div>
-        <div class="detail-full"><strong>공지사항 제목</strong><span style="font-size: 1.05rem; font-weight: 800; color: #0f172a;">${n.title}</span></div>
+        <div class="detail-full"><strong>게시글 제목</strong><span style="font-size: 1.05rem; font-weight: 800; color: #0f172a;">${n.title}</span></div>
+        ${imageHtml}
         <div class="detail-full">
-          <strong>공지 내용</strong>
+          <strong>본문 내용</strong>
           <div class="detail-desc" style="white-space: pre-wrap; line-height: 1.65; font-size: 0.88rem; color: #334155; max-height: 380px; overflow-y: auto; padding: 1.25rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; box-sizing: border-box;">${n.content}</div>
         </div>
       </div>
@@ -2199,12 +2530,12 @@ function resetBannerDialogState() {
   const filenameEl = document.getElementById('banner-upload-filename');
   const pctEl = document.getElementById('banner-upload-pct');
   const barEl = document.getElementById('banner-upload-bar');
-  const zone = document.getElementById('banner-upload-zone');
   const titleEl = document.getElementById('banner-dialog-title');
   const previewWrap = document.getElementById('banner-current-preview');
   const previewImg = document.getElementById('banner-current-image');
   const previewLabel = document.getElementById('banner-current-preview-label');
   const uploadTitle = document.getElementById('banner-upload-zone-title');
+  const selectedMeta = document.getElementById('banner-selected-meta');
   const saveUrlBtn = document.getElementById('banner-save-url-btn');
   const selectImageBtn = document.getElementById('banner-select-image-btn');
   const submitBtn = document.getElementById('banner-submit-btn');
@@ -2227,13 +2558,14 @@ function resetBannerDialogState() {
   if (previewImg) previewImg.removeAttribute('src');
   if (previewLabel) previewLabel.textContent = '선택한 배너 이미지';
   if (uploadTitle) uploadTitle.textContent = '클릭하거나 이미지를 드래그하여 업로드';
+  if (selectedMeta) {
+    selectedMeta.textContent = '';
+    selectedMeta.style.display = 'none';
+  }
   if (saveUrlBtn) saveUrlBtn.style.display = 'none';
   if (selectImageBtn) selectImageBtn.textContent = '이미지 선택';
   if (submitBtn) submitBtn.textContent = '등록하기';
-  if (zone) {
-    zone.style.borderColor = '#cbd5e1';
-    zone.style.background = '#f8fafc';
-  }
+  setBannerUploadZoneState();
 }
 
 function openBannerDialog() {
@@ -2275,6 +2607,13 @@ function openEditBannerDialog(bannerId) {
 
   const dialog = document.getElementById('banner-dialog');
   if (dialog && !dialog.open) dialog.showModal();
+}
+
+function setBannerUploadZoneState(state = '') {
+  const zone = document.getElementById('banner-upload-zone');
+  if (!zone) return;
+  zone.classList.toggle('is-dragging', state === 'dragging');
+  zone.classList.toggle('is-selected', state === 'selected');
 }
 
 function closeBannerDialog() {
@@ -2331,10 +2670,19 @@ async function saveBannerLinkOnly() {
 }
 
 // 드래그앤드롭 핸들러
+function handleBannerDragOver(event) {
+  event.preventDefault();
+  setBannerUploadZoneState('dragging');
+}
+
+function handleBannerDragLeave(event) {
+  event.preventDefault();
+  setBannerUploadZoneState(selectedBannerFile ? 'selected' : '');
+}
+
 function handleBannerDrop(event) {
   event.preventDefault();
-  const zone = document.getElementById('banner-upload-zone');
-  if (zone) { zone.style.borderColor = '#cbd5e1'; zone.style.background = '#f8fafc'; }
+  setBannerUploadZoneState(selectedBannerFile ? 'selected' : '');
   const file = event.dataTransfer.files[0];
   if (file) setSelectedBannerFile(file);
 }
@@ -2830,12 +3178,18 @@ window.applyBannerCrop = function() {
     const previewLabel = document.getElementById('banner-current-preview-label');
     const uploadTitle = document.getElementById('banner-upload-zone-title');
     const filenameEl = document.getElementById('banner-upload-filename');
+    const selectedMeta = document.getElementById('banner-selected-meta');
 
     if (previewImg) previewImg.src = selectedBannerPreviewUrl;
     if (previewWrap) previewWrap.style.display = 'block';
     if (previewLabel) previewLabel.textContent = '선택한 배너 이미지 (자르기 적용됨)';
     if (uploadTitle) uploadTitle.textContent = `${originalBannerFile.name} (편집됨)`;
     if (filenameEl) filenameEl.textContent = `${originalBannerFile.name} (편집됨) · 저장 버튼을 누르면 업로드됩니다.`;
+    if (selectedMeta) {
+      selectedMeta.textContent = `${originalBannerFile.name} · ${formatBannerFileSize(croppedFile.size)}`;
+      selectedMeta.style.display = 'block';
+    }
+    setBannerUploadZoneState('selected');
     
     closeBannerCropperDialog();
     showToast('이미지 자르기가 정상 적용되었습니다. [등록하기]를 눌러 완료해 주세요.', 'success');

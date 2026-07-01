@@ -53,6 +53,7 @@
         <!-- 로그인 상태 -->
         <div id="auth-logged-in" style="display:none;gap:0.75rem;align-items:center">
           <span id="auth-user-name" style="font-size:0.88rem;font-weight:700;color:var(--color-navy-800)"></span>
+          <span id="auth-biz-badge" style="display:none;font-size:0.75rem;font-weight:800;color:#16a34a;background:#dcfce7;border:1px solid #bbf7d0;padding:0.2rem 0.5rem;border-radius:4px;white-space:nowrap">인증 완료</span>
           <button type="button" id="btn-header-my-applications" onclick="window.location.hash='#my-applications'" style="display:none;font-size:0.82rem;font-weight:800;color:#1e40af;background:#eff6ff;padding:0.42rem 0.8rem;border:1.5px solid #bfdbfe;border-radius:20px;cursor:pointer;white-space:nowrap">내 채용 관리</button>
           <a href="admin.html" id="btn-admin-link" style="display:none;font-size:0.82rem;font-weight:700;color:var(--color-blue-600);padding:0.35rem 0.8rem;border:1.5px solid var(--color-blue-600);border-radius:20px;text-decoration:none">관리자</a>
           <button type="button" id="btn-header-purchase-pass" onclick="openPurchasePassModal()" style="display:none;font-size:0.82rem;font-weight:800;color:#ffffff;background:#2563eb;padding:0.42rem 0.8rem;border:1.5px solid #2563eb;border-radius:20px;cursor:pointer;white-space:nowrap">열람권 구매</button>
@@ -520,6 +521,17 @@
                   <p>예, 회원 탈퇴 즉시 개인정보 및 등록하신 채용공고, 이력서 데이터는 안전하게 영구 파기되며 즉각 복구가 불가능합니다.</p>
                 </div>
               </details>
+            </div>
+          </div>
+
+          <!-- 내 문의 내역 섹션 -->
+          <div class="my-inquiries-section" id="my-inquiries-section" style="margin-top: 3rem; margin-bottom: 2.5rem; display: none;">
+            <div class="inquiry-header">
+              <h2>내 문의 내역</h2>
+              <p>접수하신 1:1 문의사항의 처리 현황과 답변을 확인하실 수 있습니다.</p>
+            </div>
+            <div id="my-inquiries-list" class="my-inquiries-list" style="margin-top: 1.25rem;">
+              <div class="loading-placeholder">문의 내역을 불러오는 중입니다...</div>
             </div>
           </div>
 
@@ -1476,19 +1488,11 @@
             </select>
           </div>
         </div>
-        <!-- 카카오 주소 검색 및 지도 표시 영역 -->
+        <!-- 근무지 주소 직접 입력 영역 -->
         <div class="form-group">
-          <label>근무지 주소</label>
-          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-            <input type="text" id="job-address" placeholder="주소를 직접 입력하거나 주소 검색 버튼을 눌러주세요" style="flex: 1;" oninput="handleAddressDirectInput(this.value)" required>
-            <button type="button" class="btn btn-secondary" onclick="toggleDaumPostcodeEmbed()" style="padding: 0.5rem 1rem; flex-shrink: 0; white-space: nowrap; height: 38px; border: 1.5px solid var(--border-main); border-radius: var(--radius-md); font-weight: 700; background: var(--bg-hover); cursor: pointer;">주소 검색</button>
-          </div>
-          <!-- 내장형 Daum 주소 검색 리스트 박스 -->
-          <div id="job-address-search-container" style="display:none; border:1.5px solid var(--border-main); width:100%; height:320px; margin-bottom:8px; position:relative; border-radius:8px; overflow:hidden; background:#fff;">
-            <button type="button" onclick="closeDaumPostcodeEmbed()" style="position:absolute; right:10px; top:10px; z-index:10; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; padding:2px 8px; font-size:0.75rem; cursor:pointer; font-weight:700;">닫기</button>
-            <div id="job-address-search-inner" style="width:100%; height:100%;"></div>
-          </div>
-          <div id="job-map" style="width:100%; height:200px; background:#f1f5f9; border-radius:8px; border:1.5px solid var(--border-main); display:none;"></div>
+          <label for="job-address">근무지 주소</label>
+          <input type="text" id="job-address" placeholder="근무지 주소를 직접 입력해주세요" oninput="handleAddressDirectInput(this.value)" required>
+          <div id="job-map" style="width:100%; height:200px; background:#f1f5f9; border-radius:8px; border:1.5px solid var(--border-main); display:none; margin-top:8px;"></div>
         </div>
 
         <div class="form-grid">
@@ -1512,17 +1516,9 @@
             <input type="text" id="job-exp" placeholder="예: 경력 2년↑ 또는 신입가능" required>
           </div>
           <div class="form-group">
-            <label for="job-hotness">공고 뱃지</label>
-            <select id="job-hotness">
-              <option value="">일반 공고</option>
-              <option value="NEW">NEW 뱃지</option>
-              <option value="HOT">HOT 뱃지</option>
-            </select>
+            <label for="job-preferred">우대조건</label>
+            <input type="text" id="job-preferred" placeholder="예: 겨루기 선수 출신, 태권도 4단 이상, 인근 거주자 우대">
           </div>
-        </div>
-        <div class="form-group">
-          <label for="job-preferred">우대조건</label>
-          <input type="text" id="job-preferred" placeholder="예: 겨루기 선수 출신, 태권도 4단 이상, 인근 거주자 우대">
         </div>
         <div class="form-group">
           <label for="job-desc">도장 소개 및 상세 업무내용</label>
@@ -1643,7 +1639,7 @@
           <textarea id="comm-post-content" rows="6" required placeholder="내용을 입력하세요"></textarea>
         </div>
         <div class="form-group">
-          <label for="comm-post-image">이미지 쳊부 <span style="font-weight:400;color:var(--text-muted);font-size:0.82rem;">선택 · JPG/PNG/WebP · 최대 1MB</span></label>
+          <label for="comm-post-image">이미지 첨부 <span style="font-weight:400;color:var(--text-muted);font-size:0.82rem;">선택 · JPG/PNG/WebP · 최대 1MB</span></label>
           <div id="comm-image-drop" style="
             border:2px dashed #cbd5e1;border-radius:10px;padding:1.25rem;
             text-align:center;cursor:pointer;background:#f8fafc;
@@ -1813,6 +1809,9 @@
         </div>
 
         <div class="detail-content-block">
+          <div id="detail-post-image-wrap" style="margin-bottom: 1.5rem; display: none; text-align: center;">
+            <img id="detail-post-image" src="" alt="게시글 이미지" style="max-width: 100%; max-height: 400px; border-radius: 12px; object-fit: contain; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+          </div>
           <p id="detail-post-desc" class="desc-content" style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.8; color: var(--text-main);">
             게시글 본문 내용이 여기에 표시됩니다.
           </p>
@@ -2004,6 +2003,54 @@
           이력서 열람 구독이 활성화되었습니다.
         </p>
         <button type="button" class="btn-action-primary" onclick="document.getElementById('dialog-service-payment-success').close();" style="width: 100%; height: 38px; font-weight: 700;">확인</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 사업자등록정보 재인증 다이얼로그 -->
+  <dialog id="dialog-biz-reverify" class="modal-dialog" style="max-width: 480px; border: none; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+    <div class="dialog-content" style="padding: 2.25rem 2rem;">
+      <div style="width: 52px; height: 52px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+      </div>
+      <h2 style="font-size: 1.35rem; font-weight: 900; color: #0f172a; margin: 0 0 0.5rem 0; text-align: center; letter-spacing: -0.025em;">사업자등록정보 재인증</h2>
+      <p style="text-align: center; color: #64748b; font-size: 0.85rem; margin-top: 0; margin-bottom: 2rem; line-height: 1.6; word-break: keep-all;">
+        국세청 시스템 장애로 임시 승인된 상태입니다.<br>도장회원 권한 유지를 위해 정보를 다시 입력하여 인증을 진행해주세요.
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.75rem;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="reverify-gym-name" style="font-size: 0.85rem; font-weight: 700; color: #475569;">상호명</label>
+          <input type="text" id="reverify-gym-name" placeholder="사업자등록증 상의 상호명" style="height: 44px; font-size: 0.9rem;">
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="reverify-biz-number" style="font-size: 0.85rem; font-weight: 700; color: #475569;">사업자등록번호</label>
+          <input type="text" id="reverify-biz-number" placeholder="000-00-00000" maxlength="12" style="height: 44px; font-size: 0.9rem;">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="reverify-owner-name" style="font-size: 0.85rem; font-weight: 700; color: #475569;">대표자명</label>
+          <input type="text" id="reverify-owner-name" placeholder="대표자명 입력" style="height: 44px; font-size: 0.9rem;">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="reverify-start-date" style="font-size: 0.85rem; font-weight: 700; color: #475569;">개업일자 (8자리)</label>
+          <input type="text" id="reverify-start-date" placeholder="예: 20200101" maxlength="10" style="height: 44px; font-size: 0.9rem;">
+        </div>
+      </div>
+
+      <div id="reverify-result" style="font-size:0.82rem; font-weight: 700; margin-bottom:1.25rem; text-align:center; min-height: 1.2rem;"></div>
+
+      <div style="display: flex; gap: 0.75rem;">
+        <button type="button" id="btn-reverify-later" class="btn-action-secondary" style="flex: 1; height: 48px; font-weight: 700; margin: 0; font-size: 0.95rem; cursor: pointer;" onclick="document.getElementById('dialog-biz-reverify').close();">나중에 인증</button>
+        <button type="button" id="btn-reverify-submit" class="btn-action-primary" style="flex: 1.5; height: 48px; font-weight: 700; margin: 0; font-size: 0.95rem; cursor: pointer;">인증</button>
       </div>
     </div>
   </dialog>
