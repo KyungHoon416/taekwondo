@@ -736,6 +736,332 @@ img { max-width: 100%; }
   border-radius: 0 0 var(--r-lg) var(--r-lg);
 }
 
+/* ─── Banner Upload Dialog ─── */
+.banner-dialog {
+  max-width: 640px;
+}
+
+.banner-dialog-body {
+  display: grid;
+  gap: 1rem;
+}
+
+.banner-preview-panel {
+  padding: 0.9rem;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+
+.banner-preview-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.banner-preview-title {
+  color: #334155;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.banner-preview-caption {
+  color: var(--light);
+  font-size: 0.76rem;
+  font-weight: 600;
+  margin-top: 0.1rem;
+}
+
+.banner-preview-image {
+  width: 100%;
+  aspect-ratio: 5 / 1;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.banner-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.banner-field label {
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.banner-url-input {
+  width: 100%;
+  height: 44px;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--r-md);
+  padding: 0 0.95rem;
+  font-size: 0.9rem;
+  color: #0f172a;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.banner-url-input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+}
+
+.banner-field-help {
+  color: var(--light);
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.banner-upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 190px;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  background: #f8fafc;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: var(--r-lg);
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.banner-upload-zone:hover,
+.banner-upload-zone.is-dragging {
+  background: #eff6ff;
+  border-color: var(--blue);
+  box-shadow: 0 10px 24px rgba(37,99,235,0.08);
+}
+
+.banner-upload-zone.is-selected {
+  background: #f0fdf4;
+  border-color: var(--green);
+}
+
+.banner-upload-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 0.85rem;
+  color: var(--blue);
+  background: #dbeafe;
+  border-radius: 50%;
+}
+
+.banner-upload-zone.is-selected .banner-upload-icon {
+  color: var(--green);
+  background: #dcfce7;
+}
+
+.banner-upload-title {
+  color: #334155;
+  font-size: 0.95rem;
+  font-weight: 800;
+  margin: 0 0 0.25rem;
+}
+
+.banner-upload-subtitle {
+  color: var(--light);
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.banner-selected-meta {
+  max-width: 100%;
+  margin-top: 0.85rem;
+  padding: 0.38rem 0.65rem;
+  color: #166534;
+  background: rgba(220,252,231,0.8);
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.banner-upload-progress {
+  padding: 0.85rem;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+
+.banner-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.55rem;
+}
+
+#banner-upload-filename {
+  min-width: 0;
+  color: #0f172a;
+  font-size: 0.85rem;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#banner-upload-pct {
+  color: var(--blue);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.banner-progress-track {
+  height: 7px;
+  overflow: hidden;
+  background: #e2e8f0;
+  border-radius: 999px;
+}
+
+.banner-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg,#2563eb,#10b981);
+  border-radius: 999px;
+  transition: width 0.2s;
+}
+
+/* ─── Notice Image Upload ─── */
+.notice-image-label-sub {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.notice-image-drop-zone {
+  display: grid;
+  gap: 0.8rem;
+  min-height: 170px;
+  padding: 1.2rem;
+  text-align: center;
+  cursor: pointer;
+  background: #f8fafc;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: var(--r-md);
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+
+.notice-image-drop-zone:hover,
+.notice-image-drop-zone.is-dragging {
+  background: #eff6ff;
+  border-color: var(--blue);
+  box-shadow: 0 10px 22px rgba(37,99,235,0.08);
+}
+
+.notice-image-drop-zone.is-selected {
+  background: #f0fdf4;
+  border-color: var(--green);
+}
+
+.notice-image-placeholder {
+  display: flex;
+  min-height: 130px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.notice-image-drop-zone.is-selected .notice-image-placeholder {
+  display: none;
+}
+
+.notice-image-upload-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 0.7rem;
+  color: var(--blue);
+  background: #dbeafe;
+  border-radius: 50%;
+}
+
+.notice-image-title {
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 800;
+  margin: 0 0 0.2rem;
+}
+
+.notice-image-help {
+  color: var(--light);
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.notice-image-preview-wrap {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.notice-image-preview-wrap img {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+  background: #fff;
+}
+
+.notice-image-remove-btn {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  color: #fff;
+  background: rgba(15,23,42,0.72);
+  border-radius: 50%;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.notice-image-remove-btn:hover {
+  background: rgba(239,68,68,0.92);
+  transform: scale(1.04);
+}
+
+.notice-image-meta {
+  justify-self: center;
+  max-width: 100%;
+  padding: 0.36rem 0.65rem;
+  color: #166534;
+  background: rgba(220,252,231,0.8);
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ─── Form Groups in Dialog ─── */
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
 .form-row.single { grid-template-columns: 1fr; }

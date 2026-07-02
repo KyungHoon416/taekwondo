@@ -206,7 +206,7 @@ service cloud.firestore {
     }
 
     function isValidInquiry(data) {
-      return hasOnlyAllowedFields(['name', 'email', 'type', 'title', 'content', 'created_at', 'status', 'answer', 'answered_at']) &&
+      return hasOnlyAllowedFields(['name', 'email', 'type', 'title', 'content', 'created_at', 'status', 'answer', 'answered_at', 'user_id']) &&
         hasRequiredFields(['name', 'email', 'type', 'title', 'content', 'created_at', 'status']) &&
         data.name is string && data.name.size() >= 1 && data.name.size() <= 50 &&
         data.email is string && isValidEmail(data.email) &&
@@ -216,7 +216,8 @@ service cloud.firestore {
         data.created_at is timestamp &&
         data.status is string && (data.status == 'pending' || data.status == 'answered') &&
         (!data.keys().hasAny(['answer']) || data.answer is string) &&
-        (!data.keys().hasAny(['answered_at']) || data.answered_at is timestamp);
+        (!data.keys().hasAny(['answered_at']) || data.answered_at is timestamp) &&
+        (!data.keys().hasAny(['user_id']) || (data.user_id is string && data.user_id == request.auth.uid));
     }
 
 
@@ -309,7 +310,7 @@ service cloud.firestore {
             (resource.data.user_id == request.auth.uid && isValidJob(request.resource.data, request.auth.uid) && areImmutableFieldsUnchanged(['user_id', 'created_at']))
           )
         );
-      allow delete: if isAuthenticated() && resource.data.user_id == request.auth.uid;
+      allow delete: if isAuthenticated() && (resource.data.user_id == request.auth.uid || isAdmin());
     }
 
     // 3. Resumes Collection
@@ -365,7 +366,13 @@ service cloud.firestore {
     // 5. Inquiries Collection
     match /inquiries/{inquiryId} {
       allow create: if isValidInquiry(request.resource.data) && isRecent(request.resource.data.created_at);
-      allow read, update, delete: if isAuthenticated() && isUserOfType(request.auth.uid, 'gym');
+      allow read: if isAuthenticated() && (
+        resource.data.user_id == request.auth.uid || 
+        (resource.data.email != null && resource.data.email == request.auth.token.email) ||
+        isUserOfType(request.auth.uid, 'gym') ||
+        isAdmin()
+      );
+      allow update, delete: if isAuthenticated() && (isUserOfType(request.auth.uid, 'gym') || isAdmin());
     }
 
     // 6. Banners Collection
@@ -415,6 +422,27 @@ service cloud.firestore {
     match /terms/{termsId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    // 8. Community (자유게시판) Collection
+    match /community/{postId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update: if (
+        (isAuthenticated() && (
+          resource.data.author_id == request.auth.uid ||
+          isUserOfType(request.auth.uid, 'gym') ||
+          isAdmin() ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'comments'])
+        )) ||
+        // Unauthenticated users can only update 'views'
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views'])
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.author_id == request.auth.uid ||
+        isUserOfType(request.auth.uid, 'gym') ||
+        isAdmin()
+      );
     }
   }
 }
