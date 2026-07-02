@@ -2841,13 +2841,11 @@ document.addEventListener('DOMContentLoaded', () => {
       
       btnReverifySubmit.disabled = true;
       btnReverifySubmit.textContent = '인증 중...';
-      if (resultDiv) { resultDiv.textContent = '인증 중입니다...'; resultDiv.style.color = 'var(--blue)'; }
+      if (resultDiv) { resultDiv.textContent = '사업자등록정보 진위확인 API로 인증 중입니다...'; resultDiv.style.color = 'var(--blue)'; }
       
       try {
         const validInfo = await verifyBusinessInfo({ businessNumber: bizNumber, startDate, ownerName, businessName: gymName });
         if (validInfo.isBypassed) throw new Error('국세청 시스템 응답 지연 (잠시 후 다시 시도해주세요)');
-        const statusInfo = await checkBusinessStatus(bizNumber);
-        if (statusInfo.isBypassed) throw new Error('국세청 시스템 응답 지연 (잠시 후 다시 시도해주세요)');
         
         if (state.currentUser && state.currentUser.uid) {
           await db.collection('users').doc(state.currentUser.uid).update({
@@ -2856,14 +2854,24 @@ document.addEventListener('DOMContentLoaded', () => {
             business_start_date: startDate,
             business_owner_name: ownerName,
             bizStatus: 'verified',
-            business_status: statusInfo.b_stt || '미확인',
-            business_status_code: statusInfo.b_stt_cd || '00',
+            business_status: '진위확인 완료',
+            business_status_code: '01',
             business_valid: validInfo.valid || '00',
             business_valid_msg: validInfo.valid_msg || '조회 안됨',
             business_verified_at: firebase.firestore.FieldValue.serverTimestamp()
           });
           
-           state.currentUser.bizStatus = 'verified';
+          Object.assign(state.currentUser, {
+            gym_name: gymName,
+            business_number: bizNumber,
+            business_start_date: startDate,
+            business_owner_name: ownerName,
+            bizStatus: 'verified',
+            business_status: '진위확인 완료',
+            business_status_code: '01',
+            business_valid: validInfo.valid || '00',
+            business_valid_msg: validInfo.valid_msg || '조회 안됨'
+          });
           
           const bizBadge = document.getElementById('auth-biz-badge');
           if (bizBadge) {
@@ -2871,7 +2879,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           document.getElementById('dialog-biz-reverify').close();
-          showToast('사업자 재인증이 완료되었습니다.', 'success');
+          showToast('인증이 완료되었습니다.', 'success');
         }
       } catch (err) {
         if (resultDiv) { resultDiv.textContent = err.message || '인증에 실패했습니다. 정보를 다시 확인해주세요.'; resultDiv.style.color = 'var(--red)'; }
