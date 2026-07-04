@@ -170,6 +170,13 @@
   flex-shrink: 0;
 }
 
+.header-logo-img {
+  display: block;
+  width: 150px;
+  height: auto;
+  object-fit: contain;
+}
+
 .logo-sub {
   font-size: 0.65rem;
   display: block;
@@ -1760,6 +1767,13 @@
 .footer-brand .logo {
   color: var(--text-white);
   margin-bottom: 0.5rem;
+}
+
+.footer-logo-img {
+  display: block;
+  width: 150px;
+  height: auto;
+  object-fit: contain;
 }
 
 .footer-slogan {
