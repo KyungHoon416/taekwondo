@@ -4255,6 +4255,28 @@
   color: var(--accent-blue);
 }
 
+#view-privacy-policy .section {
+  padding: 2.5rem 1.5rem 4rem;
+  background: var(--bg-main);
+}
+
+#view-privacy-policy .section-container {
+  max-width: 960px;
+  padding: 0;
+}
+
+#view-privacy-policy .page-title-area {
+  display: none;
+}
+
+#view-privacy-policy .privacy-content-area {
+  margin: 0 auto;
+}
+
+#view-privacy-policy .policy-document-plain {
+  max-width: 960px;
+}
+
 /* 반응형 */
 @media (max-width: 900px) {
   .terms-page-layout {
@@ -4306,6 +4328,10 @@
 
   .terms-article-body {
     padding: 1rem;
+  }
+
+  #view-privacy-policy .section {
+    padding: 1.5rem 1rem 3rem;
   }
 }
 

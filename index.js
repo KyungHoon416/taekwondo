@@ -1204,11 +1204,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return { title, date, articles };
   }
 
-  function buildTermsHTML(parsed) {
+  function buildTermsHTML(parsed, options = {}) {
     const { title, date, articles } = parsed;
+    const anchorPrefix = options.anchorPrefix || 'terms-art';
+    const documentLabel = options.documentLabel || '약관';
 
     const tocHTML = articles.map((a, i) =>
-      `<li><a href="#terms-art-${i}">${a.num} ${a.title}</a></li>`
+      `<li><a href="#${anchorPrefix}-${i}">${a.num} ${a.title}</a></li>`
     ).join('');
 
     const articlesHTML = articles.map((a, i) => {
@@ -1224,7 +1226,7 @@ document.addEventListener('DOMContentLoaded', () => {
         : '';
 
       return `
-        <div class="terms-article" id="terms-art-${i}">
+        <div class="terms-article" id="${anchorPrefix}-${i}">
           <div class="terms-article-header">
             <span class="terms-article-num">${a.num}</span>
             <h3 class="terms-article-title">${escapeHtml(a.title)}</h3>
@@ -1248,7 +1250,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="terms-body">
         ${articlesHTML}
         <div class="terms-addendum">
-          <p>본 약관은 <strong>${escapeHtml(date)}</strong>부터 시행합니다.</p>
+          <p>본 ${escapeHtml(documentLabel)}은 <strong>${escapeHtml(date)}</strong>부터 시행합니다.</p>
           <p style="font-size:0.8rem; color: var(--text-light); margin-top: 0.3rem;">© 2026 태권커리어. All rights reserved.</p>
         </div>
       </div>`;
@@ -1285,12 +1287,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadPrivacyPolicyForPage() {
     const privacyContent = document.getElementById('privacy-policy-content');
-    if (!privacyContent) return;
+    const privacyViewerContent = document.getElementById('privacy-policy-viewer-content');
+    if (!privacyContent || !privacyViewerContent) return;
 
     try {
       const termsData = await getTermsData('privacy');
       if (termsData && termsData.content) {
-        privacyContent.textContent = termsData.content;
+        const parsed = parseTermsText(termsData.content, termsData.title, termsData.effectiveDate);
+        privacyViewerContent.className = 'terms-content-area privacy-content-area';
+        privacyViewerContent.innerHTML = buildTermsHTML(parsed, {
+          anchorPrefix: 'privacy-art',
+          documentLabel: '개인정보처리방침',
+        });
       }
     } catch (err) {
       console.warn('개인정보처리방침 동적 로드 실패, 정적 본문을 유지합니다:', err);
