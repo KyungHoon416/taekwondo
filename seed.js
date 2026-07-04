@@ -1,5 +1,5 @@
 /**
- * TaekwonJob - Firestore Seeding Script
+ * Taekwon Career - Firestore Seeding Script
  * 
  * This script seeds mock data matching the DB 구상도 schema
  * into Cloud Firestore.

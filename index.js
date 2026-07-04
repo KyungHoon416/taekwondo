@@ -1,5 +1,5 @@
 /* ==========================================================================
-   TaekwonJob (태권커리어) Core Script
+   Taekwon Career (태권커리어) Core Script
    SPA Routing, Mock Database, Filtering, & Form Submissions
    ========================================================================== */
 
