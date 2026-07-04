@@ -1,5 +1,5 @@
 /**
- * 태권잡 Firebase Configuration
+ * 태권커리어 Firebase Configuration
  * ─────────────────────────────────────────────────────────────
  * Firebase Console → 프로젝트 설정 → 내 앱 → SDK 설정에서
  * 아래 값들을 복사해서 채워주세요.
