@@ -4204,7 +4204,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <strong style="color: var(--primary-color); font-size: 1.15rem;">${price.toLocaleString()}원</strong>
         </div>
       `;
-    }).join('');
+    }).join('<div style="height: 5px; background: #eef2f7; border-radius: 999px; margin: 0 1.25rem; flex-shrink: 0;"></div>');
     const first = rows[0];
     selectPurchaseProduct(Number(first.months || 1), Number(first.price || 0), first.name || `${first.months || 1}개월 구독권`, first.id || `${first.months || 1}-${first.price || 0}-0`);
   }
