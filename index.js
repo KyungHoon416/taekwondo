@@ -2953,6 +2953,33 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     const fb = fallbacks[termsType] || fallbacks.instructor;
+    const getFallbackTitle = () => termsType === 'gym'
+      ? '관장회원 이용약관'
+      : termsType === 'instructor'
+      ? '사범회원 이용약관'
+      : termsType === 'paid'
+      ? '유료서비스 이용약관'
+      : '개인정보처리방침';
+    const getFallbackDate = () => termsType === 'privacy' ? '2026년 07월 08일' : '2026년 07월 04일';
+    const loadStaticTerms = async () => {
+      const response = await fetch(`/legal/${fb.file}`);
+      if (!response.ok) return null;
+      const text = await response.text();
+      return {
+        title: getFallbackTitle(),
+        effectiveDate: getFallbackDate(),
+        content: text
+      };
+    };
+
+    if (termsType === 'privacy') {
+      try {
+        const staticTerms = await loadStaticTerms();
+        if (staticTerms) return staticTerms;
+      } catch (err) {
+        console.warn('정적 개인정보처리방침 로드 실패, Firestore를 확인합니다:', err);
+      }
+    }
     
     try {
       if (typeof db !== 'undefined' && db) {
@@ -2973,30 +3000,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     try {
-      const response = await fetch(`/legal/${fb.file}`);
-      if (response.ok) {
-        const text = await response.text();
-        const fallbackTitle = termsType === 'gym'
-          ? '관장회원 이용약관'
-          : termsType === 'instructor'
-          ? '사범회원 이용약관'
-          : termsType === 'paid'
-          ? '유료서비스 이용약관'
-          : '개인정보처리방침';
-        const fallbackDate = termsType === 'privacy' ? '2026년 07월 08일' : '2026년 07월 04일';
-        return {
-          title: fallbackTitle,
-          effectiveDate: fallbackDate,
-          content: text
-        };
-      }
+      const staticTerms = await loadStaticTerms();
+      if (staticTerms) return staticTerms;
     } catch (err) {
       console.warn(`정적 파일 fetch 실패 [${fb.file}]:`, err);
     }
     
     return {
-      title: termsType === 'gym' ? '관장회원 이용약관' : (termsType === 'instructor' ? '사범회원 이용약관' : (termsType === 'paid' ? '유료서비스 이용약관' : '개인정보처리방침')),
-      effectiveDate: termsType === 'privacy' ? '2026년 07월 08일' : '2026년 07월 04일',
+      title: getFallbackTitle(),
+      effectiveDate: getFallbackDate(),
       content: fb.text
     };
   }
