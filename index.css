@@ -1771,7 +1771,8 @@
 
 .footer-logo-img {
   display: block;
-  width: 150px;
+  width: 190px;
+  max-width: 100%;
   height: auto;
   object-fit: contain;
 }
