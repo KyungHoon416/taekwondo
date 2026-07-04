@@ -12,6 +12,7 @@ let editingBanner = null;
 let bannerCache = {};
 let selectedBannerFile = null;
 let selectedBannerPreviewUrl = null;
+const ADMIN_EMAILS = ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com', 'kkh9172@gmail.com'];
 
 const DEFAULT_RESUME_PASS_PRODUCTS = [
   { id: 'month_1', name: '1개월 구독권', months: 1, price: 20000, active: true, sort: 1 },
@@ -116,8 +117,7 @@ function escapeHtml(value) {
       const snap = await db.collection('users').doc(user.uid).get();
       const data = snap.data();
 
-      const adminEmails = ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com'];
-      if (data && user.email && adminEmails.includes(user.email.toLowerCase())) {
+      if (data && user.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
         // ✅ 지정된 어드민 계정만 대시보드 허용
         if (overlay)     overlay.style.display = 'none';
         if (denied)      denied.style.display  = 'none';
@@ -1075,7 +1075,7 @@ function renderResumes() {
           <button class="btn-icon" title="상세보기" onclick="showDetail('resume', '${r.id}')">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
-          <button class="btn-icon danger" onclick="showToast('이력서가 삭제되었습니다.','error')">
+          <button class="btn-icon danger" title="삭제" onclick="deleteResume('${r.fullId || r.id}')">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
           </button>
         </div>
@@ -1083,6 +1083,61 @@ function renderResumes() {
     </tr>`).join('');
 
   renderPagination('resumes-pagination', filtered.length, page, 'resumes');
+}
+
+window.deleteResume = async function(id) {
+  const target = RESUMES.find(r => r.fullId === id || r.id === id);
+  const fullId = target?.fullId || id;
+  const label = target ? `${target.name} (${target.id})` : fullId;
+
+  if (!fullId) {
+    showToast('삭제할 이력서 ID를 찾을 수 없습니다.', 'error');
+    return;
+  }
+
+  if (!confirm(`이력서 [${label}]를 삭제하시겠습니까?\n관련 지원 내역도 함께 삭제되며 복구할 수 없습니다.`)) {
+    return;
+  }
+
+  try {
+    if (!db) {
+      showToast('Firestore 연결 정보가 없습니다.', 'error');
+      return;
+    }
+
+    showToast('이력서를 삭제하는 중입니다...', 'warning');
+
+    const applySnap = await db.collection('apply').where('resume_id', '==', fullId).get();
+    const batch = db.batch();
+    applySnap.forEach((doc) => batch.delete(doc.ref));
+    batch.delete(db.collection('resumes').doc(fullId));
+    await batch.commit();
+
+    const removeById = (arr) => {
+      const idx = arr.findIndex(r => r.fullId === fullId || r.id === fullId);
+      if (idx >= 0) arr.splice(idx, 1);
+    };
+    removeById(RESUMES);
+    removeById(state.resumes.filtered);
+    APPLICATIONS
+      .filter(app => app.resumeId === fullId)
+      .forEach((app) => {
+        const idx = APPLICATIONS.indexOf(app);
+        if (idx >= 0) APPLICATIONS.splice(idx, 1);
+      });
+    state.applications.filtered = state.applications.filtered.filter(app => app.resumeId !== fullId);
+
+    renderResumes();
+    renderApplications();
+    updateDashboardStats();
+    showToast('이력서와 관련 지원 내역이 삭제되었습니다.', 'success');
+  } catch (err) {
+    console.error('이력서 삭제 실패:', err);
+    const message = err && err.code === 'permission-denied'
+      ? '삭제 권한이 없습니다. 관리자 권한 또는 Firestore 보안규칙을 확인해 주세요.'
+      : `삭제 실패: ${err.message || err}`;
+    showToast(message, 'error');
+  }
 }
 
 // ─── Applications Table ──────────────────────────────────────────────────────
@@ -3001,6 +3056,10 @@ window.loadTermsOriginalFiles = async function(isSilent = false) {
   } else if (currentSelectedTermsType === 'paid') {
     filename = 'paid-terms-20260704.txt';
     defaultTitle = '유료서비스 이용약관';
+  } else if (currentSelectedTermsType === 'privacy') {
+    filename = 'privacy-policy-20260708.txt';
+    defaultTitle = '개인정보처리방침';
+    defaultEffective = '2026년 07월 08일';
   }
   
   try {

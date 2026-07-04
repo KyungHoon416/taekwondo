@@ -3583,6 +3583,22 @@
   margin: 0 auto;
 }
 
+.policy-document-plain {
+  max-width: 920px;
+  padding: 2rem;
+}
+
+.policy-plain-text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  line-height: 1.85;
+  color: var(--text-main);
+}
+
 .policy-section {
   margin-bottom: 2.5rem;
 }

@@ -103,7 +103,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        request.auth.token.email in ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com'];
+        request.auth.token.email in ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com', 'kkh9172@gmail.com', 'Kkh9172@gmail.com'];
     }
 
     // ===============================================================
@@ -321,7 +321,7 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isValidResume(request.resource.data);
       // Only the instructor owner can update/delete their resume
       allow update: if isAuthenticated() && resource.data.user_id == request.auth.uid && isValidResume(request.resource.data) && areImmutableFieldsUnchanged(['user_id']);
-      allow delete: if isAuthenticated() && resource.data.user_id == request.auth.uid;
+      allow delete: if isAuthenticated() && (resource.data.user_id == request.auth.uid || isAdmin());
     }
 
     // 4. Apply (Job Applications) Collection
@@ -360,7 +360,7 @@ service cloud.firestore {
         );
 
       allow delete: if isAuthenticated() &&
-        (request.auth.uid == get(/databases/$(database)/documents/resumes/$(resource.data.resume_id)).data.user_id);
+        (isAdmin() || request.auth.uid == get(/databases/$(database)/documents/resumes/$(resource.data.resume_id)).data.user_id);
     }
 
     // 5. Inquiries Collection

@@ -19,7 +19,7 @@ try {
 const NTS_BUSINESS_API_KEY = '99546afda95844c23df25ca3cc6c60c4b3b9cc594ba5822a5fa49ecc62391d4e';
 const NTS_BUSINESS_STATUS_URL = 'https://api.odcloud.kr/api/nts-businessman/v1/status';
 const NTS_BUSINESS_VALIDATE_URL = 'https://api.odcloud.kr/api/nts-businessman/v1/validate';
-const ADMIN_EMAILS = ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com'];
+const ADMIN_EMAILS = ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com', 'kkh9172@gmail.com'];
 const DEFAULT_RESUME_PASS_PRODUCTS = [
   { id: 'month_1', name: '1개월 구독권', months: 1, price: 20000, active: true, sort: 1 },
   { id: 'month_2', name: '2개월 구독권', months: 2, price: 30000, active: true, sort: 2 },
@@ -1134,6 +1134,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const termsType = activeTab ? activeTab.dataset.termsType : 'gym';
       loadTermsForPage(termsType);
     }
+    if (viewId === 'privacyPolicy') {
+      loadPrivacyPolicyForPage();
+    }
 
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -1277,6 +1280,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (termsLoadingBox) termsLoadingBox.style.display = 'none';
       termsPageViewerContent.innerHTML = `<div style="padding:3rem; text-align:center; color:var(--text-muted);">약관 파일을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>`;
       termsPageViewerContent.style.display = 'block';
+    }
+  }
+
+  async function loadPrivacyPolicyForPage() {
+    const privacyContent = document.getElementById('privacy-policy-content');
+    if (!privacyContent) return;
+
+    try {
+      const termsData = await getTermsData('privacy');
+      if (termsData && termsData.content) {
+        privacyContent.textContent = termsData.content;
+      }
+    } catch (err) {
+      console.warn('개인정보처리방침 동적 로드 실패, 정적 본문을 유지합니다:', err);
     }
   }
 
@@ -2920,6 +2937,10 @@ document.addEventListener('DOMContentLoaded', () => {
       paid: {
         file: 'paid-terms-20260704.txt',
         text: `유료서비스 이용약관 (시행일: 2026년 07월 04일)\n\n제1조 목적\n본 약관은 태권커리어(이하 “회사”)이 운영하는 태권도 전문 구인·구직 플랫폼에서 관장회원이 이용하는 유료서비스의 이용조건, 결제, 이용기간, 환불, 청약철회 제한, 이용제한 및 기타 필요한 사항을 규정함을 목적으로 합니다.`
+      },
+      privacy: {
+        file: 'privacy-policy-20260708.txt',
+        text: `태권커리어 개인정보처리방침\n\n시행일: 2026년 07월 08일`
       }
     };
     
@@ -2947,9 +2968,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch(`/legal/${fb.file}`);
       if (response.ok) {
         const text = await response.text();
+        const fallbackTitle = termsType === 'gym'
+          ? '관장회원 이용약관'
+          : termsType === 'instructor'
+          ? '사범회원 이용약관'
+          : termsType === 'paid'
+          ? '유료서비스 이용약관'
+          : '개인정보처리방침';
+        const fallbackDate = termsType === 'privacy' ? '2026년 07월 08일' : '2026년 07월 04일';
         return {
-          title: termsType === 'gym' ? '관장회원 이용약관' : (termsType === 'instructor' ? '사범회원 이용약관' : '유료서비스 이용약관'),
-          effectiveDate: '2026년 07월 04일',
+          title: fallbackTitle,
+          effectiveDate: fallbackDate,
           content: text
         };
       }
@@ -2958,8 +2987,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     return {
-      title: termsType === 'gym' ? '관장회원 이용약관' : (termsType === 'instructor' ? '사범회원 이용약관' : '유료서비스 이용약관'),
-      effectiveDate: '2026년 07월 04일',
+      title: termsType === 'gym' ? '관장회원 이용약관' : (termsType === 'instructor' ? '사범회원 이용약관' : (termsType === 'paid' ? '유료서비스 이용약관' : '개인정보처리방침')),
+      effectiveDate: termsType === 'privacy' ? '2026년 07월 08일' : '2026년 07월 04일',
       content: fb.text
     };
   }
