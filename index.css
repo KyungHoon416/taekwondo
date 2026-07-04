@@ -167,8 +167,7 @@
 }
 
 .logo-icon {
-  color: var(--accent-blue);
-  animation: kick-swivel 4s ease-in-out infinite;
+  flex-shrink: 0;
 }
 
 .logo-sub {
@@ -178,6 +177,11 @@
   letter-spacing: 1.5px;
   color: var(--text-muted);
   margin-top: -3px;
+}
+
+.logo-sub-red {
+  color: #d6222a;
+  font-weight: 700;
 }
 
 .nav-menu ul {
@@ -3045,15 +3049,6 @@
 /* ==========================================================================
    Animations
    ========================================================================== */
-@keyframes kick-swivel {
-  0%, 100% {
-    transform: rotate(0deg);
-  }
-  50% {
-    transform: rotate(-10deg) scale(1.05);
-  }
-}
-
 @keyframes pulse-gold {
   0% {
     transform: scale(1);
