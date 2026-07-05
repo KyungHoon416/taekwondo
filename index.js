@@ -4826,14 +4826,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const months = Number(product.months || index + 1);
       const price = Number(product.price || 0);
       const name = product.name || `${months}개월 구독권`;
+      const productKey = product.id || `${months}-${price}-${index}`;
       return `
-        <div class="product-item" data-product-key="${escapeHtml(product.id || `${months}-${price}-${index}`)}" style="border: ${index === 0 ? '2px solid var(--primary-color)' : '1px solid var(--border-color)'}; border-radius: 12px; padding: 1rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: ${index === 0 ? 'var(--bg-hover)' : 'transparent'};" onclick="selectPurchaseProduct(${months}, ${price}, '${escapeForInline(name)}', '${escapeForInline(product.id || `${months}-${price}-${index}`)}')">
-          <div>
-            <strong style="font-size: 1.05rem; display: block; color: var(--text-color);">${escapeHtml(name)}</strong>
-            <span style="font-size: 0.85rem; color: var(--text-muted);">인재 이력서 열람</span>
+        <button type="button" class="product-item purchase-product-item" data-product-key="${escapeHtml(productKey)}" aria-pressed="${index === 0 ? 'true' : 'false'}" onclick="selectPurchaseProduct(${months}, ${price}, '${escapeForInline(name)}', '${escapeForInline(productKey)}', true)">
+          <div class="purchase-product-copy">
+            <strong class="purchase-product-name">${escapeHtml(name)}</strong>
+            <span class="purchase-product-desc">인재 이력서 열람</span>
           </div>
-          <strong style="color: var(--primary-color); font-size: 1.15rem;">${price.toLocaleString()}원</strong>
-        </div>
+          <strong class="purchase-product-price">${price.toLocaleString()}원</strong>
+        </button>
       `;
     }).join('<div style="height: 5px; background: #eef2f7; border-radius: 999px; margin: 0 1.25rem; flex-shrink: 0;"></div>');
     const first = rows[0];
@@ -4845,7 +4846,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 구매할 상품 선택 시 하이라이트 토글
-  window.selectPurchaseProduct = function(months, price, productName = '', productKey = '') {
+  window.selectPurchaseProduct = function(months, price, productName = '', productKey = '', proceedToPayment = false) {
     const hiddenCount = document.getElementById('selected-pass-count');
     const hiddenPrice = document.getElementById('selected-pass-price');
     const hiddenName = document.getElementById('selected-pass-name');
@@ -4857,19 +4858,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (hiddenName) hiddenName.value = productName || `${months}개월 구독권`;
 
     const items = dialog.querySelectorAll('.product-item');
-    items.forEach((item, index) => {
-      if (productKey && item.dataset.productKey === productKey) {
-        item.style.borderColor = 'var(--primary-color)';
-        item.style.backgroundColor = 'var(--bg-hover)';
-      } else {
-        item.style.borderColor = 'var(--border-color)';
-        item.style.backgroundColor = 'transparent';
-      }
+    items.forEach((item) => {
+      const isSelected = productKey && item.dataset.productKey === productKey;
+      item.classList.toggle('is-selected', Boolean(isSelected));
+      item.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
     });
 
-    const payBtn = dialog.querySelector('.detail-footer button');
+    const payBtn = document.getElementById('btn-confirm-purchase-pass') || dialog.querySelector('.detail-footer button');
     if (payBtn) {
       payBtn.textContent = `💳 결제하기 (${price.toLocaleString()}원)`;
+    }
+
+    if (proceedToPayment) {
+      window.setTimeout(() => {
+        confirmPurchasePass();
+      }, 120);
     }
   };
 
