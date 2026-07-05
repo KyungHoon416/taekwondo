@@ -1681,22 +1681,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!roleFloatingCTA) return;
 
     const enabledViews = new Set(['home', 'jobs', 'talents', 'community', 'customerService', 'myApplications']);
-    const isLoggedIn = !!(auth && auth.currentUser);
-    const rawType = String(state.currentUser?.type || state.currentUser?.role || '').toLowerCase();
-    const hasGymProfile = !!(
-      state.currentUser?.gym_name ||
-      state.currentUser?.business_number ||
-      rawType === 'gym' ||
-      rawType.includes('관장') ||
-      rawType.includes('구인') ||
-      rawType.includes('도장') ||
-      rawType.includes('owner')
-    );
-    const hasInstructorProfile = !!(
-      rawType === 'instructor' ||
-      rawType.includes('사범') ||
-      rawType.includes('구직')
-    );
     const shouldShow = enabledViews.has(viewId);
 
     if (!shouldShow) {
@@ -1704,6 +1688,9 @@ document.addEventListener('DOMContentLoaded', () => {
       roleFloatingCTA.classList.remove('is-open'); // Close the menu when hiding
       return;
     }
+
+    const role = getUserRole();
+    const isLoggedIn = role !== 'guest' && role !== 'loading';
 
     const subActionBtn = document.getElementById('btn-floating-role-action');
     const subCommunityBtn = document.getElementById('btn-floating-community-write');
@@ -1719,9 +1706,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (subCommunityBtn) subCommunityBtn.style.display = 'flex';
       if (subActionBtn) {
         subActionBtn.style.display = 'flex';
-        const isInstructor = hasInstructorProfile || !hasGymProfile;
-        const action = isInstructor ? 'resume' : 'job';
-        const label = isInstructor ? '이력서 등록' : '채용공고 등록';
+        // Gym and Admin get 'job' (채용공고 등록), Instructor gets 'resume' (이력서 등록)
+        const isGymOrAdmin = role === 'gym' || role === 'admin';
+        const action = isGymOrAdmin ? 'job' : 'resume';
+        const label = isGymOrAdmin ? '채용공고 등록' : '이력서 등록';
         subActionBtn.dataset.action = action;
         subActionBtn.setAttribute('data-action', action); // ensures CSS selector matching
         const btnText = subActionBtn.querySelector('.role-floating-sub-text');
