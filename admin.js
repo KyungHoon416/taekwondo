@@ -194,10 +194,8 @@ const MEMBERS = typeof db === 'undefined' || !db ? [
 const JOBS = typeof db === 'undefined' || !db ? [
   { id: 128, title: '강남 태권도장 메인사범 모집', gym: '강남 태권도장', region: '서울', district: '강남구', salary: '월 320만원', position: '메인사범', exp: '경력 3년↑', regDate: '2026-05-18', views: 45, status: '게시중' },
   { id: 127, title: '송파 태권도장 보조사범 모집', gym: '송파 태권도장', region: '서울', district: '송파구', salary: '월 260만원', position: '보조사범', exp: '신입 가능', regDate: '2026-05-18', views: 32, status: '게시중' },
-  { id: 126, title: '분당 태권도장 메인사범 모집', gym: '분당 태권도장', region: '경기', district: '성남시', salary: '시급 15,000', position: '파트타임', exp: '경력 1년↑', regDate: '2026-05-17', views: 28, status: '검토중' },
   { id: 125, title: '일산 태권도장 메인사범 모집', gym: '일산 태권도장', region: '경기', district: '고양시', salary: '월 300만원', position: '메인사범', exp: '경력 2년↑', regDate: '2026-05-17', views: 15, status: '마감됨' },
   { id: 124, title: '인천 태권도장 보조사범 모집', gym: '인천 태권도장', region: '인천', district: '연수구', salary: '월 250만원', position: '보조사범', exp: '신입 가능', regDate: '2026-05-16', views: 25, status: '게시중' },
-  { id: 123, title: '대전 도장 수석사범 모집', gym: '대전 태권도장', region: '대전', district: '서구', salary: '월 380만원', position: '수석사범', exp: '경력 5년↑', regDate: '2026-05-15', views: 67, status: '게시중' },
   { id: 122, title: '부산 해운대 메인사범 채용', gym: '해운대 태권도장', region: '부산', district: '해운대구', salary: '월 310만원', position: '메인사범', exp: '경력 2년↑', regDate: '2026-05-14', views: 52, status: '게시중' },
   { id: 121, title: '수원 유치부 전임 사범 모집', gym: '수원 태권도장', region: '경기', district: '수원시', salary: '월 280만원', position: '유치부 전임', exp: '경력 1년↑', regDate: '2026-05-13', views: 38, status: '마감됨' },
   { id: 120, title: '광주 메인사범 채용공고', gym: '광주 태권도장', region: '광주', district: '서구', salary: '월 295만원', position: '메인사범', exp: '경력 2년↑', regDate: '2026-05-12', views: 41, status: '게시중' },
@@ -208,16 +206,13 @@ const RESUMES = typeof db === 'undefined' || !db ? [
   { id: 1, name: '김사범', gender: '남', position: '메인사범', exp: '경력 5년', area: '서울', salary: '월 320만원↑', grade: '3단', cert: '생활스포츠지도사 2급', regDate: '2026-05-18' },
   { id: 2, name: '이사범', gender: '남', position: '보조사범', exp: '경력 2년', area: '경기', salary: '월 260만원↑', grade: '2단', cert: '태권도 지도자', regDate: '2026-05-17' },
   { id: 3, name: '박사범', gender: '여', position: '유치부 전임', exp: '경력 3년', area: '서울/경기', salary: '월 280만원↑', grade: '3단', cert: '유아체육지도사', regDate: '2026-05-16' },
-  { id: 4, name: '최사범', gender: '남', position: '수석사범', exp: '경력 8년', area: '전국', salary: '월 400만원↑', grade: '5단', cert: '체육지도자, 생스지 1급', regDate: '2026-05-15' },
   { id: 5, name: '메인사범', gender: '남', position: '메인사범', exp: '신입', area: '수도권', salary: '월 250만원↑', grade: '2단', cert: '태권도 지도자', regDate: '2026-05-14' },
   { id: 6, name: '한사범', gender: '여', position: '보조사범', exp: '경력 1년', area: '부산', salary: '월 220만원↑', grade: '2단', cert: '생활스포츠지도사 2급', regDate: '2026-05-13' },
-  { id: 7, name: '조사범', gender: '남', position: '파트타임', exp: '경력 2년', area: '대전/세종', salary: '시급 15,000↑', grade: '3단', cert: '태권도 지도자', regDate: '2026-05-12' },
 ] : [];
 
 const APPLICATIONS = typeof db === 'undefined' || !db ? [
   { id: 215, applicant: '김사범', job: '강남 태권도장 메인사범 모집', gym: '강남 태권도장', applyDate: '2026-05-18', status: '검토중' },
   { id: 214, applicant: '이사범', job: '송파 태권도장 보조사범 모집', gym: '송파 태권도장', applyDate: '2026-05-18', status: '면접제안' },
-  { id: 213, applicant: '박사범', job: '대전 도장 수석사범 모집', gym: '대전 태권도장', applyDate: '2026-05-17', status: '합격' },
   { id: 212, applicant: '최사범', job: '부산 해운대 메인사범 채용', gym: '해운대 태권도장', applyDate: '2026-05-16', status: '검토중' },
   { id: 211, applicant: '메인사범', job: '광주 메인사범 채용공고', gym: '광주 태권도장', applyDate: '2026-05-15', status: '불합격' },
   { id: 210, applicant: '한사범', job: '일산 태권도장 메인사범 모집', gym: '일산 태권도장', applyDate: '2026-05-14', status: '합격' },
@@ -1786,7 +1781,7 @@ function initAnalyticsCharts() {
     new Chart(posCtx, {
       type: 'pie',
       data: {
-        labels: ['지도관장', '메인사범', '보조사범', '수석사범', '파트타임', '유치부'],
+        labels: ['지도관장', '메인사범', '보조사범', '유치부'],
         datasets: [{ data: [15, 55, 28, 10, 15, 20], backgroundColor: ['#3b82f6','#2563eb','#10b981','#8b5cf6','#f59e0b','#ef4444'], borderWidth: 3, borderColor: '#fff' }],
       },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, usePointStyle: true } } } },
