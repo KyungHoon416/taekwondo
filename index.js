@@ -1204,6 +1204,7 @@ document.addEventListener('DOMContentLoaded', () => {
       rootId: 'resume-region-picker',
       inputId: 'res-region',
       mode: 'multi',
+      tagsContainerId: 'resume-selected-regions-tags',
       onChange: (selected) => {
         state.selectedResumeRegions = selected.map((region) => region.displayName);
       }
@@ -1212,6 +1213,7 @@ document.addEventListener('DOMContentLoaded', () => {
       rootId: 'job-region-picker',
       inputId: 'job-region',
       mode: 'multi',
+      tagsContainerId: 'job-selected-regions-tags',
       onChange: (selected) => {
         state.selectedJobRegions = selected.map((region) => region.displayName);
       }
