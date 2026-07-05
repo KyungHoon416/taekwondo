@@ -2731,9 +2731,13 @@
   top: calc(100% + 0.45rem);
 }
 
-.district-picker.resume .district-panel,
-.district-picker.job .district-panel {
+.district-picker.resume .district-panel {
   width: calc(200% + 1rem);
+  left: 0;
+}
+
+.district-picker.job .district-panel {
+  width: 100%;
   left: 0;
 }
 
