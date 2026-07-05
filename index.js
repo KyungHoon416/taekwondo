@@ -1693,7 +1693,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const isLoggedIn = role !== 'guest' && role !== 'loading';
 
     const subActionBtn = document.getElementById('btn-floating-role-action');
-    const subCommunityBtn = document.getElementById('btn-floating-community-write');
     const subLoginBtn = document.getElementById('btn-floating-login');
     const subSignupBtn = document.getElementById('btn-floating-signup');
 
@@ -1703,7 +1702,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (subSignupBtn) subSignupBtn.style.display = 'none';
 
       // Show member buttons
-      if (subCommunityBtn) subCommunityBtn.style.display = 'flex';
       if (subActionBtn) {
         subActionBtn.style.display = 'flex';
         // Gym and Admin get 'job' (채용공고 등록), Instructor gets 'resume' (이력서 등록)
@@ -1719,7 +1717,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       // Hide member buttons
       if (subActionBtn) subActionBtn.style.display = 'none';
-      if (subCommunityBtn) subCommunityBtn.style.display = 'none';
 
       // Show guest buttons
       if (subLoginBtn) subLoginBtn.style.display = 'flex';
