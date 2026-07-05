@@ -498,6 +498,8 @@ document.addEventListener('DOMContentLoaded', () => {
     communityDetail: document.getElementById('dialog-community-detail')
   };
 
+  const roleFloatingCTA = document.getElementById('role-floating-cta');
+
   async function initJobsAndTalents() {
     if (!db) return;
 
@@ -1142,6 +1144,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (viewId === 'privacyPolicy') {
       loadPrivacyPolicyForPage();
     }
+    updateRoleFloatingCTA(viewId);
 
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -1530,6 +1533,34 @@ document.addEventListener('DOMContentLoaded', () => {
     return rawType || 'guest';
   }
 
+  function getCurrentVisibleViewId() {
+    return Object.entries(views).find(([, view]) => view && !view.classList.contains('hidden'))?.[0] || 'home';
+  }
+
+  function updateRoleFloatingCTA(viewId = getCurrentVisibleViewId()) {
+    if (!roleFloatingCTA) return;
+
+    const role = getUserRole();
+    const enabledViews = new Set(['jobs', 'community', 'customerService']);
+    const shouldShow = enabledViews.has(viewId) && (role === 'instructor' || role === 'gym');
+
+    if (!shouldShow) {
+      roleFloatingCTA.classList.add('hidden');
+      roleFloatingCTA.removeAttribute('data-action');
+      roleFloatingCTA.setAttribute('aria-label', '등록하기');
+      return;
+    }
+
+    const isInstructor = role === 'instructor';
+    const action = isInstructor ? 'resume' : 'job';
+    const label = isInstructor ? '이력서 등록' : '채용공고 등록';
+
+    roleFloatingCTA.dataset.action = action;
+    roleFloatingCTA.querySelector('.role-floating-cta-text').textContent = label;
+    roleFloatingCTA.setAttribute('aria-label', label);
+    roleFloatingCTA.classList.remove('hidden');
+  }
+
   // 역할에 따른 메뉴 노출 및 레이아웃 제어
   function applyRoleBasedUI() {
     const role = getUserRole();
@@ -1625,13 +1656,11 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         alert('사범 및 일반 회원은 인재 정보를 열람할 권한이 없습니다.');
       }
-    } else if (cleanHash === '#jobs' && role === 'gym') {
-      window.location.hash = '#home';
-      alert('관장님 회원은 채용공고 목록을 열람할 권한이 없습니다. 공고 등록은 마이페이지나 홈화면 등록 기능을 이용해 주세요.');
     }
 
     // 관장회원 전용 열람권 상태 안내 바 업데이트
     updateGymPassBannerUI();
+    updateRoleFloatingCTA();
   }
 
   function handleRoute() {
@@ -1652,10 +1681,6 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         alert('사범 및 일반 회원은 인재 정보를 열람할 권한이 없습니다.');
       }
-      return;
-    } else if (cleanHash === '#jobs' && role === 'gym') {
-      window.location.hash = '#home';
-      alert('관장님 회원은 채용공고 목록을 열람할 권한이 없습니다. 공고 등록은 마이페이지나 홈화면 등록 기능을 이용해 주세요.');
       return;
     }
 
@@ -3692,6 +3717,40 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function openPostJobDialog() {
+    const currentUser = auth ? auth.currentUser : null;
+    if (!currentUser) {
+      alert('채용공고 등록은 로그인 후 이용하실 수 있습니다.');
+      if (dialogs.auth) {
+        document.getElementById('tab-login')?.click();
+        dialogs.auth.showModal();
+      }
+      return;
+    }
+    resetJobDialogMode();
+    formPostJob?.reset();
+    state.selectedJobRegions = [];
+    state.regionPickers.job?.clear();
+    if (dialogs.postJob) dialogs.postJob.showModal();
+  }
+
+  function openPostResumeDialog() {
+    const currentUser = auth ? auth.currentUser : null;
+    if (!currentUser) {
+      alert('이력서 등록은 로그인 후 이용하실 수 있습니다.');
+      if (dialogs.auth) {
+        document.getElementById('tab-login')?.click();
+        dialogs.auth.showModal();
+      }
+      return;
+    }
+    resetResumeDialogMode();
+    formPostResume?.reset();
+    state.selectedResumeRegions = [];
+    state.regionPickers.resume?.clear();
+    if (dialogs.postResume) dialogs.postResume.showModal();
+  }
+
   // Open Job Post dialog
   const postJobTriggers = [
     document.getElementById('hero-btn-post-job'),
@@ -3700,22 +3759,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   postJobTriggers.forEach(trigger => {
     if (trigger) {
-      trigger.addEventListener('click', () => {
-        const currentUser = auth ? auth.currentUser : null;
-        if (!currentUser) {
-          alert('채용공고 등록은 로그인 후 이용하실 수 있습니다.');
-          if (dialogs.auth) {
-            document.getElementById('tab-login')?.click();
-            dialogs.auth.showModal();
-          }
-          return;
-        }
-        resetJobDialogMode();
-        formPostJob?.reset();
-        state.selectedJobRegions = [];
-        state.regionPickers.job?.clear();
-        if (dialogs.postJob) dialogs.postJob.showModal();
-      });
+      trigger.addEventListener('click', openPostJobDialog);
     }
   });
 
@@ -3727,24 +3771,20 @@ document.addEventListener('DOMContentLoaded', () => {
   
   postResumeTriggers.forEach(trigger => {
     if (trigger) {
-      trigger.addEventListener('click', () => {
-        const currentUser = auth ? auth.currentUser : null;
-        if (!currentUser) {
-          alert('이력서 등록은 로그인 후 이용하실 수 있습니다.');
-          if (dialogs.auth) {
-            document.getElementById('tab-login')?.click();
-            dialogs.auth.showModal();
-          }
-          return;
-        }
-        resetResumeDialogMode();
-        formPostResume?.reset();
-        state.selectedResumeRegions = [];
-        state.regionPickers.resume?.clear();
-        if (dialogs.postResume) dialogs.postResume.showModal();
-      });
+      trigger.addEventListener('click', openPostResumeDialog);
     }
   });
+
+  if (roleFloatingCTA) {
+    roleFloatingCTA.addEventListener('click', () => {
+      const action = roleFloatingCTA.dataset.action;
+      if (action === 'resume') {
+        openPostResumeDialog();
+      } else if (action === 'job') {
+        openPostJobDialog();
+      }
+    });
+  }
 
 
   // ==========================================================================
