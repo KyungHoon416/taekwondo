@@ -334,6 +334,26 @@ service cloud.firestore {
         return request.auth.uid == jobOwner || request.auth.uid == resumeOwner;
       }
 
+      function isApplyApplicant() {
+        return (
+          resource.data.keys().hasAny(['applicant_id']) &&
+          resource.data.applicant_id == request.auth.uid
+        ) || (
+          exists(/databases/$(database)/documents/resumes/$(resource.data.resume_id)) &&
+          request.auth.uid == get(/databases/$(database)/documents/resumes/$(resource.data.resume_id)).data.user_id
+        );
+      }
+
+      function isApplyJobOwner() {
+        return (
+          resource.data.keys().hasAny(['job_owner_id']) &&
+          resource.data.job_owner_id == request.auth.uid
+        ) || (
+          exists(/databases/$(database)/documents/jobs/$(resource.data.job_id)) &&
+          request.auth.uid == get(/databases/$(database)/documents/jobs/$(resource.data.job_id)).data.user_id
+        );
+      }
+
       allow get: if isAuthenticated() && (isApplicantOrGymOwner(resource.data.job_id, resource.data.resume_id) || isUserOfType(request.auth.uid, 'gym'));
       allow list: if isAuthenticated();
       
@@ -361,8 +381,8 @@ service cloud.firestore {
       allow delete: if isAuthenticated() &&
         (
           isAdmin() ||
-          request.auth.uid == get(/databases/$(database)/documents/resumes/$(resource.data.resume_id)).data.user_id ||
-          request.auth.uid == get(/databases/$(database)/documents/jobs/$(resource.data.job_id)).data.user_id
+          isApplyApplicant() ||
+          isApplyJobOwner()
         );
     }
 
