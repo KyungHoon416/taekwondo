@@ -57,10 +57,30 @@
     </div>
   </header>
 
-  <button type="button" class="role-floating-cta hidden" id="role-floating-cta" aria-label="등록하기">
-    <span class="role-floating-cta-icon" aria-hidden="true">＋</span>
-    <span class="role-floating-cta-text">등록하기</span>
-  </button>
+  <!-- 확장형 플로팅 퀵 메뉴 -->
+  <div class="role-floating-container hidden" id="role-floating-container">
+    <!-- Sub buttons menu (stacked vertically, sliding up) -->
+    <div class="role-floating-menu" id="role-floating-menu">
+      <button type="button" class="role-floating-sub-btn" id="btn-floating-role-action" aria-label="등록하기">
+        <span class="role-floating-sub-icon">＋</span>
+        <span class="role-floating-sub-text">등록하기</span>
+      </button>
+      <button type="button" class="role-floating-sub-btn" id="btn-floating-community-write" aria-label="커뮤니티 글쓰기">
+        <span class="role-floating-sub-icon">📝</span>
+        <span class="role-floating-sub-text">글쓰기</span>
+      </button>
+      <button type="button" class="role-floating-sub-btn" id="btn-floating-customer-service" aria-label="고객센터 문의">
+        <span class="role-floating-sub-icon">📞</span>
+        <span class="role-floating-sub-text">고객센터</span>
+      </button>
+    </div>
+
+    <!-- Main floating toggle button -->
+    <button type="button" class="role-floating-cta" id="role-floating-cta-trigger" aria-label="퀵 메뉴">
+      <span class="role-floating-cta-icon" aria-hidden="true">＋</span>
+      <span class="role-floating-cta-text">퀵 메뉴</span>
+    </button>
+  </div>
 
   <!-- SPA Sub-Pages container -->
   <main id="app-content">

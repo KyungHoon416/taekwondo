@@ -5430,11 +5430,40 @@
 /* ============================================================
    회원 유형별 플로팅 등록 버튼
    ============================================================ */
-.role-floating-cta {
+.role-floating-container {
   position: fixed;
   right: 24px;
   bottom: 148px;
-  min-width: 152px;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.role-floating-container.hidden {
+  display: none !important;
+}
+
+.role-floating-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(15px);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.role-floating-container.is-open .role-floating-menu {
+  pointer-events: auto;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.role-floating-cta {
+  min-width: 120px;
   height: 52px;
   padding: 0 1.15rem;
   border: 0;
@@ -5450,12 +5479,7 @@
   font-size: 0.94rem;
   font-weight: 850;
   cursor: pointer;
-  z-index: 1001;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, opacity 0.18s ease;
-}
-
-.role-floating-cta.hidden {
-  display: none;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
 }
 
 .role-floating-cta:hover {
@@ -5480,34 +5504,73 @@
   font-size: 1.05rem;
   font-weight: 900;
   line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.role-floating-container.is-open .role-floating-cta-icon {
+  transform: rotate(45deg);
 }
 
 .role-floating-cta-text {
   white-space: nowrap;
 }
 
-.role-floating-cta[data-action="resume"] {
-  background: #2563eb;
+.role-floating-sub-btn {
+  border: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1e293b;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0 1rem;
+  height: 44px;
+  min-width: 130px;
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  transition: all 0.18s ease;
 }
 
-.role-floating-cta[data-action="resume"]:hover {
+.role-floating-sub-btn:hover {
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.16);
+}
+
+.role-floating-sub-btn:active {
+  transform: translateY(0);
+}
+
+.role-floating-sub-icon {
+  font-size: 1.05rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.role-floating-sub-btn[data-action="resume"] {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+}
+
+.role-floating-sub-btn[data-action="resume"]:hover {
   background: #1d4ed8;
 }
 
-.role-floating-cta[data-action="resume"] .role-floating-cta-icon {
-  color: #2563eb;
-}
-
-.role-floating-cta[data-action="job"] {
+.role-floating-sub-btn[data-action="job"] {
   background: #dc2626;
+  color: #ffffff;
+  border: none;
 }
 
-.role-floating-cta[data-action="job"]:hover {
+.role-floating-sub-btn[data-action="job"]:hover {
   background: #b91c1c;
-}
-
-.role-floating-cta[data-action="job"] .role-floating-cta-icon {
-  color: #dc2626;
 }
 
 /* ============================================================

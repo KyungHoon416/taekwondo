@@ -498,7 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
     communityDetail: document.getElementById('dialog-community-detail')
   };
 
-  const roleFloatingCTA = document.getElementById('role-floating-cta');
+  const roleFloatingCTA = document.getElementById('role-floating-container');
 
   async function initJobsAndTalents() {
     if (!db) return;
@@ -1564,8 +1564,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!shouldShow) {
       roleFloatingCTA.classList.add('hidden');
-      roleFloatingCTA.removeAttribute('data-action');
-      roleFloatingCTA.setAttribute('aria-label', '등록하기');
+      roleFloatingCTA.classList.remove('is-open'); // Close the menu when hiding
+      const subActionBtn = document.getElementById('btn-floating-role-action');
+      if (subActionBtn) {
+        subActionBtn.removeAttribute('data-action');
+        subActionBtn.setAttribute('aria-label', '등록하기');
+      }
       return;
     }
 
@@ -1573,9 +1577,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const action = isInstructor ? 'resume' : 'job';
     const label = isInstructor ? '이력서 등록' : '채용공고 등록';
 
-    roleFloatingCTA.dataset.action = action;
-    roleFloatingCTA.querySelector('.role-floating-cta-text').textContent = label;
-    roleFloatingCTA.setAttribute('aria-label', label);
+    // Update the sub-button inside the container
+    const subActionBtn = document.getElementById('btn-floating-role-action');
+    if (subActionBtn) {
+      subActionBtn.dataset.action = action;
+      subActionBtn.setAttribute('data-action', action); // ensures CSS selector matching
+      const btnText = subActionBtn.querySelector('.role-floating-sub-text');
+      if (btnText) btnText.textContent = label;
+      subActionBtn.setAttribute('aria-label', label);
+    }
+    
     roleFloatingCTA.classList.remove('hidden');
   }
 
@@ -3858,14 +3869,62 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  if (roleFloatingCTA) {
-    roleFloatingCTA.addEventListener('click', () => {
-      const action = roleFloatingCTA.dataset.action;
+  const roleFloatingTrigger = document.getElementById('role-floating-cta-trigger');
+  if (roleFloatingTrigger && roleFloatingCTA) {
+    roleFloatingTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      roleFloatingCTA.classList.toggle('is-open');
+    });
+  }
+
+  // Click outside to close the menu
+  document.addEventListener('click', () => {
+    if (roleFloatingCTA && roleFloatingCTA.classList.contains('is-open')) {
+      roleFloatingCTA.classList.remove('is-open');
+    }
+  });
+
+  const btnFloatingRoleAction = document.getElementById('btn-floating-role-action');
+  if (btnFloatingRoleAction) {
+    btnFloatingRoleAction.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const action = btnFloatingRoleAction.dataset.action;
       if (action === 'resume') {
         openPostResumeDialog();
       } else if (action === 'job') {
         openPostJobDialog();
       }
+      roleFloatingCTA.classList.remove('is-open');
+    });
+  }
+
+  const btnFloatingCommunityWrite = document.getElementById('btn-floating-community-write');
+  if (btnFloatingCommunityWrite) {
+    btnFloatingCommunityWrite.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const currentUser = auth ? auth.currentUser : null;
+      if (!currentUser) {
+        alert('글쓰기 기능은 로그인 후 이용하실 수 있습니다. 로그인 팝업을 열어드립니다.');
+        if (dialogs.auth) {
+          document.getElementById('tab-login')?.click();
+          dialogs.auth.showModal();
+        }
+        return;
+      }
+      if (dialogs.postCommunity) {
+        dialogs.postCommunity.showModal();
+      }
+      roleFloatingCTA.classList.remove('is-open');
+    });
+  }
+
+  const btnFloatingCustomerService = document.getElementById('btn-floating-customer-service');
+  if (btnFloatingCustomerService) {
+    btnFloatingCustomerService.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.history.pushState({}, '', '/Customer_Service');
+      handleRoute();
+      roleFloatingCTA.classList.remove('is-open');
     });
   }
 
