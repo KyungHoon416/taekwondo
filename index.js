@@ -1680,7 +1680,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateRoleFloatingCTA(viewId = getCurrentVisibleViewId()) {
     if (!roleFloatingCTA) return;
 
-    const enabledViews = new Set(['home', 'jobs', 'talents', 'community', 'customerService']);
+    const enabledViews = new Set(['home', 'jobs', 'talents', 'community', 'customerService', 'myApplications']);
     const isLoggedIn = !!(auth && auth.currentUser);
     const rawType = String(state.currentUser?.type || state.currentUser?.role || '').toLowerCase();
     const hasGymProfile = !!(
@@ -1697,31 +1697,45 @@ document.addEventListener('DOMContentLoaded', () => {
       rawType.includes('사범') ||
       rawType.includes('구직')
     );
-    const shouldShow = enabledViews.has(viewId) && isLoggedIn;
+    const shouldShow = enabledViews.has(viewId);
 
     if (!shouldShow) {
       roleFloatingCTA.classList.add('hidden');
       roleFloatingCTA.classList.remove('is-open'); // Close the menu when hiding
-      const subActionBtn = document.getElementById('btn-floating-role-action');
-      if (subActionBtn) {
-        subActionBtn.removeAttribute('data-action');
-        subActionBtn.setAttribute('aria-label', '등록하기');
-      }
       return;
     }
 
-    const isInstructor = hasInstructorProfile || !hasGymProfile;
-    const action = isInstructor ? 'resume' : 'job';
-    const label = isInstructor ? '이력서 등록' : '채용공고 등록';
-
-    // Update the sub-button inside the container
     const subActionBtn = document.getElementById('btn-floating-role-action');
-    if (subActionBtn) {
-      subActionBtn.dataset.action = action;
-      subActionBtn.setAttribute('data-action', action); // ensures CSS selector matching
-      const btnText = subActionBtn.querySelector('.role-floating-sub-text');
-      if (btnText) btnText.textContent = label;
-      subActionBtn.setAttribute('aria-label', label);
+    const subCommunityBtn = document.getElementById('btn-floating-community-write');
+    const subLoginBtn = document.getElementById('btn-floating-login');
+    const subSignupBtn = document.getElementById('btn-floating-signup');
+
+    if (isLoggedIn) {
+      // Hide guest buttons
+      if (subLoginBtn) subLoginBtn.style.display = 'none';
+      if (subSignupBtn) subSignupBtn.style.display = 'none';
+
+      // Show member buttons
+      if (subCommunityBtn) subCommunityBtn.style.display = 'flex';
+      if (subActionBtn) {
+        subActionBtn.style.display = 'flex';
+        const isInstructor = hasInstructorProfile || !hasGymProfile;
+        const action = isInstructor ? 'resume' : 'job';
+        const label = isInstructor ? '이력서 등록' : '채용공고 등록';
+        subActionBtn.dataset.action = action;
+        subActionBtn.setAttribute('data-action', action); // ensures CSS selector matching
+        const btnText = subActionBtn.querySelector('.role-floating-sub-text');
+        if (btnText) btnText.textContent = label;
+        subActionBtn.setAttribute('aria-label', label);
+      }
+    } else {
+      // Hide member buttons
+      if (subActionBtn) subActionBtn.style.display = 'none';
+      if (subCommunityBtn) subCommunityBtn.style.display = 'none';
+
+      // Show guest buttons
+      if (subLoginBtn) subLoginBtn.style.display = 'flex';
+      if (subSignupBtn) subSignupBtn.style.display = 'flex';
     }
     
     roleFloatingCTA.classList.remove('hidden');
@@ -4071,6 +4085,30 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (dialogs.postCommunity) {
         dialogs.postCommunity.showModal();
+      }
+      roleFloatingCTA.classList.remove('is-open');
+    });
+  }
+
+  const btnFloatingLogin = document.getElementById('btn-floating-login');
+  if (btnFloatingLogin) {
+    btnFloatingLogin.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (dialogs.auth) {
+        showAuthPane('login');
+        dialogs.auth.showModal();
+      }
+      roleFloatingCTA.classList.remove('is-open');
+    });
+  }
+
+  const btnFloatingSignup = document.getElementById('btn-floating-signup');
+  if (btnFloatingSignup) {
+    btnFloatingSignup.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (dialogs.auth) {
+        showAuthPane('register');
+        dialogs.auth.showModal();
       }
       roleFloatingCTA.classList.remove('is-open');
     });
