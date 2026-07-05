@@ -48,7 +48,7 @@
         <div id="auth-logged-in" style="display:none;gap:0.75rem;align-items:center">
           <span id="auth-user-name" style="font-size:0.88rem;font-weight:700;color:var(--color-navy-800)"></span>
           <span id="auth-biz-badge" style="display:none;font-size:0.75rem;font-weight:800;color:#16a34a;background:#dcfce7;border:1px solid #bbf7d0;padding:0.2rem 0.5rem;border-radius:4px;white-space:nowrap">인증 완료</span>
-          <button type="button" id="btn-header-my-applications" onclick="window.location.hash='#my-applications'" style="display:none;font-size:0.82rem;font-weight:800;color:#1e40af;background:#eff6ff;padding:0.42rem 0.8rem;border:1.5px solid #bfdbfe;border-radius:20px;cursor:pointer;white-space:nowrap">내 채용 관리</button>
+          <button type="button" id="btn-header-my-applications" onclick="window.location.hash='#my-applications'" style="display:none;font-size:0.82rem;font-weight:800;color:#1e40af;background:#eff6ff;padding:0.42rem 0.8rem;border:1.5px solid #bfdbfe;border-radius:20px;cursor:pointer;white-space:nowrap">마이페이지</button>
           <a href="admin.html" id="btn-admin-link" style="display:none;font-size:0.82rem;font-weight:700;color:var(--color-blue-600);padding:0.35rem 0.8rem;border:1.5px solid var(--color-blue-600);border-radius:20px;text-decoration:none">관리자</a>
           <button type="button" id="btn-header-purchase-pass" onclick="openPurchasePassModal()" style="display:none;font-size:0.82rem;font-weight:800;color:#ffffff;background:#2563eb;padding:0.42rem 0.8rem;border:1.5px solid #2563eb;border-radius:20px;cursor:pointer;white-space:nowrap">열람권 구매</button>
           <button type="button" class="btn-text" id="btn-logout">로그아웃</button>
@@ -354,19 +354,32 @@
       </section>
     </div>
     
-    <!-- SUB-PAGE VIEW: MY APPLICATIONS / APPLICANT MANAGEMENT -->
+    <!-- SUB-PAGE VIEW: 마이페이지 (MY DASHBOARD) -->
     <div id="view-my-applications" class="page-view hidden">
       <section class="section">
         <div class="section-container">
           <div class="page-title-area">
-            <h1 id="my-applications-title">내 채용 관리</h1>
-            <p id="my-applications-desc">채용공고별 지원자와 진행 상태를 관리합니다.</p>
+            <h1 id="my-applications-title">마이페이지</h1>
+            <p id="my-applications-desc">내 정보, 채용 및 지원 관리, 1:1 문의 내역을 한눈에 관리합니다.</p>
           </div>
-          <div id="my-applications-summary" class="board-meta" style="margin-bottom:1rem">
-            <span class="results-count">불러오는 중입니다.</span>
+          
+          <!-- 마이페이지 섹션 1: 채용 및 지원 현황 -->
+          <div class="mypage-section">
+            <h2 class="mypage-section-title" id="mypage-role-section-title">채용 및 지원 현황</h2>
+            <div id="my-applications-summary" class="board-meta" style="margin-bottom:1rem">
+              <span class="results-count">불러오는 중입니다.</span>
+            </div>
+            <div id="my-applications-list" class="my-applications-list">
+              <div class="loading-placeholder">지원 현황을 불러오는 중입니다...</div>
+            </div>
           </div>
-          <div id="my-applications-list" class="my-applications-list">
-            <div class="loading-placeholder">지원 현황을 불러오는 중입니다...</div>
+
+          <!-- 마이페이지 섹션 2: 내 1:1 문의 내역 -->
+          <div class="mypage-section" style="margin-top: 2.5rem;">
+            <h2 class="mypage-section-title">내 1:1 문의 내역</h2>
+            <div id="mypage-inquiries-list" class="my-inquiries-list" style="margin-top: 1rem;">
+              <div class="loading-placeholder" style="text-align:center;padding:2rem;color:var(--text-muted)">문의 내역을 불러오는 중입니다...</div>
+            </div>
           </div>
         </div>
       </section>

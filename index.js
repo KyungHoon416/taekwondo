@@ -2464,6 +2464,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const descEl = document.getElementById('my-applications-desc');
     const summaryEl = document.getElementById('my-applications-summary');
     const listEl = document.getElementById('my-applications-list');
+    const roleTitleEl = document.getElementById('mypage-role-section-title');
     if (!listEl) return;
 
     if (!state.currentUser) {
@@ -2477,15 +2478,21 @@ document.addEventListener('DOMContentLoaded', () => {
     await initJobsAndTalents();
     const role = getUserRole();
     if (role === 'gym' || role === 'admin') {
+      if (roleTitleEl) roleTitleEl.textContent = '내 채용 공고 관리';
       renderGymApplicationManagement({ titleEl, descEl, summaryEl, listEl });
     } else {
+      if (roleTitleEl) roleTitleEl.textContent = '내 이력서 및 지원 현황';
       renderInstructorApplicationStatus({ titleEl, descEl, summaryEl, listEl });
+    }
+
+    if (window.renderMyPageInquiries) {
+      window.renderMyPageInquiries();
     }
   }
 
   function renderGymApplicationManagement({ titleEl, descEl, summaryEl, listEl }) {
-    if (titleEl) titleEl.textContent = '내 채용 관리';
-    if (descEl) descEl.textContent = '내가 올린 채용공고의 지원자와 진행 상태를 관리합니다.';
+    if (titleEl) titleEl.textContent = '마이페이지';
+    if (descEl) descEl.textContent = '내 정보, 채용 및 지원 관리, 1:1 문의 내역을 한눈에 관리합니다.';
 
     const myJobs = state.jobsList.filter((job) => job.userId === state.currentUser.uid);
     const myJobIds = new Set(myJobs.map((job) => job.id));
@@ -2540,8 +2547,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderInstructorApplicationStatus({ titleEl, descEl, summaryEl, listEl }) {
-    if (titleEl) titleEl.textContent = '내 지원 현황';
-    if (descEl) descEl.textContent = '내 이력서와 지원한 채용공고의 진행 상태를 확인합니다.';
+    if (titleEl) titleEl.textContent = '마이페이지';
+    if (descEl) descEl.textContent = '내 정보, 채용 및 지원 관리, 1:1 문의 내역을 한눈에 관리합니다.';
 
     const apps = state.applicationsList.filter((app) => app.applicantId === state.currentUser.uid || app.resume?.userId === state.currentUser.uid);
     const myResumes = state.talentsList.filter((resume) => resume.userId === state.currentUser.uid);
@@ -5570,7 +5577,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (headerApplicationsButton) {
               headerApplicationsButton.style.display = showAdminLink ? 'none' : 'inline-flex';
-              headerApplicationsButton.textContent = currentRole === 'gym' ? '내 채용 관리' : '내 지원 현황';
+              headerApplicationsButton.textContent = '마이페이지';
             }
 
             // 1:1 문의 폼 자동 입력
@@ -5854,18 +5861,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ─── 1:1 문의 조회 및 렌더링 ───
-  window.loadMyInquiries = async function() {
-    const listEl = document.getElementById('my-inquiries-list');
-    const sectionEl = document.getElementById('my-inquiries-section');
-    if (!listEl || !sectionEl) return;
-
-    // Show section
-    sectionEl.style.display = 'block';
-
-    listEl.innerHTML = '<div class="loading-placeholder" style="text-align:center;padding:2rem;color:var(--text-muted)">문의 내역을 불러오는 중입니다...</div>';
-
-    // 1. LocalStorage에서 불러오기
+  // ─── 1:1 문의 데이터 공통 조회 함수 ───
+  async function fetchInquiries() {
     let localInquiries = [];
     try {
       localInquiries = JSON.parse(localStorage.getItem('taekwondo_inquiries') || '[]');
@@ -5873,12 +5870,10 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('LocalStorage 문의 내역 로드 실패:', e);
     }
 
-    // 2. 로그인되어 있으면 Firestore에서 불러오기
     let dbInquiries = [];
     const currentUser = auth ? auth.currentUser : null;
     if (currentUser && db) {
       try {
-        // Query by user_id
         const snapUid = await db.collection('inquiries')
           .where('user_id', '==', currentUser.uid)
           .get();
@@ -5898,7 +5893,6 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         });
 
-        // Query by email to fetch legacy inquiries (without user_id)
         if (currentUser.email) {
           const snapEmail = await db.collection('inquiries')
             .where('email', '==', currentUser.email)
@@ -5926,27 +5920,22 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 3. 병합 (ID 중복 제거)
     const mergedMap = new Map();
-    // LocalStorage를 먼저 넣고
-    localInquiries.forEach(item => {
-      mergedMap.set(item.id, item);
-    });
-    // Firestore 정보를 덮어씀 (Firestore가 더 최신 상태(답변 포함)를 가지고 있으므로)
-    dbInquiries.forEach(item => {
-      mergedMap.set(item.id, item);
-    });
+    localInquiries.forEach(item => mergedMap.set(item.id, item));
+    dbInquiries.forEach(item => mergedMap.set(item.id, item));
 
     const mergedList = Array.from(mergedMap.values());
-    
-    // 4. 날짜 정렬 (최신순)
     mergedList.sort((a, b) => {
       const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
       const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
       return dateB - dateA;
     });
 
-    // 5. 렌더링
+    return mergedList;
+  }
+
+  // ─── 1:1 문의 마크업 렌더러 함수 ───
+  function renderInquiryListMarkup(mergedList, listEl, cardPrefix = 'inq') {
     if (mergedList.length === 0) {
       listEl.innerHTML = `
         <div class="inquiry-empty-state">
@@ -5972,8 +5961,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const escAnswer = isAnswered ? escapeHtml(item.answer) : '';
 
       return `
-        <div class="inquiry-track-card" id="inq-card-${item.id}">
-          <div class="inquiry-track-header" onclick="toggleInquiryCard('${item.id}')">
+        <div class="inquiry-track-card" id="${cardPrefix}-card-${item.id}">
+          <div class="inquiry-track-header" onclick="toggleInquiryCard('${item.id}', '${cardPrefix}')">
             <div class="inquiry-track-info">
               <div class="inquiry-track-meta">
                 <span class="inquiry-track-type">${escType}</span>
@@ -6005,10 +5994,34 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
     }).join('');
+  }
+
+  // ─── 1:1 문의 조회 및 렌더링 ───
+  window.loadMyInquiries = async function() {
+    const listEl = document.getElementById('my-inquiries-list');
+    const sectionEl = document.getElementById('my-inquiries-section');
+    if (!listEl || !sectionEl) return;
+
+    sectionEl.style.display = 'block';
+    listEl.innerHTML = '<div class="loading-placeholder" style="text-align:center;padding:2rem;color:var(--text-muted)">문의 내역을 불러오는 중입니다...</div>';
+
+    const mergedList = await fetchInquiries();
+    renderInquiryListMarkup(mergedList, listEl, 'inq');
   };
 
-  window.toggleInquiryCard = function(id) {
-    const card = document.getElementById(`inq-card-${id}`);
+  // ─── 마이페이지용 1:1 문의 내역 로드 및 렌더링 ───
+  window.renderMyPageInquiries = async function() {
+    const listEl = document.getElementById('mypage-inquiries-list');
+    if (!listEl) return;
+
+    listEl.innerHTML = '<div class="loading-placeholder" style="text-align:center;padding:2rem;color:var(--text-muted)">문의 내역을 불러오는 중입니다...</div>';
+
+    const mergedList = await fetchInquiries();
+    renderInquiryListMarkup(mergedList, listEl, 'mypage-inq');
+  };
+
+  window.toggleInquiryCard = function(id, prefix = 'inq') {
+    const card = document.getElementById(`${prefix}-card-${id}`);
     if (card) {
       card.classList.toggle('open');
     }
