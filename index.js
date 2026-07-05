@@ -605,16 +605,19 @@ document.addEventListener('DOMContentLoaded', () => {
       applySnap.forEach((doc) => {
         const a = doc.data();
         const job = state.jobsList.find((item) => item.id === a.job_id);
-        const resume = state.talentsList.find((item) => item.id === a.resume_id);
+        const liveResume = state.talentsList.find((item) => item.id === a.resume_id);
+        const resumeSnapshot = normalizeResumeSnapshot(a.resume_snapshot);
+        const resume = resumeSnapshot || liveResume;
         dbApplications.push({
           id: doc.id,
           jobId: a.job_id || '',
           resumeId: a.resume_id || '',
           jobOwnerId: a.job_owner_id || job?.userId || '',
-          applicantId: a.applicant_id || resume?.userId || '',
+          applicantId: a.applicant_id || resume?.userId || liveResume?.userId || '',
           status: a.status || 'pending',
           createdAt: a.created_at || null,
           job,
+          resumeSnapshot,
           resume
         });
       });
@@ -2244,6 +2247,72 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function normalizeResumeSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') return null;
+    return {
+      name: snapshot.name || '지원자',
+      gender: snapshot.gender || '남성',
+      role: snapshot.role || snapshot.hope_position || '직무 미입력',
+      exp: snapshot.exp || snapshot.career || '경력 미입력',
+      region: snapshot.region || snapshot.hope_area || '지역 미입력',
+      salary: snapshot.salary || snapshot.hope_salary || '',
+      dan: snapshot.dan || '',
+      license: snapshot.license || '',
+      intro: snapshot.intro || snapshot.content || '',
+      phone: snapshot.phone || '',
+      userId: snapshot.userId || snapshot.user_id || ''
+    };
+  }
+
+  function createResumeSnapshot(resume, fallbackUserId = '') {
+    if (!resume) return null;
+    return {
+      name: resume.name || '지원자',
+      gender: resume.gender || '남성',
+      role: resume.role || '직무 미입력',
+      exp: resume.exp || '경력 미입력',
+      region: resume.region || '지역 미입력',
+      salary: resume.salary || '',
+      dan: resume.dan || '',
+      license: resume.license || '',
+      intro: resume.intro || '',
+      phone: resume.phone || '',
+      userId: resume.userId || fallbackUserId || ''
+    };
+  }
+
+  async function freezeApplicationsForResume(resume) {
+    if (!db || !resume?.id) return;
+
+    const resumeSnapshot = createResumeSnapshot(resume, resume.userId);
+    if (!resumeSnapshot) return;
+
+    const applySnap = await db.collection('apply')
+      .where('resume_id', '==', resume.id)
+      .get();
+    const batch = db.batch();
+    let hasUpdates = false;
+
+    applySnap.forEach((doc) => {
+      const data = doc.data();
+      if (!data.resume_snapshot) {
+        batch.update(doc.ref, { resume_snapshot: resumeSnapshot });
+        hasUpdates = true;
+      }
+    });
+
+    if (hasUpdates) await batch.commit();
+
+    state.applicationsList = state.applicationsList.map((app) => {
+      if (app.resumeId !== resume.id || app.resumeSnapshot) return app;
+      return {
+        ...app,
+        resumeSnapshot,
+        resume: resumeSnapshot
+      };
+    });
+  }
+
   async function renderMyApplicationsView() {
     const titleEl = document.getElementById('my-applications-title');
     const descEl = document.getElementById('my-applications-desc');
@@ -2318,7 +2387,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <button type="button" onclick="changeHomepageApplicationStatus('${app.id}', 'interview')">면접 제안</button>
           <button type="button" onclick="changeHomepageApplicationStatus('${app.id}', 'accepted')">합격</button>
           <button type="button" onclick="changeHomepageApplicationStatus('${app.id}', 'rejected')">불합격</button>
-          <button type="button" onclick="openApplicationResume('${app.resumeId}')">이력서 보기</button>
+          <button type="button" onclick="openApplicationResume('${app.id}')">이력서 보기</button>
         </div>
       </div>
     `;
@@ -2378,8 +2447,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  window.openApplicationResume = function(resumeId) {
-    const talent = state.talentsList.find((item) => item.id === resumeId);
+  window.openApplicationResume = function(applicationIdOrResumeId) {
+    const application = state.applicationsList.find((item) => item.id === applicationIdOrResumeId);
+    const talent = application?.resumeSnapshot ||
+      application?.resume ||
+      state.talentsList.find((item) => item.id === applicationIdOrResumeId);
     if (!talent) {
       alert('이력서 정보를 찾을 수 없습니다.');
       return;
@@ -2484,10 +2556,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const resume = state.talentsList.find((item) => item.id === resumeId);
     if (!resume || !state.currentUser || resume.userId !== state.currentUser.uid) {
       alert('수정할 수 있는 이력서를 찾을 수 없습니다.');
-      return;
-    }
-    if (hasResumeApplication(resumeId)) {
-      alert('이미 지원한 이력서는 수정이 되지않습니다.');
       return;
     }
 
@@ -4025,10 +4093,7 @@ document.addEventListener('DOMContentLoaded', () => {
               alert('수정할 수 있는 이력서를 찾을 수 없습니다.');
               return;
             }
-            if (hasResumeApplication(resumeId)) {
-              alert('이미 지원한 이력서는 수정이 되지않습니다.');
-              return;
-            }
+            await freezeApplicationsForResume(resume);
 
             const updatedResumeData = {
               user_id: userId,
@@ -5386,12 +5451,16 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        // 4. 지원 등록 (rules에 맞게 4개 필드만 전송)
+        const appliedResume = state.talentsList.find((item) => item.id === resumeId);
+        const resumeSnapshot = createResumeSnapshot(appliedResume, currentUser.uid);
+
+        // 4. 지원 등록
         const applyData = {
           job_id: jobId,
           job_owner_id: jobOwnerId,
           applicant_id: currentUser.uid,
           resume_id: resumeId,
+          resume_snapshot: resumeSnapshot,
           status: 'pending',
           created_at: firebase.firestore.FieldValue.serverTimestamp()
         };
@@ -5401,7 +5470,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const applyRef = await db.collection('apply').add(applyData);
         const appliedJob = state.jobsList.find((item) => item.id === jobId);
-        const appliedResume = state.talentsList.find((item) => item.id === resumeId);
         state.applicationsList.unshift({
           id: applyRef.id,
           jobId,
@@ -5411,7 +5479,8 @@ document.addEventListener('DOMContentLoaded', () => {
           status: 'pending',
           createdAt: new Date(),
           job: appliedJob,
-          resume: appliedResume
+          resumeSnapshot,
+          resume: resumeSnapshot || appliedResume
         });
 
         alert('지원서가 성공적으로 전달되었습니다! 관장님이 검토 후 연락드릴 예정입니다.');

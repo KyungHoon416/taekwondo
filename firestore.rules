@@ -195,12 +195,13 @@ service cloud.firestore {
     }
 
     function isValidApply(data) {
-      return hasOnlyAllowedFields(['job_id', 'job_owner_id', 'applicant_id', 'resume_id', 'status', 'created_at']) &&
+      return hasOnlyAllowedFields(['job_id', 'job_owner_id', 'applicant_id', 'resume_id', 'resume_snapshot', 'status', 'created_at']) &&
         hasRequiredFields(['job_id', 'resume_id', 'status', 'created_at']) &&
         data.job_id is string &&
         (!data.keys().hasAny(['job_owner_id']) || data.job_owner_id is string) &&
         (!data.keys().hasAny(['applicant_id']) || data.applicant_id is string) &&
         data.resume_id is string &&
+        (!data.keys().hasAny(['resume_snapshot']) || data.resume_snapshot is map) &&
         data.status is string && (data.status == 'pending' || data.status == 'interview' || data.status == 'accepted' || data.status == 'rejected') &&
         data.created_at is timestamp;
     }
@@ -368,14 +369,25 @@ service cloud.firestore {
       // Update allowed by:
       // - Gym owner can update status ('interview' / 'accepted' / 'rejected')
       // - Admin can update status
+      // - Applicant can freeze the original resume snapshot once before editing the source resume
       allow update: if isAuthenticated() &&
         isValidApply(request.resource.data) &&
-        areImmutableFieldsUnchanged(['job_id', 'job_owner_id', 'applicant_id', 'resume_id', 'created_at']) &&
         (
-          // Case A: Gym Owner updates status
-          (request.auth.uid == get(/databases/$(database)/documents/jobs/$(resource.data.job_id)).data.user_id) ||
-          // Case B: Admin updates status
-          isAdmin()
+          (
+            areImmutableFieldsUnchanged(['job_id', 'job_owner_id', 'applicant_id', 'resume_id', 'resume_snapshot', 'created_at']) &&
+            (
+              // Case A: Gym Owner updates status
+              (request.auth.uid == get(/databases/$(database)/documents/jobs/$(resource.data.job_id)).data.user_id) ||
+              // Case B: Admin updates status
+              isAdmin()
+            )
+          ) ||
+          (
+            // Case C: Applicant adds a missing resume snapshot once
+            isApplyApplicant() &&
+            !resource.data.keys().hasAny(['resume_snapshot']) &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['resume_snapshot'])
+          )
         );
 
       allow delete: if isAuthenticated() &&
