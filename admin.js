@@ -194,6 +194,7 @@ const MEMBERS = typeof db === 'undefined' || !db ? [
 const JOBS = typeof db === 'undefined' || !db ? [
   { id: 128, title: '강남 태권도장 메인사범 모집', gym: '강남 태권도장', region: '서울', district: '강남구', salary: '월 320만원', position: '메인사범', exp: '경력 3년↑', regDate: '2026-05-18', views: 45, status: '게시중' },
   { id: 127, title: '송파 태권도장 보조사범 모집', gym: '송파 태권도장', region: '서울', district: '송파구', salary: '월 260만원', position: '보조사범', exp: '신입 가능', regDate: '2026-05-18', views: 32, status: '게시중' },
+  { id: 126, title: '분당 태권도장 파트타임 모집', gym: '분당 태권도장', region: '경기', district: '성남시', salary: '시급 15,000원', position: '파트타임', exp: '경력무관', regDate: '2026-05-17', views: 27, status: '게시중' },
   { id: 125, title: '일산 태권도장 메인사범 모집', gym: '일산 태권도장', region: '경기', district: '고양시', salary: '월 300만원', position: '메인사범', exp: '경력 2년↑', regDate: '2026-05-17', views: 15, status: '마감됨' },
   { id: 124, title: '인천 태권도장 보조사범 모집', gym: '인천 태권도장', region: '인천', district: '연수구', salary: '월 250만원', position: '보조사범', exp: '신입 가능', regDate: '2026-05-16', views: 25, status: '게시중' },
   { id: 122, title: '부산 해운대 메인사범 채용', gym: '해운대 태권도장', region: '부산', district: '해운대구', salary: '월 310만원', position: '메인사범', exp: '경력 2년↑', regDate: '2026-05-14', views: 52, status: '게시중' },
@@ -206,6 +207,7 @@ const RESUMES = typeof db === 'undefined' || !db ? [
   { id: 1, name: '김사범', gender: '남', position: '메인사범', exp: '경력 5년', area: '서울', salary: '월 320만원↑', grade: '3단', cert: '생활스포츠지도사 2급', regDate: '2026-05-18' },
   { id: 2, name: '이사범', gender: '남', position: '보조사범', exp: '경력 2년', area: '경기', salary: '월 260만원↑', grade: '2단', cert: '태권도 지도자', regDate: '2026-05-17' },
   { id: 3, name: '박사범', gender: '여', position: '유치부 전임', exp: '경력 3년', area: '서울/경기', salary: '월 280만원↑', grade: '3단', cert: '유아체육지도사', regDate: '2026-05-16' },
+  { id: 4, name: '최사범', gender: '여', position: '파트타임', exp: '경력 1년', area: '서울', salary: '시급 협의', grade: '3단', cert: '태권도사범자격증', regDate: '2026-05-15' },
   { id: 5, name: '메인사범', gender: '남', position: '메인사범', exp: '신입', area: '수도권', salary: '월 250만원↑', grade: '2단', cert: '태권도 지도자', regDate: '2026-05-14' },
   { id: 6, name: '한사범', gender: '여', position: '보조사범', exp: '경력 1년', area: '부산', salary: '월 220만원↑', grade: '2단', cert: '생활스포츠지도사 2급', regDate: '2026-05-13' },
 ] : [];
@@ -1781,8 +1783,8 @@ function initAnalyticsCharts() {
     new Chart(posCtx, {
       type: 'pie',
       data: {
-        labels: ['지도관장', '메인사범', '보조사범', '유치부'],
-        datasets: [{ data: [15, 55, 28, 10, 15, 20], backgroundColor: ['#3b82f6','#2563eb','#10b981','#8b5cf6','#f59e0b','#ef4444'], borderWidth: 3, borderColor: '#fff' }],
+        labels: ['지도관장', '메인사범', '보조사범', '유치부', '파트타임'],
+        datasets: [{ data: [15, 55, 28, 10, 15], backgroundColor: ['#3b82f6','#2563eb','#10b981','#8b5cf6','#f59e0b'], borderWidth: 3, borderColor: '#fff' }],
       },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, usePointStyle: true } } } },
     });
