@@ -4323,6 +4323,84 @@
   max-width: 960px;
 }
 
+.privacy-doc-summary {
+  background: #f8fafc;
+  border: 1px solid var(--color-slate-200);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin: 1.25rem 0 1.5rem;
+}
+
+.privacy-doc-summary p {
+  margin: 0 0 0.65rem;
+  color: var(--text-muted);
+  font-size: 0.94rem;
+  line-height: 1.75;
+}
+
+.privacy-doc-summary p:last-child {
+  margin-bottom: 0;
+}
+
+.privacy-article .terms-intro-text {
+  margin-bottom: 0.8rem;
+}
+
+.privacy-list-line {
+  margin: 0.45rem 0;
+  color: var(--text-main);
+  font-size: 0.95rem;
+  line-height: 1.75;
+}
+
+.privacy-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin: 1.25rem 0 1.75rem;
+  border: 1px solid var(--color-slate-200);
+  border-radius: 10px;
+  background: var(--bg-surface);
+}
+
+.privacy-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.privacy-table th,
+.privacy-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--color-slate-200);
+  border-right: 1px solid var(--color-slate-200);
+  text-align: left;
+  vertical-align: top;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.privacy-table th:last-child,
+.privacy-table td:last-child {
+  border-right: 0;
+}
+
+.privacy-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.privacy-table th {
+  background: #f1f5f9;
+  color: var(--text-main);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.privacy-table td {
+  color: var(--text-muted);
+}
+
 /* 반응형 */
 @media (max-width: 900px) {
   .terms-page-layout {

@@ -1261,6 +1261,148 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>`;
   }
 
+  const privacyTableHeaders = [
+    ['구분', '처리 목적', '처리 항목', '보유 및 이용기간'],
+    ['구분', '수집 항목'],
+    ['회원 유형', '필수 항목', '선택 항목'],
+    ['수탁업체', '위탁 업무', '개인정보 이용기간'],
+    ['제공받는 자', '제공 목적', '제공 항목', '보유 및 이용기간'],
+    ['구분', '보유기간'],
+    ['구분', '보존 근거', '보유기간'],
+    ['구분', '파기방법'],
+    ['구분', '수집 항목', '이용 목적', '보유기간'],
+    ['이전받는 자', '이전 국가', '이전 항목', '이전 목적', '이전 일시 및 방법', '보유기간'],
+    ['구분', '내용'],
+  ];
+
+  function findPrivacyTableHeader(lines, index) {
+    return privacyTableHeaders.find(headers =>
+      headers.every((header, offset) => lines[index + offset] === header)
+    );
+  }
+
+  function isPrivacyBlockBoundary(line) {
+    return !line || /^제\d+조\s+/.test(line);
+  }
+
+  function buildPrivacyTableHTML(headers, rows) {
+    const headHTML = headers.map(header => `<th>${escapeHtml(header)}</th>`).join('');
+    const rowsHTML = rows.map(row => `
+      <tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>
+    `).join('');
+
+    return `
+      <div class="privacy-table-wrap">
+        <table class="privacy-table">
+          <thead><tr>${headHTML}</tr></thead>
+          <tbody>${rowsHTML}</tbody>
+        </table>
+      </div>`;
+  }
+
+  function renderPrivacyBlocks(lines) {
+    const blocks = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line) continue;
+
+      const headers = findPrivacyTableHeader(lines, i);
+      if (headers) {
+        const colCount = headers.length;
+        const rows = [];
+        let cursor = i + colCount;
+
+        while (cursor < lines.length && !isPrivacyBlockBoundary(lines[cursor])) {
+          const maybeNextHeader = findPrivacyTableHeader(lines, cursor);
+          if (maybeNextHeader) break;
+
+          const row = lines.slice(cursor, cursor + colCount);
+          if (row.length < colCount || row.some(cell => !cell)) break;
+          rows.push(row);
+          cursor += colCount;
+        }
+
+        blocks.push(buildPrivacyTableHTML(headers, rows));
+        i = cursor - 1;
+        continue;
+      }
+
+      if (/^\d+\.\s+.+/.test(line)) {
+        blocks.push(`<p class="privacy-list-line">${escapeHtml(line)}</p>`);
+      } else {
+        blocks.push(`<p class="terms-intro-text">${escapeHtml(line)}</p>`);
+      }
+    }
+
+    return blocks.join('');
+  }
+
+  function buildPrivacyPolicyHTML(rawText, termsTitle, termsDate) {
+    const lines = rawText.split('\n').map(line => line.trim());
+    const nonEmptyLines = lines.filter(Boolean);
+    const title = termsTitle || nonEmptyLines[0] || '개인정보처리방침';
+    const dateLine = nonEmptyLines.find(line => line.startsWith('시행일'));
+    const date = termsDate || (dateLine ? dateLine.replace('시행일: ', '').replace('시행일:', '').trim() : '2026년 07월 08일');
+    const firstArticleIndex = lines.findIndex(line => /^제\d+조\s+/.test(line));
+    const introLines = firstArticleIndex > 0
+      ? lines.slice(1, firstArticleIndex).filter(line => line && !line.startsWith('시행일'))
+      : [];
+    const articleLines = firstArticleIndex >= 0 ? lines.slice(firstArticleIndex) : [];
+    const articles = [];
+    let currentArticle = null;
+
+    articleLines.forEach(line => {
+      const articleMatch = line.match(/^(제\d+조)\s+(.+)$/);
+      if (articleMatch) {
+        if (currentArticle) articles.push(currentArticle);
+        currentArticle = {
+          num: articleMatch[1],
+          title: articleMatch[2],
+          lines: [],
+        };
+        return;
+      }
+
+      if (currentArticle) currentArticle.lines.push(line);
+    });
+    if (currentArticle) articles.push(currentArticle);
+
+    const tocHTML = articles.map((article, index) =>
+      `<li><a href="#privacy-art-${index}">${article.num} ${escapeHtml(article.title)}</a></li>`
+    ).join('');
+
+    const introHTML = introLines.length
+      ? `<div class="privacy-doc-summary">${introLines.map(line => `<p>${escapeHtml(line)}</p>`).join('')}</div>`
+      : '';
+
+    const articlesHTML = articles.map((article, index) => `
+      <div class="terms-article privacy-article" id="privacy-art-${index}">
+        <div class="terms-article-header">
+          <span class="terms-article-num">${article.num}</span>
+          <h3 class="terms-article-title">${escapeHtml(article.title)}</h3>
+        </div>
+        <div class="terms-article-body">
+          ${renderPrivacyBlocks(article.lines)}
+        </div>
+      </div>
+    `).join('');
+
+    return `
+      <div class="terms-doc-header">
+        <h2 class="terms-doc-title">${escapeHtml(title)}</h2>
+        <span class="terms-doc-date">시행일: ${escapeHtml(date)}</span>
+      </div>
+      ${introHTML}
+      <div class="terms-toc">
+        <p class="terms-toc-title">목차</p>
+        <ul class="terms-toc-list">${tocHTML}</ul>
+      </div>
+      <div class="terms-body">
+        ${articlesHTML}
+      </div>`;
+  }
+
   function escapeHtml(str) {
     return String(str)
       .replace(/&/g, '&amp;')
@@ -1298,12 +1440,8 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const termsData = await getTermsData('privacy');
       if (termsData && termsData.content) {
-        const parsed = parseTermsText(termsData.content, termsData.title, termsData.effectiveDate);
         privacyViewerContent.className = 'terms-content-area privacy-content-area';
-        privacyViewerContent.innerHTML = buildTermsHTML(parsed, {
-          anchorPrefix: 'privacy-art',
-          documentLabel: '개인정보처리방침',
-        });
+        privacyViewerContent.innerHTML = buildPrivacyPolicyHTML(termsData.content, termsData.title, termsData.effectiveDate);
       }
     } catch (err) {
       console.warn('개인정보처리방침 동적 로드 실패, 정적 본문을 유지합니다:', err);
