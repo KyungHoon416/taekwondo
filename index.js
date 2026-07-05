@@ -2173,7 +2173,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="application-applicant-name">${escapeHtml(app.job?.title || '채용공고')}</div>
           <div class="application-row-meta">${escapeHtml(app.job?.gymName || '도장')} · ${escapeHtml(app.job?.region || '')} · 지원일 ${formatApplicationDate(app.createdAt)}</div>
         </div>
-        <span class="application-status-badge ${getApplicationStatusClass(app.status)}">${getApplicationStatusLabel(app.status)}</span>
+        <div class="application-actions">
+          <span class="application-status-badge ${getApplicationStatusClass(app.status)}">${getApplicationStatusLabel(app.status)}</span>
+          <button type="button" class="danger" onclick="deleteHomepageApplication('${app.id}')">지원서 삭제</button>
+        </div>
       </div>
     `).join('') : '<div class="no-results">아직 지원한 채용공고가 없습니다.</div>';
 
@@ -2346,6 +2349,29 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       console.error('이력서 삭제 실패:', err);
       alert('이력서 삭제에 실패했습니다: ' + err.message);
+    }
+  };
+
+  window.deleteHomepageApplication = async function(appId) {
+    const app = state.applicationsList.find((item) => item.id === appId);
+    const isMine = state.currentUser && (
+      app?.applicantId === state.currentUser.uid ||
+      app?.resume?.userId === state.currentUser.uid
+    );
+    if (!app || !isMine) {
+      alert('삭제할 수 있는 지원서를 찾을 수 없습니다.');
+      return;
+    }
+    if (!confirm('이 지원서를 삭제하시겠습니까?')) return;
+
+    try {
+      if (db) await db.collection('apply').doc(appId).delete();
+      state.applicationsList = state.applicationsList.filter((item) => item.id !== appId);
+      alert('지원서가 삭제되었습니다.');
+      renderMyApplicationsView();
+    } catch (err) {
+      console.error('지원서 삭제 실패:', err);
+      alert('지원서 삭제에 실패했습니다: ' + err.message);
     }
   };
 
