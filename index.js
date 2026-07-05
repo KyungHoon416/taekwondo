@@ -2549,6 +2549,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function resetJobDialogMode() {
     state.editingJobId = null;
     setJobDialogMode('create');
+    document.querySelectorAll('input[name="job-position"]').forEach(checkbox => checkbox.checked = false);
+    document.querySelectorAll('input[name="job-type"]').forEach(checkbox => checkbox.checked = false);
   }
 
   function resetResumeDialogMode() {
@@ -2571,9 +2573,21 @@ document.addEventListener('DOMContentLoaded', () => {
     setJobDialogMode('edit');
     document.getElementById('job-gym-name').value = job.gymName || '';
     document.getElementById('job-title').value = getBaseJobTitle(job);
-    document.getElementById('job-position').value = job.position || '';
+    
+    // Checkboxes mapping for positions
+    const positions = String(job.position || '').split(',').map(s => s.trim()).filter(Boolean);
+    document.querySelectorAll('input[name="job-position"]').forEach(checkbox => {
+      checkbox.checked = positions.includes(checkbox.value);
+    });
+
     document.getElementById('job-salary').value = job.salary || '';
-    document.getElementById('job-type').value = job.type || '';
+    
+    // Checkboxes mapping for job types
+    const types = String(job.type || '').split(',').map(s => s.trim()).filter(Boolean);
+    document.querySelectorAll('input[name="job-type"]').forEach(checkbox => {
+      checkbox.checked = types.includes(checkbox.value);
+    });
+
     document.getElementById('job-exp').value = job.exp || '';
     document.getElementById('job-address').value = job.address || '';
     document.getElementById('job-preferred').value = job.preferred || '';
@@ -4008,9 +4022,23 @@ document.addEventListener('DOMContentLoaded', () => {
       const gymName = document.getElementById('job-gym-name').value;
       const title = document.getElementById('job-title').value;
       const region = document.getElementById('job-region').value;
-      const position = document.getElementById('job-position').value;
+      
+      const selectedPositions = Array.from(document.querySelectorAll('input[name="job-position"]:checked')).map(el => el.value);
+      if (!selectedPositions.length) {
+        alert('직무를 1개 이상 선택해주세요.');
+        return;
+      }
+      const position = selectedPositions.join(', ');
+
       const salary = document.getElementById('job-salary').value;
-      const type = document.getElementById('job-type').value;
+
+      const selectedTypes = Array.from(document.querySelectorAll('input[name="job-type"]:checked')).map(el => el.value);
+      if (!selectedTypes.length) {
+        alert('근무형태를 1개 이상 선택해주세요.');
+        return;
+      }
+      const type = selectedTypes.join(', ');
+
       const exp = document.getElementById('job-exp').value;
       const hotness = 'NEW';
       const desc = document.getElementById('job-desc').value;

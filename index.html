@@ -2024,22 +2024,10 @@ khjoon6367@nate.com
           <label for="job-title">공고 제목</label>
           <input type="text" id="job-title" required placeholder="예: 열정 넘치는 메인사범님을 모십니다">
         </div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="job-region">지역</label>
-            <input type="hidden" id="job-region" required>
-            <div class="district-picker dropdown job" id="job-region-picker"></div>
-          </div>
-          <div class="form-group">
-            <label for="job-position">직무</label>
-            <select id="job-position" required>
-              <option value="지도관장">지도관장</option>
-              <option value="메인사범">메인사범</option>
-              <option value="보조사범">보조사범</option>
-              <option value="유치부 전임">유치부 전임</option>
-              <option value="파트타임">파트타임</option>
-            </select>
-          </div>
+        <div class="form-group">
+          <label for="job-region">근무 지역</label>
+          <input type="hidden" id="job-region" required>
+          <div class="district-picker dropdown job" id="job-region-picker"></div>
         </div>
         <!-- 근무지 주소 직접 입력 영역 -->
         <div class="form-group">
@@ -2048,31 +2036,75 @@ khjoon6367@nate.com
           <div id="job-map" style="width:100%; height:200px; background:#f1f5f9; border-radius:8px; border:1.5px solid var(--border-main); display:none; margin-top:8px;"></div>
         </div>
 
+        <!-- 직무 (체크박스 형태로 변경) -->
+        <div class="form-group">
+          <label style="margin-bottom: 8px; display: block; font-weight: 800; color: var(--text-main);">직무</label>
+          <div class="checkbox-group-wrapper" id="job-position-checkboxes">
+            <label class="checkbox-tag-label">
+              <input type="checkbox" name="job-position" value="지도관장">
+              <span>지도관장</span>
+            </label>
+            <label class="checkbox-tag-label">
+              <input type="checkbox" name="job-position" value="메인사범">
+              <span>메인사범</span>
+            </label>
+            <label class="checkbox-tag-label">
+              <input type="checkbox" name="job-position" value="보조사범">
+              <span>보조사범</span>
+            </label>
+            <label class="checkbox-tag-label">
+              <input type="checkbox" name="job-position" value="유치부 전임">
+              <span>유치부 전임</span>
+            </label>
+            <label class="checkbox-tag-label">
+              <input type="checkbox" name="job-position" value="파트타임">
+              <span>파트타임</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 근무형태 (체크박스 형태로 변경) -->
+        <div class="form-group">
+          <label style="margin-bottom: 8px; display: block; font-weight: 800; color: var(--text-main);">근무형태</label>
+          <div class="checkbox-group-wrapper" id="job-type-checkboxes">
+            <label class="checkbox-tag-label">
+              <input type="checkbox" name="job-type" value="정규직">
+              <span>정규직</span>
+            </label>
+            <label class="checkbox-tag-label">
+              <input type="checkbox" name="job-type" value="계약직">
+              <span>계약직</span>
+            </label>
+            <label class="checkbox-tag-label">
+              <input type="checkbox" name="job-type" value="파트타임">
+              <span>파트타임</span>
+            </label>
+            <label class="checkbox-tag-label">
+              <input type="checkbox" name="job-type" value="알바">
+              <span>아르바이트</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 급여와 경력 요구사항 (나란히 배치) -->
         <div class="form-grid">
           <div class="form-group">
             <label for="job-salary">급여 (월급)</label>
             <input type="text" id="job-salary" required placeholder="예: 월 320만원">
           </div>
           <div class="form-group">
-            <label for="job-type">근무형태</label>
-            <select id="job-type" required>
-              <option value="정규직">정규직</option>
-              <option value="계약직">계약직</option>
-              <option value="파트타임">파트타임</option>
-              <option value="알바">아르바이트</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-grid">
-          <div class="form-group">
             <label for="job-exp">경력 요구사항</label>
             <input type="text" id="job-exp" placeholder="예: 경력 2년↑ 또는 신입가능" required>
           </div>
-          <div class="form-group">
-            <label for="job-preferred">우대조건</label>
-            <input type="text" id="job-preferred" placeholder="예: 겨루기 선수 출신, 태권도 4단 이상, 인근 거주자 우대">
-          </div>
         </div>
+
+        <!-- 우대조건 (textarea 형태로 변경) -->
+        <div class="form-group">
+          <label for="job-preferred">우대조건</label>
+          <textarea id="job-preferred" rows="3" placeholder="상세 정보를 기입해주세요."></textarea>
+        </div>
+
+        <!-- 도장 소개 및 상세 업무내용 -->
         <div class="form-group">
           <label for="job-desc">도장 소개 및 상세 업무내용</label>
           <textarea id="job-desc" rows="4" required placeholder="상세 정보를 기입해주세요."></textarea>
