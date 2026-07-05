@@ -304,11 +304,10 @@ service cloud.firestore {
            (!request.resource.data.keys().hasAny(['viewed_users']) || request.resource.data.viewed_users is list))
         ) || (
           // Case 2: Author or Admin updates the whole job
-          isAuthenticated() && 
-          (
-            (isUserOfType(request.auth.uid, 'gym') && isValidJob(request.resource.data, resource.data.user_id) && areImmutableFieldsUnchanged(['user_id', 'created_at'])) ||
-            (resource.data.user_id == request.auth.uid && isValidJob(request.resource.data, request.auth.uid) && areImmutableFieldsUnchanged(['user_id', 'created_at']))
-          )
+          isAuthenticated() &&
+          (resource.data.user_id == request.auth.uid || isAdmin()) &&
+          isValidJob(request.resource.data, resource.data.user_id) &&
+          areImmutableFieldsUnchanged(['user_id', 'created_at'])
         );
       allow delete: if isAuthenticated() && (resource.data.user_id == request.auth.uid || isAdmin());
     }

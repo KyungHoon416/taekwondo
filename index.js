@@ -388,6 +388,8 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedResumeRegions: [],
     selectedJobRegions: [],
     regionPickers: {},
+    editingJobId: null,
+    editingResumeId: null,
     communityPageSize: 25,
     communityCurrentPage: 1
   };
@@ -516,6 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
           salary: j.salary || '월 300만원',
           type: j.type || '정규직',
           exp: j.career || '경력무관',
+          position: j.position || '',
           hotness: (j.status === 'active' && isNew) ? 'NEW' : '',
           desc: j.content || '',
           pinned: j.pinned || false,
@@ -2084,7 +2087,11 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="application-job-title">${escapeHtml(job.title)}</div>
               <div class="application-job-meta">${escapeHtml(job.gymName)} · ${escapeHtml(job.region)} · ${escapeHtml(job.salary)}</div>
             </div>
-            <span class="application-count-badge">지원자 ${jobApps.length}명</span>
+            <div class="application-header-actions">
+              <span class="application-count-badge">지원자 ${jobApps.length}명</span>
+              <button type="button" onclick="editHomepageJob('${job.id}')">수정</button>
+              <button type="button" class="danger" onclick="deleteHomepageJob('${job.id}')">삭제</button>
+            </div>
           </div>
           <div class="application-applicant-list">
             ${jobApps.length ? jobApps.map((app) => renderGymApplicationRow(app)).join('') : '<div class="application-applicant-row"><div class="application-row-meta">아직 지원자가 없습니다.</div></div>'}
@@ -2115,16 +2122,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderInstructorApplicationStatus({ titleEl, descEl, summaryEl, listEl }) {
     if (titleEl) titleEl.textContent = '내 지원 현황';
-    if (descEl) descEl.textContent = '지원한 채용공고의 진행 상태를 확인합니다.';
+    if (descEl) descEl.textContent = '내 이력서와 지원한 채용공고의 진행 상태를 확인합니다.';
 
     const apps = state.applicationsList.filter((app) => app.applicantId === state.currentUser.uid || app.resume?.userId === state.currentUser.uid);
-    if (summaryEl) summaryEl.innerHTML = `<span class="results-count">지원 ${apps.length}건</span>`;
-    if (!apps.length) {
-      listEl.innerHTML = '<div class="no-results">아직 지원한 채용공고가 없습니다.</div>';
-      return;
-    }
+    const myResumes = state.talentsList.filter((resume) => resume.userId === state.currentUser.uid);
+    if (summaryEl) summaryEl.innerHTML = `<span class="results-count">이력서 ${myResumes.length}건 · 지원 ${apps.length}건</span>`;
 
-    listEl.innerHTML = apps.map((app) => `
+    const resumeSection = myResumes.length ? myResumes.map((resume) => `
+      <div class="application-row-card">
+        <div>
+          <div class="application-applicant-name">${escapeHtml(resume.name || '이력서')}</div>
+          <div class="application-row-meta">${escapeHtml(resume.role || '직무 미입력')} · ${escapeHtml(resume.exp || '경력 미입력')} · ${escapeHtml(resume.region || '지역 미입력')}</div>
+        </div>
+        <div class="application-actions">
+          <button type="button" onclick="editHomepageResume('${resume.id}')">수정</button>
+          <button type="button" class="danger" onclick="deleteHomepageResume('${resume.id}')">삭제</button>
+        </div>
+      </div>
+    `).join('') : '<div class="no-results">등록한 이력서가 없습니다. 이력서를 먼저 등록해 주세요.</div>';
+
+    const applicationSection = apps.length ? apps.map((app) => `
       <div class="application-row-card">
         <div>
           <div class="application-applicant-name">${escapeHtml(app.job?.title || '채용공고')}</div>
@@ -2132,7 +2149,14 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <span class="application-status-badge ${getApplicationStatusClass(app.status)}">${getApplicationStatusLabel(app.status)}</span>
       </div>
-    `).join('');
+    `).join('') : '<div class="no-results">아직 지원한 채용공고가 없습니다.</div>';
+
+    listEl.innerHTML = `
+      <div class="application-section-title">내 이력서</div>
+      ${resumeSection}
+      <div class="application-section-title">지원 현황</div>
+      ${applicationSection}
+    `;
   }
 
   window.changeHomepageApplicationStatus = async function(appId, status) {
@@ -2154,6 +2178,139 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     openTalentDetails(talent);
+  };
+
+  function getBaseJobTitle(job) {
+    const position = job.position || '';
+    if (position && job.title.endsWith(` (${position})`)) {
+      return job.title.slice(0, -(` (${position})`).length);
+    }
+    return job.title || '';
+  }
+
+  function setJobDialogMode(mode) {
+    const titleEl = document.getElementById('post-job-dialog-title');
+    const submitEl = document.getElementById('post-job-submit-label');
+    if (titleEl) titleEl.textContent = mode === 'edit' ? '채용공고 수정' : '채용공고 등록';
+    if (submitEl) submitEl.textContent = mode === 'edit' ? '수정하기' : '등록하기';
+  }
+
+  function setResumeDialogMode(mode) {
+    const titleEl = document.getElementById('post-resume-dialog-title');
+    const submitEl = document.getElementById('post-resume-submit-label');
+    if (titleEl) titleEl.textContent = mode === 'edit' ? '이력서 수정' : '이력서 등록';
+    if (submitEl) submitEl.textContent = mode === 'edit' ? '이력서 수정하기' : '이력서 등록하기';
+  }
+
+  function resetJobDialogMode() {
+    state.editingJobId = null;
+    setJobDialogMode('create');
+  }
+
+  function resetResumeDialogMode() {
+    state.editingResumeId = null;
+    setResumeDialogMode('create');
+  }
+
+  function hasResumeApplication(resumeId) {
+    return state.applicationsList.some((app) => app.resumeId === resumeId);
+  }
+
+  window.editHomepageJob = function(jobId) {
+    const job = state.jobsList.find((item) => item.id === jobId);
+    if (!job || !state.currentUser || job.userId !== state.currentUser.uid) {
+      alert('수정할 수 있는 채용공고를 찾을 수 없습니다.');
+      return;
+    }
+
+    state.editingJobId = jobId;
+    setJobDialogMode('edit');
+    document.getElementById('job-gym-name').value = job.gymName || '';
+    document.getElementById('job-title').value = getBaseJobTitle(job);
+    document.getElementById('job-position').value = job.position || '';
+    document.getElementById('job-salary').value = job.salary || '';
+    document.getElementById('job-type').value = job.type || '';
+    document.getElementById('job-exp').value = job.exp || '';
+    document.getElementById('job-address').value = job.address || '';
+    document.getElementById('job-preferred').value = job.preferred || '';
+    document.getElementById('job-desc').value = job.desc || '';
+    document.getElementById('job-region').value = job.region || '';
+    state.selectedJobRegions = splitRegionValues(job.region);
+    state.regionPickers.job?.setByValue(job.region || '');
+    if (dialogs.postJob) dialogs.postJob.showModal();
+  };
+
+  window.deleteHomepageJob = async function(jobId) {
+    const job = state.jobsList.find((item) => item.id === jobId);
+    if (!job || !state.currentUser || job.userId !== state.currentUser.uid) {
+      alert('삭제할 수 있는 채용공고를 찾을 수 없습니다.');
+      return;
+    }
+    if (!confirm('이 채용공고를 삭제하시겠습니까?')) return;
+
+    try {
+      if (db) await db.collection('jobs').doc(jobId).delete();
+      state.jobsList = state.jobsList.filter((item) => item.id !== jobId);
+      state.applicationsList = state.applicationsList.filter((app) => app.jobId !== jobId);
+      alert('채용공고가 삭제되었습니다.');
+      renderHomeJobs();
+      renderBoardJobs();
+      renderMyApplicationsView();
+      updateStats();
+    } catch (err) {
+      console.error('채용공고 삭제 실패:', err);
+      alert('채용공고 삭제에 실패했습니다: ' + err.message);
+    }
+  };
+
+  window.editHomepageResume = function(resumeId) {
+    const resume = state.talentsList.find((item) => item.id === resumeId);
+    if (!resume || !state.currentUser || resume.userId !== state.currentUser.uid) {
+      alert('수정할 수 있는 이력서를 찾을 수 없습니다.');
+      return;
+    }
+    if (hasResumeApplication(resumeId)) {
+      alert('이미 지원한 이력서는 수정이 되지않습니다.');
+      return;
+    }
+
+    state.editingResumeId = resumeId;
+    setResumeDialogMode('edit');
+    document.getElementById('res-name').value = resume.name || '';
+    document.getElementById('res-gender').value = resume.gender || '남성';
+    document.getElementById('res-position').value = resume.role || '';
+    document.getElementById('res-salary').value = resume.salary || '';
+    document.getElementById('res-exp').value = resume.exp || '';
+    document.getElementById('res-dan').value = resume.dan || '';
+    document.getElementById('res-license').value = resume.license || '';
+    document.getElementById('res-intro').value = resume.intro || '';
+    document.getElementById('res-region').value = resume.region || '';
+    state.selectedResumeRegions = splitRegionValues(resume.region);
+    state.regionPickers.resume?.setByValue(resume.region || '');
+    if (dialogs.postResume) dialogs.postResume.showModal();
+  };
+
+  window.deleteHomepageResume = async function(resumeId) {
+    const resume = state.talentsList.find((item) => item.id === resumeId);
+    if (!resume || !state.currentUser || resume.userId !== state.currentUser.uid) {
+      alert('삭제할 수 있는 이력서를 찾을 수 없습니다.');
+      return;
+    }
+    if (!confirm('이 이력서를 삭제하시겠습니까?')) return;
+
+    try {
+      if (db) await db.collection('resumes').doc(resumeId).delete();
+      state.talentsList = state.talentsList.filter((item) => item.id !== resumeId);
+      state.applicationsList = state.applicationsList.filter((app) => app.resumeId !== resumeId);
+      alert('이력서가 삭제되었습니다.');
+      renderHomeTalents();
+      renderBoardTalents();
+      renderMyApplicationsView();
+      updateStats();
+    } catch (err) {
+      console.error('이력서 삭제 실패:', err);
+      alert('이력서 삭제에 실패했습니다: ' + err.message);
+    }
   };
 
   // Render jobs on the Job Board view with current filters
@@ -2536,6 +2693,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     }
+  });
+
+  dialogs.postJob?.addEventListener('close', () => {
+    resetJobDialogMode();
+  });
+
+  dialogs.postResume?.addEventListener('close', () => {
+    resetResumeDialogMode();
   });
 
   // Auth Dialog (Login/Register)
@@ -3345,6 +3510,10 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           return;
         }
+        resetJobDialogMode();
+        formPostJob?.reset();
+        state.selectedJobRegions = [];
+        state.regionPickers.job?.clear();
         if (dialogs.postJob) dialogs.postJob.showModal();
       });
     }
@@ -3368,6 +3537,10 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           return;
         }
+        resetResumeDialogMode();
+        formPostResume?.reset();
+        state.selectedResumeRegions = [];
+        state.regionPickers.resume?.clear();
         if (dialogs.postResume) dialogs.postResume.showModal();
       });
     }
@@ -3431,6 +3604,62 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (db) {
         try {
+          if (state.editingJobId) {
+            const jobId = state.editingJobId;
+            const job = state.jobsList.find((item) => item.id === jobId);
+            if (!job || job.userId !== userId) {
+              alert('수정할 수 있는 채용공고를 찾을 수 없습니다.');
+              return;
+            }
+
+            const updatedJobData = {
+              user_id: userId,
+              gymName,
+              title: `${title} (${position})`,
+              location: region,
+              address,
+              preferred: preferred || '-',
+              salary,
+              type,
+              career: exp,
+              position,
+              status: 'active',
+              content: desc
+            };
+
+            await db.collection('jobs').doc(jobId).update(updatedJobData);
+
+            const updatedJob = {
+              ...job,
+              gymName,
+              title: `${title} (${position})`,
+              region,
+              address: address || `${region} 일대 태권도장`,
+              preferred: preferred || '-',
+              salary,
+              type,
+              exp,
+              position,
+              desc
+            };
+            state.jobsList = state.jobsList.map((item) => item.id === jobId ? updatedJob : item);
+            state.applicationsList = state.applicationsList.map((app) => app.jobId === jobId ? { ...app, job: updatedJob } : app);
+
+            dialogs.postJob.close();
+            formPostJob.reset();
+            const jobMapEl = document.getElementById('job-map');
+            if (jobMapEl) jobMapEl.style.display = 'none';
+            state.selectedJobRegions = [];
+            state.regionPickers.job?.clear();
+            resetJobDialogMode();
+
+            alert('채용공고가 수정되었습니다.');
+            renderHomeJobs();
+            renderBoardJobs();
+            renderMyApplicationsView();
+            return;
+          }
+
           const docRef = await db.collection('jobs').add(newJobData);
           const docId = docRef.id;
 
@@ -3444,6 +3673,7 @@ document.addEventListener('DOMContentLoaded', () => {
             salary,
             type,
             exp,
+            position,
             hotness,
             desc,
             pinned: false,
@@ -3533,6 +3763,61 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (db) {
         try {
+          if (state.editingResumeId) {
+            const resumeId = state.editingResumeId;
+            const resume = state.talentsList.find((item) => item.id === resumeId);
+            if (!resume || resume.userId !== userId) {
+              alert('수정할 수 있는 이력서를 찾을 수 없습니다.');
+              return;
+            }
+            if (hasResumeApplication(resumeId)) {
+              alert('이미 지원한 이력서는 수정이 되지않습니다.');
+              return;
+            }
+
+            const updatedResumeData = {
+              user_id: userId,
+              name,
+              gender,
+              hope_position: position,
+              career: exp,
+              hope_area: region,
+              hope_salary: salary,
+              certificate: `${dan}, ${license}`,
+              content: intro,
+              phone: userPhone
+            };
+
+            await db.collection('resumes').doc(resumeId).update(updatedResumeData);
+
+            const updatedTalent = {
+              ...resume,
+              name,
+              gender,
+              role: position,
+              exp,
+              region,
+              salary,
+              dan,
+              license,
+              intro,
+              phone: userPhone
+            };
+            state.talentsList = state.talentsList.map((item) => item.id === resumeId ? updatedTalent : item);
+
+            dialogs.postResume.close();
+            formPostResume.reset();
+            state.selectedResumeRegions = [];
+            state.regionPickers.resume?.clear();
+            resetResumeDialogMode();
+
+            alert('이력서가 수정되었습니다.');
+            renderHomeTalents();
+            renderBoardTalents();
+            renderMyApplicationsView();
+            return;
+          }
+
           const docRef = await db.collection('resumes').add(newTalentData);
           const docId = docRef.id;
 
@@ -3548,7 +3833,8 @@ document.addEventListener('DOMContentLoaded', () => {
             license,
             colorIndex: Math.floor(Math.random() * 5),
             intro,
-            phone: userPhone
+            phone: userPhone,
+            userId
           };
 
           state.talentsList.unshift(newTalent);
@@ -4858,7 +5144,20 @@ document.addEventListener('DOMContentLoaded', () => {
         btnApplyJob.disabled = true;
         btnApplyJob.textContent = '지원 중...';
 
-        await db.collection('apply').add(applyData);
+        const applyRef = await db.collection('apply').add(applyData);
+        const appliedJob = state.jobsList.find((item) => item.id === jobId);
+        const appliedResume = state.talentsList.find((item) => item.id === resumeId);
+        state.applicationsList.unshift({
+          id: applyRef.id,
+          jobId,
+          resumeId,
+          jobOwnerId,
+          applicantId: currentUser.uid,
+          status: 'pending',
+          createdAt: new Date(),
+          job: appliedJob,
+          resume: appliedResume
+        });
 
         alert('지원서가 성공적으로 전달되었습니다! 관장님이 검토 후 연락드릴 예정입니다.');
         dialogs.jobDetail.close();

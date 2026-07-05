@@ -873,6 +873,14 @@
   line-height: 1.5;
 }
 
+.application-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
 .application-count-badge,
 .application-status-badge {
   display: inline-flex;
@@ -919,6 +927,13 @@
   color: var(--text-main);
 }
 
+.application-section-title {
+  font-size: 0.95rem;
+  font-weight: 850;
+  color: var(--brand-primary-dark);
+  padding: 0.2rem 0.15rem;
+}
+
 .application-actions {
   display: flex;
   gap: 0.4rem;
@@ -942,6 +957,32 @@
   color: var(--accent-blue);
 }
 
+.application-header-actions button {
+  border: 1px solid var(--border-main);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--text-main);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.42rem 0.65rem;
+}
+
+.application-header-actions button:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.application-actions button.danger,
+.application-header-actions button.danger {
+  color: var(--accent-red);
+}
+
+.application-actions button.danger:hover,
+.application-header-actions button.danger:hover {
+  border-color: var(--accent-red);
+}
+
 @media (max-width: 720px) {
   .application-job-header,
   .application-applicant-row,
@@ -951,6 +992,10 @@
   }
 
   .application-actions {
+    justify-content: flex-start;
+  }
+
+  .application-header-actions {
     justify-content: flex-start;
   }
 }
