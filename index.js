@@ -5171,6 +5171,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let postcodeEmbedInstance = null;
   let directInputTimer = null;
   let kakaoMapsLoadPromise = null;
+  const KAKAO_MAP_APP_KEY = '28f3ae7ad7bb29db3e5774383d5bebe3';
+  const KAKAO_MAP_SDK_URL = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_MAP_APP_KEY}&libraries=services&autoload=false`;
 
   function escapeHtml(value) {
     return String(value || '').replace(/[&<>"']/g, (char) => ({
@@ -5236,6 +5238,51 @@ document.addEventListener('DOMContentLoaded', () => {
     mapEl.innerHTML = '';
   }
 
+  function ensureKakaoMapsScript() {
+    if (window.kakao?.maps) {
+      return Promise.resolve();
+    }
+
+    const existingScript = document.getElementById('kakao-map-sdk-retry')
+      || document.getElementById('kakao-map-sdk')
+      || Array.from(document.querySelectorAll('script[src*="dapi.kakao.com/v2/maps/sdk.js"]')).find(Boolean);
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('카카오 지도 스크립트 로드 시간 초과'));
+      }, 12000);
+
+      const finish = () => {
+        clearTimeout(timeout);
+        if (window.kakao?.maps) {
+          resolve();
+        } else {
+          reject(new Error('카카오 지도 스크립트가 로드되었지만 maps 객체가 없습니다'));
+        }
+      };
+
+      const fail = () => {
+        clearTimeout(timeout);
+        reject(new Error('카카오 지도 스크립트 로드 실패'));
+      };
+
+      if (existingScript && existingScript.id === 'kakao-map-sdk-retry') {
+        existingScript.addEventListener('load', finish, { once: true });
+        existingScript.addEventListener('error', fail, { once: true });
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.id = 'kakao-map-sdk-retry';
+      script.type = 'text/javascript';
+      script.async = true;
+      script.src = `${KAKAO_MAP_SDK_URL}&retry=${Date.now()}`;
+      script.addEventListener('load', finish, { once: true });
+      script.addEventListener('error', fail, { once: true });
+      document.head.appendChild(script);
+    });
+  }
+
   function waitForKakaoMaps() {
     if (window.kakao?.maps?.services) {
       return Promise.resolve();
@@ -5250,11 +5297,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const check = () => {
         if (!window.kakao?.maps) {
-          if (Date.now() - startedAt > 8000) {
-            reject(new Error('카카오 지도 스크립트 로드 시간 초과'));
+          if (Date.now() - startedAt > 15000) {
+            reject(new Error('카카오 지도 스크립트 로드 시간 초과 또는 앱키/도메인 설정 오류'));
             return;
           }
-          setTimeout(check, 100);
+          ensureKakaoMapsScript()
+            .then(() => setTimeout(check, 0))
+            .catch((err) => {
+              if (Date.now() - startedAt > 15000) {
+                reject(err);
+              } else {
+                setTimeout(check, 300);
+              }
+            });
           return;
         }
 
