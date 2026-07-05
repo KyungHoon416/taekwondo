@@ -838,7 +838,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return targetRegion === selectedRegion || targetRegion.includes(selectedRegion) || selectedRegion.includes(targetRegion);
   }
 
-  function createDistrictPicker({ rootId, inputId, mode = 'single', onChange }) {
+  function createDistrictPicker({ rootId, inputId, mode = 'single', onChange, tagsContainerId }) {
     const root = document.getElementById(rootId);
     const input = document.getElementById(inputId);
     if (!root || !input || !window.RegionSync) return null;
@@ -886,7 +886,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Group selected regions by Sido
+      if (tagsContainerId) {
+        // If external tags container is specified, render a clean summary label inside the trigger slot
+        const summary = selected.length === 1 
+          ? selected[0].displayName 
+          : `${selected[0].displayName} 외 ${selected.length - 1}곳`;
+        triggerDisplay.innerHTML = `<span class="district-trigger-summary-label" style="font-weight:700;color:var(--text-main);">${summary}</span>`;
+        return;
+      }
+
+      // Group selected regions by Sido (inline tags)
       const groups = {};
       selected.forEach((region) => {
         if (!groups[region.sidoShort]) {
@@ -939,9 +948,78 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    function renderExternalTags() {
+      if (!tagsContainerId) return;
+      const extContainer = document.getElementById(tagsContainerId);
+      if (!extContainer) return;
+      extContainer.innerHTML = '';
+      if (!selected.length) {
+        extContainer.style.display = 'none';
+        return;
+      }
+      extContainer.style.display = 'flex';
+
+      // Group selected regions by Sido
+      const groups = {};
+      selected.forEach((region) => {
+        if (!groups[region.sidoShort]) {
+          groups[region.sidoShort] = [];
+        }
+        groups[region.sidoShort].push(region);
+      });
+
+      Object.entries(groups).forEach(([sido, regions]) => {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'district-selected-group';
+
+        // Sido Tag
+        const sidoTag = document.createElement('span');
+        sidoTag.className = 'district-sido-tag';
+        sidoTag.innerHTML = `${sido} <button type="button" class="district-delete-sido-btn" aria-label="${sido} 전체 삭제">×</button>`;
+        sidoTag.querySelector('button').addEventListener('click', (e) => {
+          e.stopPropagation();
+          selected = selected.filter((item) => item.sidoShort !== sido);
+          renderDistricts();
+          renderSelected();
+          renderTriggerSelected();
+          renderExternalTags();
+          syncValue();
+        });
+        groupDiv.appendChild(sidoTag);
+
+        // Chevron divider
+        const divider = document.createElement('span');
+        divider.className = 'district-divider-chevron';
+        divider.textContent = '>';
+        groupDiv.appendChild(divider);
+
+        // Sigungu Tags
+        regions.forEach((region) => {
+          const sigunguTag = document.createElement('span');
+          sigunguTag.className = 'district-sigungu-tag';
+          sigunguTag.innerHTML = `${region.sigungu} <button type="button" class="district-delete-sigungu-btn" aria-label="${region.displayName} 삭제">×</button>`;
+          sigunguTag.querySelector('button').addEventListener('click', (e) => {
+            e.stopPropagation();
+            selected = selected.filter((item) => item.regionCode !== region.regionCode);
+            renderDistricts();
+            renderSelected();
+            renderTriggerSelected();
+            renderExternalTags();
+            syncValue();
+          });
+          groupDiv.appendChild(sigunguTag);
+        });
+
+        extContainer.appendChild(groupDiv);
+      });
+    }
+
     function syncValue() {
       input.value = selected.map((region) => region.displayName).join(', ');
       renderTriggerSelected();
+      if (tagsContainerId) {
+        renderExternalTags();
+      }
       if (onChange) onChange(selected);
     }
 
@@ -1107,17 +1185,20 @@ document.addEventListener('DOMContentLoaded', () => {
     state.regionPickers.home = createDistrictPicker({
       rootId: 'home-region-picker',
       inputId: 'search-region',
-      mode: 'multi'
+      mode: 'multi',
+      tagsContainerId: 'home-selected-regions-tags'
     });
     state.regionPickers.jobFilter = createDistrictPicker({
       rootId: 'job-filter-region-picker',
       inputId: 'filter-job-region',
-      mode: 'multi'
+      mode: 'multi',
+      tagsContainerId: 'job-filter-selected-regions-tags'
     });
     state.regionPickers.talentFilter = createDistrictPicker({
       rootId: 'talent-filter-region-picker',
       inputId: 'filter-talent-region',
-      mode: 'multi'
+      mode: 'multi',
+      tagsContainerId: 'talent-filter-selected-regions-tags'
     });
     state.regionPickers.resume = createDistrictPicker({
       rootId: 'resume-region-picker',

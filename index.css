@@ -5889,3 +5889,22 @@
   border-color: #3b82f6;
   color: #1d4ed8;
 }
+
+/* External Selected Regions Tags under Search Bars */
+.home-selected-regions-tags {
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 16px;
+  padding: 0 16px;
+}
+
+.filter-selected-regions-tags {
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 10px;
+  padding: 0 4px;
+}

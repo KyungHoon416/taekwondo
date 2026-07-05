@@ -197,6 +197,8 @@
               </div>
             </div>
           </form>
+          <!-- 홈화면 선택된 지역 태그 노출 영역 -->
+          <div class="home-selected-regions-tags" id="home-selected-regions-tags" style="display:none; margin-top: 16px; padding: 0 1rem;"></div>
         </div>
       </section>
 
@@ -310,6 +312,7 @@
                   <label for="filter-job-region">지역</label>
                   <input type="hidden" id="filter-job-region" name="region">
                   <div class="district-picker dropdown filter" id="job-filter-region-picker"></div>
+                  <div class="filter-selected-regions-tags" id="job-filter-selected-regions-tags" style="display:none; margin-top: 8px;"></div>
                 </div>
                 <div class="filter-group">
                   <label for="filter-job-position">직무</label>
@@ -403,6 +406,7 @@
                   <label>희망 지역</label>
                   <input type="hidden" id="filter-talent-region" name="region">
                   <div class="district-picker dropdown filter" id="talent-filter-region-picker"></div>
+                  <div class="filter-selected-regions-tags" id="talent-filter-selected-regions-tags" style="display:none; margin-top: 8px;"></div>
                 </div>
                 <div class="filter-group">
                   <label for="filter-talent-position">희망 직무</label>
