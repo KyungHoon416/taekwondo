@@ -4798,6 +4798,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const dialog = document.getElementById('dialog-purchase-pass');
     if (dialog) {
       if (talent) state.pendingPurchaseTalent = talent;
+
+      // Fetch the latest user doc from Firestore to check for any custom pricing updates
+      if (state.currentUser && state.currentUser.uid && typeof db !== 'undefined' && db) {
+        try {
+          const userDoc = await db.collection('users').doc(state.currentUser.uid).get();
+          if (userDoc.exists) {
+            state.currentUser = { ...state.currentUser, ...userDoc.data() };
+          }
+        } catch (e) {
+          console.warn('사용자 최신 정보 로드 실패:', e);
+        }
+      }
+
       const products = await loadResumePassProductsForPurchase();
       renderPurchaseProducts(products);
       dialog.showModal();
@@ -4811,6 +4824,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const products = snap.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }))
         .filter((product) => product.active !== false && Number(product.months) > 0 && Number(product.price) >= 0);
+      
+      // Override pricing with user-specific custom prices if they exist
+      if (state.currentUser && state.currentUser.customPassPrices) {
+        products.forEach((product) => {
+          if (state.currentUser.customPassPrices[product.id] !== undefined) {
+            product.price = Number(state.currentUser.customPassPrices[product.id]);
+          }
+        });
+      }
+
       return products.length ? products : DEFAULT_RESUME_PASS_PRODUCTS;
     } catch (err) {
       console.warn('이력서 열람권 상품 로드 실패, 기본 상품 사용:', err);

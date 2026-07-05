@@ -347,7 +347,8 @@ async function fetchFirestoreData() {
         resumeSubscriptionMonths: u.resumeSubscriptionMonths || 0,
         type: u.type || 'instructor',
         joinDate: u.created_at ? (u.created_at.toDate ? u.created_at.toDate().toISOString().split('T')[0] : '2026-06-11') : '2026-06-11',
-        status: 'active'
+        status: 'active',
+        customPassPrices: u.customPassPrices || null
       });
     });
     if (dbMembers.length > 0) {
@@ -2261,7 +2262,7 @@ window.deleteNotice = async function(id) {
 };
 
 // ─── Detail Modal populator ──────────────────────────────────────────────────
-window.showDetail = function(type, id) {
+window.showDetail = async function(type, id) {
   const dialog = document.getElementById('detail-dialog');
   const titleEl = document.getElementById('detail-dialog-title');
   const bodyEl = document.getElementById('detail-dialog-body');
@@ -2270,10 +2271,48 @@ window.showDetail = function(type, id) {
   let title = '';
   let html = '';
 
+  let m;
   if (type === 'member') {
-    const m = MEMBERS.find(x => x.id === id);
+    m = MEMBERS.find(x => x.id === id);
     if (!m) { showToast('회원을 찾을 수 없습니다.', 'error'); return; }
     title = '회원 상세 정보';
+
+    let productsHtml = '';
+    if (m.type === 'gym') {
+      try {
+        const prodSnap = await db.collection('resume_pass_products').orderBy('sort', 'asc').get();
+        const products = prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(p => p.active !== false);
+        const customPrices = m.customPassPrices || {};
+
+        productsHtml = `
+          <div class="detail-full" style="margin-top: 1rem; border-top: 1px solid var(--border-main); padding-top: 1rem;">
+            <strong style="display: block; margin-bottom: 0.75rem; font-size: 0.92rem; color: var(--text-main);">🎫 열람권 개별 금액 조정 (이 아이디 전용)</strong>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; background: var(--bg-main); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--color-slate-200);">
+              ${products.map(p => {
+                const currentPrice = customPrices[p.id] !== undefined ? customPrices[p.id] : '';
+                return `
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+                    <span style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted);">${escapeHtml(p.name)} (기본: ${Number(p.price).toLocaleString()}원)</span>
+                    <div class="product-input-inline" style="margin: 0; width: 140px;">
+                      <input class="form-control member-custom-price-input" data-product-id="${p.id}" type="number" min="0" placeholder="기본값" value="${currentPrice}" style="height: 36px; padding: 0 0.5rem; text-align: right; box-sizing: border-box; width: 100%;">
+                      <span style="font-size: 0.88rem; margin-left: 4px; white-space: nowrap;">원</span>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+              <span style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; display: block; line-height: 1.4;">
+                * 금액을 입력하고 하단의 '개별 금액 저장'을 누르면 즉시 이 유저에게 변경된 가격이 표시됩니다.<br>
+                * 빈칸으로 두면 기본 설정 금액이 적용됩니다.
+              </span>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        console.error('열람권 상품 로드 실패:', err);
+        productsHtml = `<div style="color:red;font-size:0.85rem;margin-top:1rem">상품 로드 실패: ${err.message}</div>`;
+      }
+    }
+
     html = `
       <div class="detail-grid">
         <div class="detail-item"><strong>회원 ID</strong><span>${m.id}</span></div>
@@ -2294,6 +2333,7 @@ window.showDetail = function(type, id) {
         ` : ''}
         <div class="detail-item"><strong>가입일</strong><span>${m.joinDate}</span></div>
         <div class="detail-item"><strong>상태</strong><span>${m.status === 'banned' ? '<span class="badge badge-red">정지</span>' : '<span class="badge badge-green">정상</span>'}</span></div>
+        ${productsHtml}
       </div>
     `;
   } else if (type === 'job') {
@@ -2416,7 +2456,56 @@ window.showDetail = function(type, id) {
 
   if (titleEl) titleEl.textContent = title;
   if (bodyEl) bodyEl.innerHTML = html;
+
+  const footerEl = dialog.querySelector('.dialog-ft');
+  if (footerEl) {
+    if (type === 'member' && m && m.type === 'gym') {
+      footerEl.innerHTML = `
+        <button class="btn btn-secondary" onclick="closeDialog('detail-dialog')">닫기</button>
+        <button class="btn btn-primary" onclick="saveMemberCustomPrices('${m.fullId}')">개별 금액 저장</button>
+      `;
+    } else {
+      footerEl.innerHTML = `
+        <button class="btn btn-secondary" onclick="closeDialog('detail-dialog')">닫기</button>
+      `;
+    }
+  }
+
   openDialog('detail-dialog');
+};
+
+window.saveMemberCustomPrices = async function(fullId) {
+  const dialog = document.getElementById('detail-dialog');
+  if (!dialog) return;
+  const inputs = Array.from(dialog.querySelectorAll('.member-custom-price-input'));
+  const customPassPrices = {};
+
+  inputs.forEach(input => {
+    const val = input.value.trim();
+    if (val !== '') {
+      customPassPrices[input.dataset.productId] = Number(val);
+    }
+  });
+
+  try {
+    showToast('개별 금액 정보를 저장 중입니다...', 'warning');
+    await db.collection('users').doc(fullId).update({
+      customPassPrices: customPassPrices
+    });
+
+    // Update local state MEMBERS
+    const member = MEMBERS.find(m => m.fullId === fullId);
+    if (member) {
+      member.customPassPrices = customPassPrices;
+    }
+
+    showToast('개별 열람권 금액이 저장되었습니다.', 'success');
+    closeDialog('detail-dialog');
+    renderMembers();
+  } catch (err) {
+    console.error('개별 열람권 금액 저장 실패:', err);
+    showToast('개별 금액 저장 실패: ' + err.message, 'error');
+  }
 };
 
 window.toggleJobPinned = async function(jobId, element) {
