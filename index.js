@@ -1543,7 +1543,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateRoleFloatingCTA(viewId = getCurrentVisibleViewId()) {
     if (!roleFloatingCTA) return;
 
-    const enabledViews = new Set(['home', 'jobs', 'community', 'customerService']);
+    const enabledViews = new Set(['home', 'jobs', 'talents', 'community', 'customerService']);
     const isLoggedIn = !!(auth && auth.currentUser);
     const rawType = String(state.currentUser?.type || state.currentUser?.role || '').toLowerCase();
     const hasGymProfile = !!(

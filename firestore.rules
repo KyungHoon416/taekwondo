@@ -111,7 +111,7 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return hasOnlyAllowedFields(['name', 'phone', 'email', 'type', 'gym_name', 'business_number', 'business_status', 'business_status_code', 'business_start_date', 'business_owner_name', 'business_valid', 'business_valid_msg', 'business_verified_at', 'bizStatus', 'resumePassCount', 'unlockedResumes', 'resumeSubscriptionUntil', 'resumeSubscriptionMonths', 'testPaymentEnabled', 'agree_age_over_15', 'agree_terms', 'agree_personalized_ads', 'agree_marketing', 'agreed_at', 'created_at']) &&
+      return hasOnlyAllowedFields(['name', 'phone', 'email', 'type', 'gym_name', 'business_number', 'business_status', 'business_status_code', 'business_start_date', 'business_owner_name', 'business_valid', 'business_valid_msg', 'business_verified_at', 'bizStatus', 'resumePassCount', 'unlockedResumes', 'resumeSubscriptionUntil', 'resumeSubscriptionMonths', 'testPaymentEnabled', 'agree_age_over_15', 'agree_terms', 'agree_personalized_ads', 'agree_marketing', 'agreed_at', 'created_at', 'customPassPrices']) &&
         hasRequiredFields(['name', 'email', 'type', 'created_at']) &&
         data.name is string && data.name.size() >= 1 && data.name.size() <= 50 &&
         (!data.keys().hasAny(['phone']) || (data.phone is string && data.phone.size() >= 10 && data.phone.size() <= 20)) &&
@@ -127,6 +127,7 @@ service cloud.firestore {
         (!data.keys().hasAny(['resumeSubscriptionUntil']) || data.resumeSubscriptionUntil is timestamp) &&
         (!data.keys().hasAny(['resumeSubscriptionMonths']) || data.resumeSubscriptionMonths is int) &&
         (!data.keys().hasAny(['testPaymentEnabled']) || data.testPaymentEnabled is bool) &&
+        (!data.keys().hasAny(['customPassPrices']) || data.customPassPrices is map) &&
         (!data.keys().hasAny(['bizStatus']) || (data.bizStatus is string && (data.bizStatus == 'pending' || data.bizStatus == 'verified'))) &&
         (
           (data.type == 'gym' &&
@@ -246,16 +247,17 @@ service cloud.firestore {
         areImmutableFieldsUnchanged(['created_at', 'type'])
       ) || (
         isAdmin() &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['testPaymentEnabled']) &&
-        request.resource.data.testPaymentEnabled is bool
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['testPaymentEnabled', 'customPassPrices']) &&
+        (!request.resource.data.keys().hasAny(['customPassPrices']) || request.resource.data.customPassPrices is map) &&
+        (!request.resource.data.keys().hasAny(['testPaymentEnabled']) || request.resource.data.testPaymentEnabled is bool)
       );
-      allow delete: if isOwner(userId);
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     match /account_lookup/{userId} {
       allow read: if true;
       allow create, update: if isOwner(userId) && isValidAccountLookup(request.resource.data) && isRecent(request.resource.data.created_at);
-      allow delete: if isOwner(userId);
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     match /resume_pass_products/{productId} {
