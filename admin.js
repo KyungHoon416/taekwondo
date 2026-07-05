@@ -706,6 +706,14 @@ function renderMembers() {
                 : '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>'
               }
             </button>
+            <button class="btn-icon danger" title="회원 삭제" onclick="deleteMember('${m.id}')">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+            </button>
           </div>
         </td>
       </tr>`).join('');
@@ -777,6 +785,39 @@ function toggleMemberBan(id) {
   }
   filterMembers();
 }
+
+window.deleteMember = async function(id) {
+  const member = MEMBERS.find(m => m.id === id);
+  if (!member) return;
+
+  if (!confirm(`정말 [${member.name}] 회원을 완전히 삭제하시겠습니까?\n이 작업은 되돌릴 수 없으며 관련 정보가 모두 삭제될 수 있습니다.`)) return;
+
+  try {
+    showToast('회원 정보를 삭제 중입니다...', 'warning');
+    if (typeof db !== 'undefined' && db) {
+      await db.collection('users').doc(member.fullId).delete();
+      
+      // Also delete from account_lookup if it exists
+      try {
+        await db.collection('account_lookup').doc(member.fullId).delete();
+      } catch (err) {
+        console.warn('account_lookup 문서 삭제 실패:', err);
+      }
+    }
+
+    // Remove from local MEMBERS array
+    const idx = MEMBERS.findIndex(m => m.id === id);
+    if (idx !== -1) {
+      MEMBERS.splice(idx, 1);
+    }
+    
+    showToast('회원이 성공적으로 삭제되었습니다.', 'success');
+    filterMembers();
+  } catch (err) {
+    console.error('회원 삭제 실패:', err);
+    showToast('회원 삭제 실패: ' + err.message, 'error');
+  }
+};
 
 // ─── Jobs Table ──────────────────────────────────────────────────────────────
 function filterJobs() {
