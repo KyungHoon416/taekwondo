@@ -1540,9 +1540,24 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateRoleFloatingCTA(viewId = getCurrentVisibleViewId()) {
     if (!roleFloatingCTA) return;
 
-    const role = getUserRole();
-    const enabledViews = new Set(['jobs', 'community', 'customerService']);
-    const shouldShow = enabledViews.has(viewId) && (role === 'instructor' || role === 'gym');
+    const enabledViews = new Set(['home', 'jobs', 'community', 'customerService']);
+    const isLoggedIn = !!(auth && auth.currentUser);
+    const rawType = String(state.currentUser?.type || state.currentUser?.role || '').toLowerCase();
+    const hasGymProfile = !!(
+      state.currentUser?.gym_name ||
+      state.currentUser?.business_number ||
+      rawType === 'gym' ||
+      rawType.includes('관장') ||
+      rawType.includes('구인') ||
+      rawType.includes('도장') ||
+      rawType.includes('owner')
+    );
+    const hasInstructorProfile = !!(
+      rawType === 'instructor' ||
+      rawType.includes('사범') ||
+      rawType.includes('구직')
+    );
+    const shouldShow = enabledViews.has(viewId) && isLoggedIn;
 
     if (!shouldShow) {
       roleFloatingCTA.classList.add('hidden');
@@ -1551,7 +1566,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const isInstructor = role === 'instructor';
+    const isInstructor = hasInstructorProfile || !hasGymProfile;
     const action = isInstructor ? 'resume' : 'job';
     const label = isInstructor ? '이력서 등록' : '채용공고 등록';
 
