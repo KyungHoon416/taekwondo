@@ -850,11 +850,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let selected = [];
 
     root.innerHTML = `
-      <button type="button" class="district-trigger">
-        <span class="district-trigger-label">지역 전체</span>
-        <span class="district-trigger-count"></span>
-        <span class="district-trigger-icon">⌄</span>
-      </button>
+      <div class="district-trigger">
+        <div class="district-trigger-selected-display">
+          <span class="district-placeholder">지역 전체</span>
+        </div>
+        <button type="button" class="district-trigger-btn">선택하기</button>
+      </div>
       <div class="district-panel">
         <div class="district-panel-body">
           <div class="district-sido-list"></div>
@@ -868,8 +869,8 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
     const trigger = root.querySelector('.district-trigger');
-    const triggerLabel = root.querySelector('.district-trigger-label');
-    const triggerCount = root.querySelector('.district-trigger-count');
+    const triggerDisplay = root.querySelector('.district-trigger-selected-display');
+    const triggerBtn = root.querySelector('.district-trigger-btn');
     const sidoList = root.querySelector('.district-sido-list');
     const districtList = root.querySelector('.district-list');
     const selectedList = root.querySelector('.district-selected-list');
@@ -877,28 +878,77 @@ document.addEventListener('DOMContentLoaded', () => {
     const applyBtn = root.querySelector('.district-apply-btn');
     const isFilterPicker = root.classList.contains('filter');
 
+    function renderTriggerSelected() {
+      if (!triggerDisplay) return;
+      triggerDisplay.innerHTML = '';
+      if (!selected.length) {
+        triggerDisplay.innerHTML = `<span class="district-placeholder">${isFilterPicker ? '지역' : '지역 전체'}</span>`;
+        return;
+      }
+
+      // Group selected regions by Sido
+      const groups = {};
+      selected.forEach((region) => {
+        if (!groups[region.sidoShort]) {
+          groups[region.sidoShort] = [];
+        }
+        groups[region.sidoShort].push(region);
+      });
+
+      Object.entries(groups).forEach(([sido, regions]) => {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'district-selected-group';
+
+        // Sido Tag
+        const sidoTag = document.createElement('span');
+        sidoTag.className = 'district-sido-tag';
+        sidoTag.innerHTML = `${sido} <button type="button" class="district-delete-sido-btn" aria-label="${sido} 전체 삭제">×</button>`;
+        sidoTag.querySelector('button').addEventListener('click', (e) => {
+          e.stopPropagation();
+          selected = selected.filter((item) => item.sidoShort !== sido);
+          renderDistricts();
+          renderSelected();
+          renderTriggerSelected();
+          syncValue();
+        });
+        groupDiv.appendChild(sidoTag);
+
+        // Chevron divider
+        const divider = document.createElement('span');
+        divider.className = 'district-divider-chevron';
+        divider.textContent = '>';
+        groupDiv.appendChild(divider);
+
+        // Sigungu Tags
+        regions.forEach((region) => {
+          const sigunguTag = document.createElement('span');
+          sigunguTag.className = 'district-sigungu-tag';
+          sigunguTag.innerHTML = `${region.sigungu} <button type="button" class="district-delete-sigungu-btn" aria-label="${region.displayName} 삭제">×</button>`;
+          sigunguTag.querySelector('button').addEventListener('click', (e) => {
+            e.stopPropagation();
+            selected = selected.filter((item) => item.regionCode !== region.regionCode);
+            renderDistricts();
+            renderSelected();
+            renderTriggerSelected();
+            syncValue();
+          });
+          groupDiv.appendChild(sigunguTag);
+        });
+
+        triggerDisplay.appendChild(groupDiv);
+      });
+    }
+
     function syncValue() {
       input.value = selected.map((region) => region.displayName).join(', ');
-      if (!selected.length) {
-        triggerLabel.textContent = isFilterPicker ? '지역' : '지역 전체';
-        triggerCount.textContent = '';
-      } else if (isFilterPicker) {
-        triggerLabel.textContent = '지역';
-        triggerCount.textContent = selected.length;
-      } else if (selected.length === 1) {
-        triggerLabel.textContent = selected[0].displayName;
-        triggerCount.textContent = '';
-      } else {
-        triggerLabel.textContent = '지역';
-        triggerCount.textContent = selected.length;
-      }
+      renderTriggerSelected();
       if (onChange) onChange(selected);
     }
 
     function togglePanel(force) {
       const isOpen = typeof force === 'boolean' ? force : !root.classList.contains('open');
       root.classList.toggle('open', isOpen);
-      trigger.setAttribute('aria-expanded', String(isOpen));
+      triggerBtn.setAttribute('aria-expanded', String(isOpen));
     }
 
     function renderSelected() {
@@ -1028,7 +1078,11 @@ document.addEventListener('DOMContentLoaded', () => {
       syncValue();
     }
 
-    trigger.addEventListener('click', () => togglePanel());
+    triggerDisplay.addEventListener('click', () => togglePanel());
+    triggerBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      togglePanel();
+    });
     root.addEventListener('click', (event) => event.stopPropagation());
     applyBtn.addEventListener('click', () => togglePanel(false));
     resetBtn.addEventListener('click', () => clear());

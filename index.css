@@ -2544,25 +2544,116 @@
 
 .district-trigger {
   width: 100%;
-  height: 100%;
   min-height: 44px;
+  height: auto;
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.45rem;
+  gap: 0.75rem;
   border: 1px solid var(--color-slate-200);
-  border-radius: var(--radius-full);
+  border-radius: 8px;
   background-color: var(--bg-surface);
   color: var(--brand-primary);
-  padding: 0 1rem;
+  padding: 6px 12px;
   font-size: 0.95rem;
   font-weight: 800;
   transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s, color 0.2s;
 }
 
+.district-trigger-selected-display {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.district-placeholder {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.district-trigger-btn {
+  background-color: #64748b;
+  color: #ffffff;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.district-trigger-btn:hover {
+  background-color: #475569;
+}
+
+.district-selected-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.district-sido-tag {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.86rem;
+}
+
+.district-sigungu-tag {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+}
+
+.district-sido-tag button,
+.district-sigungu-tag button {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s ease;
+}
+
+.district-sido-tag button:hover,
+.district-sigungu-tag button:hover {
+  color: #ef4444;
+}
+
+.district-divider-chevron {
+  color: #94a3b8;
+  font-weight: bold;
+  font-size: 0.85rem;
+  margin: 0 4px;
+}
+
 .district-picker.home .district-trigger {
-  height: 54px;
-  border-radius: var(--radius-full);
+  min-height: 54px;
+  border-radius: 8px;
   border: 0;
   background: transparent;
   justify-content: flex-start;
@@ -2581,15 +2672,14 @@
   flex: 0 0 auto;
 }
 
-.district-picker.home .district-trigger-icon {
+.district-picker.home .district-trigger-btn {
   margin-left: auto;
 }
 
 .district-picker.filter .district-trigger {
-  height: 50px;
   min-height: 50px;
   min-width: 142px;
-  border-radius: var(--radius-full);
+  border-radius: 8px;
   background-color: var(--bg-surface);
   color: var(--text-main);
   padding: 0 1.25rem;
@@ -2599,36 +2689,6 @@
 .district-picker.filter.open .district-trigger {
   border-color: var(--brand-primary-dark);
   box-shadow: inset 0 0 0 1px var(--brand-primary-dark);
-}
-
-.district-picker.filter .district-trigger-count {
-  background-color: transparent;
-  color: var(--accent-blue);
-  min-width: auto;
-  height: auto;
-  font-size: 1rem;
-  font-weight: 900;
-}
-
-.district-trigger-count {
-  min-width: 1.15rem;
-  height: 1.15rem;
-  border-radius: var(--radius-full);
-  background-color: var(--accent-blue);
-  color: var(--text-white);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.72rem;
-}
-
-.district-trigger-count:not(:empty) {
-  display: inline-flex;
-}
-
-.district-trigger-icon {
-  color: var(--text-muted);
-  font-size: 1.1rem;
 }
 
 .district-picker.open .district-trigger {
