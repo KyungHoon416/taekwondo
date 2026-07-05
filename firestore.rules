@@ -359,7 +359,11 @@ service cloud.firestore {
         );
 
       allow delete: if isAuthenticated() &&
-        (isAdmin() || request.auth.uid == get(/databases/$(database)/documents/resumes/$(resource.data.resume_id)).data.user_id);
+        (
+          isAdmin() ||
+          request.auth.uid == get(/databases/$(database)/documents/resumes/$(resource.data.resume_id)).data.user_id ||
+          request.auth.uid == get(/databases/$(database)/documents/jobs/$(resource.data.job_id)).data.user_id
+        );
     }
 
     // 5. Inquiries Collection

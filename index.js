@@ -2096,7 +2096,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const myJobs = state.jobsList.filter((job) => job.userId === state.currentUser.uid);
     const myJobIds = new Set(myJobs.map((job) => job.id));
-    const apps = state.applicationsList.filter((app) => app.jobOwnerId === state.currentUser.uid || myJobIds.has(app.jobId));
+    const apps = state.applicationsList.filter((app) => myJobIds.has(app.jobId));
 
     if (summaryEl) summaryEl.innerHTML = `<span class="results-count">내 공고 ${myJobs.length}건 · 지원자 ${apps.length}명</span>`;
     if (!myJobs.length) {
@@ -2275,7 +2275,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!confirm('이 채용공고를 삭제하시겠습니까?')) return;
 
     try {
-      if (db) await db.collection('jobs').doc(jobId).delete();
+      if (db) {
+        const applySnap = await db.collection('apply')
+          .where('job_id', '==', jobId)
+          .get();
+        const deleteBatch = db.batch();
+        applySnap.forEach((doc) => {
+          deleteBatch.delete(doc.ref);
+        });
+        deleteBatch.delete(db.collection('jobs').doc(jobId));
+        await deleteBatch.commit();
+      }
       state.jobsList = state.jobsList.filter((item) => item.id !== jobId);
       state.applicationsList = state.applicationsList.filter((app) => app.jobId !== jobId);
       alert('채용공고가 삭제되었습니다.');
