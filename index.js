@@ -1859,11 +1859,25 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     if (pathname === '/Privacy_Policy') {
-      if (rawHash && cleanHash !== '#privacy-policy' && cleanHash !== '#privacyPolicy') {
+      if (rawHash && cleanHash !== '#privacy-policy' && cleanHash !== '#privacyPolicy' && !cleanHash.startsWith('#privacy-art-')) {
         window.history.replaceState({}, '', '/' + rawHash);
       } else {
-        navigateToView('privacyPolicy');
-        window.scrollTo(0, 0);
+        const isAlreadyVisible = views.privacyPolicy && !views.privacyPolicy.classList.contains('hidden');
+        if (!isAlreadyVisible) {
+          navigateToView('privacyPolicy');
+        }
+        if (cleanHash.startsWith('#privacy-art-')) {
+          setTimeout(() => {
+            const el = document.getElementById(cleanHash.substring(1));
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, isAlreadyVisible ? 10 : 150);
+        } else {
+          if (!isAlreadyVisible) {
+            window.scrollTo(0, 0);
+          }
+        }
         return;
       }
     }
