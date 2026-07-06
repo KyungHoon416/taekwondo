@@ -5406,7 +5406,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         {
           href: '#my-applications',
-          label: '내 채용 관리',
+          label: '마이페이지',
           icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`
         },
         {
@@ -5416,7 +5416,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       );
     } else {
-      // 사범님 로그인 상태: 홈 | 채용공고 | 커뮤니티 | 내 지원 현황 | 로그아웃
+      // 사범님 로그인 상태: 홈 | 채용공고 | 커뮤니티 | 마이페이지 | 로그아웃
       items.push(
         {
           href: '#jobs',
@@ -5430,7 +5430,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         {
           href: '#my-applications',
-          label: '내 지원 현황',
+          label: '마이페이지',
           icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`
         },
         {
