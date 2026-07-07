@@ -1693,13 +1693,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const isLoggedIn = role !== 'guest' && role !== 'loading';
 
     const subActionBtn = document.getElementById('btn-floating-role-action');
-    const subLoginBtn = document.getElementById('btn-floating-login');
-    const subSignupBtn = document.getElementById('btn-floating-signup');
+    const subGuestJobBtn = document.getElementById('btn-floating-guest-job');
+    const subGuestResumeBtn = document.getElementById('btn-floating-guest-resume');
 
     if (isLoggedIn) {
       // Hide guest buttons
-      if (subLoginBtn) subLoginBtn.style.display = 'none';
-      if (subSignupBtn) subSignupBtn.style.display = 'none';
+      if (subGuestJobBtn) subGuestJobBtn.style.display = 'none';
+      if (subGuestResumeBtn) subGuestResumeBtn.style.display = 'none';
 
       // Show member buttons
       if (subActionBtn) {
@@ -1715,12 +1715,12 @@ document.addEventListener('DOMContentLoaded', () => {
         subActionBtn.setAttribute('aria-label', label);
       }
     } else {
-      // Hide member buttons
+      // Hide member button
       if (subActionBtn) subActionBtn.style.display = 'none';
 
-      // Show guest buttons
-      if (subLoginBtn) subLoginBtn.style.display = 'flex';
-      if (subSignupBtn) subSignupBtn.style.display = 'flex';
+      // Show guest buttons: 채용공고 등록 + 이력서 등록 (클릭 시 로그인 유도)
+      if (subGuestJobBtn) subGuestJobBtn.style.display = 'flex';
+      if (subGuestResumeBtn) subGuestResumeBtn.style.display = 'flex';
     }
     
     roleFloatingCTA.classList.remove('hidden');
@@ -4089,28 +4089,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  const btnFloatingLogin = document.getElementById('btn-floating-login');
-  if (btnFloatingLogin) {
-    btnFloatingLogin.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (dialogs.auth) {
-        showAuthPane('login');
-        dialogs.auth.showModal();
-      }
-      roleFloatingCTA.classList.remove('is-open');
-    });
+  // 비회원 플로팅 버튼: 채용공고 등록 / 이력서 등록 → 클릭 시 로그인 팝업 유도
+  const openLoginFromGuestFab = (e) => {
+    e.stopPropagation();
+    if (dialogs.auth) {
+      showAuthPane('login');
+      dialogs.auth.showModal();
+    }
+    roleFloatingCTA.classList.remove('is-open');
+  };
+
+  const btnFloatingGuestJob = document.getElementById('btn-floating-guest-job');
+  if (btnFloatingGuestJob) {
+    btnFloatingGuestJob.addEventListener('click', openLoginFromGuestFab);
   }
 
-  const btnFloatingSignup = document.getElementById('btn-floating-signup');
-  if (btnFloatingSignup) {
-    btnFloatingSignup.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (dialogs.auth) {
-        showAuthPane('register');
-        dialogs.auth.showModal();
-      }
-      roleFloatingCTA.classList.remove('is-open');
-    });
+  const btnFloatingGuestResume = document.getElementById('btn-floating-guest-resume');
+  if (btnFloatingGuestResume) {
+    btnFloatingGuestResume.addEventListener('click', openLoginFromGuestFab);
   }
 
   const btnFloatingCustomerService = document.getElementById('btn-floating-customer-service');
