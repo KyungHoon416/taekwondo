@@ -1695,34 +1695,39 @@ document.addEventListener('DOMContentLoaded', () => {
     const subActionBtn = document.getElementById('btn-floating-role-action');
     const subGuestJobBtn = document.getElementById('btn-floating-guest-job');
     const subGuestResumeBtn = document.getElementById('btn-floating-guest-resume');
+    const ctaTrigger = document.getElementById('role-floating-cta-trigger');
+    const ctaText = ctaTrigger ? ctaTrigger.querySelector('.role-floating-cta-text') : null;
 
     if (isLoggedIn) {
-      // Hide guest buttons
+      // 로그인 회원: 펼치는 퀵메뉴 없이 플로팅 버튼 자체가 바로 등록 버튼
+      if (subActionBtn) subActionBtn.style.display = 'none';
       if (subGuestJobBtn) subGuestJobBtn.style.display = 'none';
       if (subGuestResumeBtn) subGuestResumeBtn.style.display = 'none';
 
-      // Show member buttons
-      if (subActionBtn) {
-        subActionBtn.style.display = 'flex';
-        // Gym and Admin get 'job' (채용공고 등록), Instructor gets 'resume' (이력서 등록)
-        const isGymOrAdmin = role === 'gym' || role === 'admin';
-        const action = isGymOrAdmin ? 'job' : 'resume';
-        const label = isGymOrAdmin ? '채용공고 등록' : '이력서 등록';
-        subActionBtn.dataset.action = action;
-        subActionBtn.setAttribute('data-action', action); // ensures CSS selector matching
-        const btnText = subActionBtn.querySelector('.role-floating-sub-text');
-        if (btnText) btnText.textContent = label;
-        subActionBtn.setAttribute('aria-label', label);
-      }
-    } else {
-      // Hide member button
-      if (subActionBtn) subActionBtn.style.display = 'none';
+      // Gym and Admin get 'job' (채용공고 등록), Instructor gets 'resume' (이력서 등록)
+      const isGymOrAdmin = role === 'gym' || role === 'admin';
+      const action = isGymOrAdmin ? 'job' : 'resume';
+      const label = isGymOrAdmin ? '채용공고 등록' : '이력서 등록';
 
-      // Show guest buttons: 채용공고 등록 + 이력서 등록 (클릭 시 로그인 유도)
+      roleFloatingCTA.classList.remove('is-open'); // 펼침 상태 해제 (직접 등록 모드)
+      if (ctaTrigger) {
+        ctaTrigger.dataset.directAction = action;
+        ctaTrigger.setAttribute('aria-label', label);
+      }
+      if (ctaText) ctaText.textContent = label;
+    } else {
+      // 비회원: 퀵메뉴 펼치면 채용공고 등록 + 이력서 등록 (클릭 시 로그인 유도)
+      if (subActionBtn) subActionBtn.style.display = 'none';
       if (subGuestJobBtn) subGuestJobBtn.style.display = 'flex';
       if (subGuestResumeBtn) subGuestResumeBtn.style.display = 'flex';
+
+      if (ctaTrigger) {
+        delete ctaTrigger.dataset.directAction;
+        ctaTrigger.setAttribute('aria-label', '퀵 메뉴');
+      }
+      if (ctaText) ctaText.textContent = '퀵 메뉴';
     }
-    
+
     roleFloatingCTA.classList.remove('hidden');
   }
 
@@ -4044,6 +4049,19 @@ document.addEventListener('DOMContentLoaded', () => {
   if (roleFloatingTrigger && roleFloatingCTA) {
     roleFloatingTrigger.addEventListener('click', (e) => {
       e.stopPropagation();
+      // 로그인 회원: 플로팅 버튼 클릭 시 바로 등록 다이얼로그 오픈 (퀵메뉴 펼침 없음)
+      const directAction = roleFloatingTrigger.dataset.directAction;
+      if (directAction === 'job') {
+        openPostJobDialog();
+        roleFloatingCTA.classList.remove('is-open');
+        return;
+      }
+      if (directAction === 'resume') {
+        openPostResumeDialog();
+        roleFloatingCTA.classList.remove('is-open');
+        return;
+      }
+      // 비회원: 퀵메뉴 펼치기
       roleFloatingCTA.classList.toggle('is-open');
     });
   }
