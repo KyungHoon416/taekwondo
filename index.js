@@ -4500,25 +4500,93 @@ document.addEventListener('DOMContentLoaded', () => {
     if (file) applyCommImageFile(file);
   };
 
-  // 이미지 파일 검증 및 미리보기 설정
-  function applyCommImageFile(file) {
+  // 이미지를 캔버스로 리사이즈/재인코딩하여 목표 용량 이하로 압축한다.
+  // Storage 규칙상 커뮤니티 이미지는 1.1MB 미만이어야 하므로 목표를 950KB로 잡는다.
+  function compressCommImage(file) {
+    const TARGET = 950 * 1024; // ≈ 0.93MB (서버 제한 1.1MB보다 여유)
+    // 원본이 이미 충분히 작고 JPEG면 압축 생략 (불필요한 화질 손실 방지)
+    if (file.size <= TARGET && (file.type === 'image/jpeg' || file.type === 'image/jpg')) {
+      return Promise.resolve(file);
+    }
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('read-fail'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('decode-fail'));
+        img.onload = () => {
+          const attempts = [
+            { maxDim: 1600, quality: 0.82 },
+            { maxDim: 1600, quality: 0.7 },
+            { maxDim: 1280, quality: 0.72 },
+            { maxDim: 1024, quality: 0.7 },
+            { maxDim: 900,  quality: 0.65 },
+            { maxDim: 800,  quality: 0.55 }
+          ];
+          const baseName = (file.name || 'image').replace(/\.[^.]+$/, '') + '.jpg';
+          const renderBlob = (maxDim, quality) => new Promise((res) => {
+            let { width, height } = img;
+            if (width > maxDim || height > maxDim) {
+              if (width >= height) { height = Math.round(height * maxDim / width); width = maxDim; }
+              else { width = Math.round(width * maxDim / height); height = maxDim; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width; canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff'; // 투명 PNG의 투명 영역을 흰색으로 채움
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob((b) => res(b), 'image/jpeg', quality);
+          });
+          (async () => {
+            let best = null;
+            for (const opt of attempts) {
+              const blob = await renderBlob(opt.maxDim, opt.quality);
+              if (!blob) continue;
+              best = blob;
+              if (blob.size <= TARGET) break;
+            }
+            if (!best) { reject(new Error('encode-fail')); return; }
+            resolve(new File([best], baseName, { type: 'image/jpeg' }));
+          })();
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // 이미지 파일 검증 → 자동 압축 → 미리보기 설정 (용량 제한 없음, 업로드 전 압축)
+  async function applyCommImageFile(file) {
     const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!allowed.includes(file.type)) {
       alert('JPG, PNG, WebP 형식의 이미지만 첨부 가능합니다.');
       return;
     }
-    if (file.size > 1 * 1024 * 1024) {
-      alert('이미지 용량이 너무 큽니다. 1MB 이하로 압축 후 첨부해주세요.');
+
+    const placeholder = document.getElementById('comm-image-placeholder');
+    const placeholderText = placeholder ? placeholder.querySelector('p') : null;
+    const prevText = placeholderText ? placeholderText.textContent : '';
+    if (placeholderText) placeholderText.textContent = '이미지 압축 중…';
+
+    let finalFile;
+    try {
+      finalFile = await compressCommImage(file);
+    } catch (err) {
+      console.warn('이미지 압축 실패:', err);
+      if (placeholderText) placeholderText.textContent = prevText;
+      alert('이미지를 처리하지 못했습니다. 다른 이미지를 첨부해주세요.');
       return;
     }
-    commSelectedImage = file;
+    if (placeholderText) placeholderText.textContent = prevText;
+
+    commSelectedImage = finalFile;
 
     // 미리보기
     const reader = new FileReader();
     reader.onload = (e) => {
       const previewDiv = document.getElementById('comm-image-preview');
       const previewImg = document.getElementById('comm-image-preview-img');
-      const placeholder = document.getElementById('comm-image-placeholder');
       const infoDiv = document.getElementById('comm-image-info');
       const nameEl = document.getElementById('comm-image-name');
 
@@ -4526,9 +4594,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (previewDiv) previewDiv.style.display = 'block';
       if (placeholder) placeholder.style.display = 'none';
       if (infoDiv) { infoDiv.style.display = 'flex'; }
-      if (nameEl) nameEl.textContent = file.name + ` (${(file.size/1024).toFixed(0)}KB)`;
+      if (nameEl) {
+        const origKB = (file.size / 1024).toFixed(0);
+        const compKB = (finalFile.size / 1024).toFixed(0);
+        nameEl.textContent = (file.name || 'image')
+          + (finalFile.size < file.size ? ` (${origKB}KB → ${compKB}KB 압축됨)` : ` (${compKB}KB)`);
+      }
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(finalFile);
   }
 
   // 이미지 제거
