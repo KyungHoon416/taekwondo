@@ -365,6 +365,24 @@
             <p id="my-applications-desc">내 정보, 채용 및 지원 관리, 1:1 문의 내역을 한눈에 관리합니다.</p>
           </div>
           
+          <!-- 마이페이지 상단 알림/정보 영역 (관장님 전용 열람권 정보) -->
+          <div id="mypage-pass-info-card" style="display: none; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe; border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 1.75rem;">🎫</span>
+                <div>
+                  <strong style="color: #1e3a8a; font-size: 1.05rem; display: block; margin-bottom: 0.2rem;">내 이력서 열람권 정보</strong>
+                  <span style="font-size: 0.88rem; color: #1e40af; display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <span>구독 기간: <strong id="mypage-sub-status" style="color: #2563eb; font-weight: 800;">미구독</strong></span>
+                  </span>
+                </div>
+              </div>
+              <button type="button" class="btn-action-primary" onclick="openPurchasePassModal()" style="margin: 0; background: #2563eb; border-color: #2563eb; padding: 0.5rem 1.25rem; font-size: 0.85rem; font-weight: 700; border-radius: 8px; color: #ffffff; cursor: pointer;">
+                구독권/열람권 구매
+              </button>
+            </div>
+          </div>
+
           <!-- 마이페이지 섹션 1: 채용 및 지원 현황 -->
           <div class="mypage-section">
             <h2 class="mypage-section-title" id="mypage-role-section-title">채용 및 지원 현황</h2>
@@ -373,6 +391,14 @@
             </div>
             <div id="my-applications-list" class="my-applications-list">
               <div class="loading-placeholder">지원 현황을 불러오는 중입니다...</div>
+            </div>
+          </div>
+
+          <!-- 마이페이지 섹션 3: 스크랩한 정보 -->
+          <div class="mypage-section" id="mypage-scraps-section" style="margin-top: 2.5rem; display: none;">
+            <h2 class="mypage-section-title" id="mypage-scraps-title">⭐ 스크랩한 정보</h2>
+            <div id="mypage-scraps-list" class="my-scraps-list" style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+              <div class="loading-placeholder" style="grid-column: 1/-1;">스크랩 내역을 불러오는 중입니다...</div>
             </div>
           </div>
 
@@ -2341,7 +2367,7 @@ khjoon6367@nate.com
       </div>
       <div class="detail-footer">
         <button type="button" id="btn-apply-job" class="btn-action-primary">즉시 지원하기</button>
-        <button type="button" class="btn-action-secondary" onclick="alert('관심공고로 저장되었습니다.')">⭐ 스크랩</button>
+        <button type="button" id="btn-scrap-job" class="btn-action-secondary">⭐ 스크랩</button>
       </div>
     </div>
   </dialog>
@@ -2394,7 +2420,7 @@ khjoon6367@nate.com
       </div>
       <div class="detail-footer">
         <button type="button" class="btn-action-primary" id="btn-interview-suggest">🥋 면접 제안하기</button>
-        <button type="button" class="btn-action-secondary" onclick="alert('관심인재로 등록되었습니다.')">⭐ 인재 스크랩</button>
+        <button type="button" id="btn-scrap-talent" class="btn-action-secondary">⭐ 인재 스크랩</button>
       </div>
     </div>
   </dialog>

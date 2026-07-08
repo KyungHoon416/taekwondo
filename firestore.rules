@@ -111,7 +111,9 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return hasOnlyAllowedFields(['name', 'phone', 'email', 'type', 'gym_name', 'business_number', 'business_status', 'business_status_code', 'business_start_date', 'business_owner_name', 'business_valid', 'business_valid_msg', 'business_verified_at', 'bizStatus', 'resumePassCount', 'unlockedResumes', 'resumeSubscriptionUntil', 'resumeSubscriptionMonths', 'testPaymentEnabled', 'agree_age_over_15', 'agree_terms', 'agree_personalized_ads', 'agree_marketing', 'agreed_at', 'created_at', 'customPassPrices']) &&
+      return hasOnlyAllowedFields(['name', 'phone', 'email', 'type', 'gym_name', 'business_number', 'business_status', 'business_status_code', 'business_start_date', 'business_owner_name', 'business_valid', 'business_valid_msg', 'business_verified_at', 'bizStatus', 'resumePassCount', 'unlockedResumes', 'resumeSubscriptionUntil', 'resumeSubscriptionMonths', 'testPaymentEnabled', 'agree_age_over_15', 'agree_terms', 'agree_personalized_ads', 'agree_marketing', 'agreed_at', 'created_at', 'customPassPrices', 'scrapped_jobs', 'scrapped_talents']) &&
+        (!data.keys().hasAny(['scrapped_jobs']) || data.scrapped_jobs is list) &&
+        (!data.keys().hasAny(['scrapped_talents']) || data.scrapped_talents is list) &&
         hasRequiredFields(['name', 'email', 'type', 'created_at']) &&
         data.name is string && data.name.size() >= 1 && data.name.size() <= 50 &&
         (!data.keys().hasAny(['phone']) || (data.phone is string && data.phone.size() >= 10 && data.phone.size() <= 20)) &&
@@ -486,6 +488,13 @@ service cloud.firestore {
     match /traffic/{dateId} {
       allow read: if true;
       allow create, update: if true;
+    }
+
+    // 10. Proposals (면접제안) Collection
+    match /proposals/{proposalId} {
+      allow read: if true;
+      allow create, update: if isAuthenticated();
+      allow delete: if isAuthenticated() && (resource.data.gymId == request.auth.uid || isAdmin());
     }
   }
 }

@@ -617,7 +617,8 @@ document.addEventListener('DOMContentLoaded', () => {
           viewedUsers: j.viewed_users || [],
           userId: j.user_id || '',
           userName: userName,
-          userEmail: userEmail
+          userEmail: userEmail,
+          regDate: j.created_at ? (j.created_at.toDate ? j.created_at.toDate().toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }) : new Date(j.created_at).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' })) : ''
         });
       });
       if (dbJobs.length > 0) {
@@ -651,7 +652,8 @@ document.addEventListener('DOMContentLoaded', () => {
           colorIndex: Math.floor(Math.random() * 5),
           intro: r.content || '',
           phone: r.phone || '',
-          userId: r.user_id || ''
+          userId: r.user_id || '',
+          date: r.created_at ? (r.created_at.toDate ? r.created_at.toDate().toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }) : new Date(r.created_at).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' })) : ''
         });
       });
       if (dbTalents.length > 0) {
@@ -2571,6 +2573,220 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (window.renderMyPageInquiries) {
       window.renderMyPageInquiries();
+    }
+    // Update mypage pass info card
+    const passCardEl = document.getElementById('mypage-pass-info-card');
+    const subStatusEl = document.getElementById('mypage-sub-status');
+    if (passCardEl && subStatusEl) {
+      if (state.currentUser && getUserRole() === 'gym') {
+        passCardEl.style.display = 'block';
+        
+        const isSubscribed = isResumeSubscriptionActive(state.currentUser);
+        if (isSubscribed) {
+          subStatusEl.textContent = `구독 중 (~${formatSubscriptionDate(state.currentUser.resumeSubscriptionUntil)})`;
+          subStatusEl.style.color = '#059669'; // Greenish success color
+        } else {
+          subStatusEl.textContent = '미구독';
+          subStatusEl.style.color = '#ef4444'; // Red color for uncompleted/inactive
+        }
+      } else {
+        passCardEl.style.display = 'none';
+      }
+    }
+
+    renderMyScrapsView();
+  }
+
+  // ─── My Page Scrap Rendering & Action Logic ───
+  async function renderMyScrapsView() {
+    const sectionEl = document.getElementById('mypage-scraps-section');
+    const titleEl = document.getElementById('mypage-scraps-title');
+    const listEl = document.getElementById('mypage-scraps-list');
+    if (!listEl || !sectionEl) return;
+
+    if (!state.currentUser) {
+      sectionEl.style.display = 'none';
+      return;
+    }
+
+    sectionEl.style.display = 'block';
+    listEl.innerHTML = '';
+
+    const role = getUserRole();
+    if (role === 'gym' || role === 'admin') {
+      if (titleEl) titleEl.textContent = '⭐ 관심 인재 스크랩';
+      
+      const scrappedTalentIds = state.currentUser.scrapped_talents || [];
+      if (scrappedTalentIds.length === 0) {
+        listEl.innerHTML = '<div class="no-results" style="grid-column: 1/-1;">스크랩한 인재가 없습니다.</div>';
+        return;
+      }
+
+      const scrappedTalents = state.talentsList.filter(t => scrappedTalentIds.includes(t.id));
+      if (scrappedTalents.length === 0) {
+        listEl.innerHTML = '<div class="no-results" style="grid-column: 1/-1;">스크랩한 인재 정보를 불러올 수 없습니다.</div>';
+        return;
+      }
+
+      listEl.innerHTML = scrappedTalents.map(t => `
+        <div class="job-card" style="margin: 0; padding: 1.15rem; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between;" onclick="openTalentDetailsById('${t.id}')">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span class="badge badge-blue" style="font-size: 0.72rem; padding: 2px 6px;">${t.role}</span>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">${t.date || ''}</span>
+            </div>
+            <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--text); margin-bottom: 0.35rem; line-height: 1.3;">${t.name} 사범님</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 2.4rem; line-height: 1.5; margin-bottom: 0.5rem;">${t.intro || ''}</p>
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 0.5rem; margin-top: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <span>경력: ${t.exp}</span>
+            <span style="color: #ef4444; font-weight: 700; cursor: pointer; padding: 2px 6px;" onclick="event.stopPropagation(); toggleScrapTalent('${t.id}')">해제</span>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      if (titleEl) titleEl.textContent = '⭐ 스크랩한 채용공고';
+      
+      const scrappedJobIds = state.currentUser.scrapped_jobs || [];
+      if (scrappedJobIds.length === 0) {
+        listEl.innerHTML = '<div class="no-results" style="grid-column: 1/-1;">스크랩한 채용공고가 없습니다.</div>';
+        return;
+      }
+
+      const scrappedJobs = state.jobsList.filter(j => scrappedJobIds.includes(j.id));
+      if (scrappedJobs.length === 0) {
+        listEl.innerHTML = '<div class="no-results" style="grid-column: 1/-1;">스크랩한 공고 정보를 불러올 수 없습니다.</div>';
+        return;
+      }
+
+      listEl.innerHTML = scrappedJobs.map(j => `
+        <div class="job-card" style="margin: 0; padding: 1.15rem; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between;" onclick="openJobDetailsById('${j.id}')">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span class="badge badge-green" style="font-size: 0.72rem; padding: 2px 6px;">${j.type}</span>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">${j.regDate || ''}</span>
+            </div>
+            <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--text); margin-bottom: 0.35rem; line-height: 1.3;">${j.title}</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">${j.gymName}</p>
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 0.5rem; margin-top: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <span>급여: ${j.salary}</span>
+            <span style="color: #ef4444; font-weight: 700; cursor: pointer; padding: 2px 6px;" onclick="event.stopPropagation(); toggleScrapJob('${j.id}')">해제</span>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  window.openTalentDetailsById = async function(id) {
+    const t = state.talentsList.find(x => x.id === id);
+    if (!t) return;
+    
+    const isGym = state.currentUser && getUserRole() === 'gym';
+    const hasActiveSubscription = isGym && isResumeSubscriptionActive(state.currentUser);
+    const isUnlocked = isGym && (
+      hasActiveSubscription ||
+      (state.currentUser.unlockedResumes && state.currentUser.unlockedResumes.includes(t.id)) ||
+      t.userEmail === state.currentUser.email
+    );
+    
+    if (isGym && !isUnlocked) {
+      alert('이력서 열람 기간이 만료되었거나 권한이 없습니다. 다시 열람하려면 열람권 구매가 필요합니다.');
+      openPurchasePassModal(t);
+      return;
+    }
+    
+    openTalentDetails(t);
+  };
+  
+  window.openJobDetailsById = function(id) {
+    const j = state.jobsList.find(x => x.id === id);
+    if (j) openJobDetails(j);
+  };
+
+  window.toggleScrapJob = async function(jobId) {
+    if (!state.currentUser) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+    
+    if (!state.currentUser.scrapped_jobs) {
+      state.currentUser.scrapped_jobs = [];
+    }
+    
+    const isScrapped = state.currentUser.scrapped_jobs.includes(jobId);
+    let newScrapped = [...state.currentUser.scrapped_jobs];
+    
+    if (isScrapped) {
+      newScrapped = newScrapped.filter(id => id !== jobId);
+      alert('스크랩이 해제되었습니다.');
+    } else {
+      newScrapped.push(jobId);
+      alert('관심공고로 저장되었습니다.');
+    }
+    
+    state.currentUser.scrapped_jobs = newScrapped;
+    
+    try {
+      await db.collection('users').doc(state.currentUser.uid).update({
+        scrapped_jobs: newScrapped
+      });
+      renderMyScrapsView();
+      updateScrapButtonUI('job', jobId);
+    } catch (err) {
+      console.error('Failed to update scrapped jobs:', err);
+    }
+  };
+
+  window.toggleScrapTalent = async function(talentId) {
+    if (!state.currentUser) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+    
+    if (!state.currentUser.scrapped_talents) {
+      state.currentUser.scrapped_talents = [];
+    }
+    
+    const isScrapped = state.currentUser.scrapped_talents.includes(talentId);
+    let newScrapped = [...state.currentUser.scrapped_talents];
+    
+    if (isScrapped) {
+      newScrapped = newScrapped.filter(id => id !== talentId);
+      alert('스크랩이 해제되었습니다.');
+    } else {
+      newScrapped.push(talentId);
+      alert('관심인재로 등록되었습니다.');
+    }
+    
+    state.currentUser.scrapped_talents = newScrapped;
+    
+    try {
+      await db.collection('users').doc(state.currentUser.uid).update({
+        scrapped_talents: newScrapped
+      });
+      renderMyScrapsView();
+      updateScrapButtonUI('talent', talentId);
+    } catch (err) {
+      console.error('Failed to update scrapped talents:', err);
+    }
+  };
+
+  function updateScrapButtonUI(type, id) {
+    if (type === 'talent') {
+      const btn = document.getElementById('btn-scrap-talent');
+      if (btn && state.currentUser) {
+        const isScrapped = state.currentUser.scrapped_talents && state.currentUser.scrapped_talents.includes(id);
+        btn.innerHTML = isScrapped ? `⭐ 스크랩 해제` : `⭐ 인재 스크랩`;
+        btn.style.background = isScrapped ? '#e2e8f0' : '';
+      }
+    } else if (type === 'job') {
+      const btn = document.getElementById('btn-scrap-job');
+      if (btn && state.currentUser) {
+        const isScrapped = state.currentUser.scrapped_jobs && state.currentUser.scrapped_jobs.includes(id);
+        btn.innerHTML = isScrapped ? `⭐ 스크랩 해제` : `⭐ 스크랩`;
+        btn.style.background = isScrapped ? '#e2e8f0' : '';
+      }
     }
   }
 
@@ -5063,9 +5279,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       })();
     }
+
+    // 채용공고 스크랩 버튼 이벤트 동적 처리
+    const btnScrapJob = document.getElementById('btn-scrap-job');
+    if (btnScrapJob) {
+      const newScrapBtn = btnScrapJob.cloneNode(true);
+      btnScrapJob.parentNode.replaceChild(newScrapBtn, btnScrapJob);
+      
+      const isScrapped = state.currentUser && state.currentUser.scrapped_jobs && state.currentUser.scrapped_jobs.includes(job.id);
+      if (isScrapped) {
+        newScrapBtn.innerHTML = `⭐ 스크랩 해제`;
+        newScrapBtn.style.background = '#e2e8f0';
+      } else {
+        newScrapBtn.innerHTML = `⭐ 스크랩`;
+        newScrapBtn.style.background = '';
+      }
+      
+      newScrapBtn.addEventListener('click', () => {
+        if (!state.currentUser) {
+          alert('로그인이 필요합니다.');
+          return;
+        }
+        toggleScrapJob(job.id);
+      });
+    }
   }
 
-  function openTalentDetails(talent) {
+  async function openTalentDetails(talent) {
     if (!dialogs.talentDetail) return;
 
     const avatarContainer = document.getElementById('detail-talent-avatar');
@@ -5091,6 +5331,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentPasses = isGym && typeof state.currentUser.resumePassCount === 'number'
       ? state.currentUser.resumePassCount
       : 0;
+    
+    // 면접 제안 데이터 조회 (1주일 유효기간 체킹용)
+    let activeProposal = null;
+    let expiredProposal = null;
+    if (isGym && typeof db !== 'undefined' && db) {
+      try {
+        const propSnap = await db.collection('proposals')
+          .where('gymId', '==', state.currentUser.uid)
+          .where('resumeId', '==', talent.id)
+          .get();
+        if (!propSnap.empty) {
+          const nowMs = Date.now();
+          const proposalsList = propSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          const unexpired = proposalsList.find(p => p.expiresAt && p.expiresAt.toDate().getTime() > nowMs);
+          if (unexpired) {
+            activeProposal = unexpired;
+          } else {
+            proposalsList.sort((a, b) => b.proposedAt.toDate().getTime() - a.proposedAt.toDate().getTime());
+            expiredProposal = proposalsList[0];
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch proposals:', err);
+      }
+    }
     
     const phoneEl = document.getElementById('detail-talent-phone');
     const descEl = document.getElementById('detail-talent-desc');
@@ -5149,7 +5414,26 @@ document.addEventListener('DOMContentLoaded', () => {
       const newBtn = btnInterview.cloneNode(true);
       btnInterview.parentNode.replaceChild(newBtn, btnInterview);
       
-      newBtn.addEventListener('click', () => {
+      if (activeProposal) {
+        const expDate = activeProposal.expiresAt.toDate();
+        const dateStr = expDate.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' });
+        newBtn.innerHTML = `🥋 면접 제안 완료 (만료: ${dateStr})`;
+        newBtn.disabled = true;
+        newBtn.style.opacity = '0.65';
+        newBtn.style.cursor = 'not-allowed';
+      } else if (expiredProposal) {
+        newBtn.innerHTML = `🥋 면접제안 만료 (재제안 가능)`;
+        newBtn.disabled = false;
+        newBtn.style.opacity = '1';
+        newBtn.style.cursor = 'pointer';
+      } else {
+        newBtn.innerHTML = `🥋 면접 제안하기`;
+        newBtn.disabled = false;
+        newBtn.style.opacity = '1';
+        newBtn.style.cursor = 'pointer';
+      }
+      
+      newBtn.addEventListener('click', async () => {
         if (!state.currentUser) {
           alert('로그인이 필요합니다. 로그인 팝업을 열어드립니다.');
           if (dialogs.talentDetail) dialogs.talentDetail.close();
@@ -5158,8 +5442,57 @@ document.addEventListener('DOMContentLoaded', () => {
             dialogs.auth.showModal();
           }
         } else {
-          alert('사범님께 입사 제안 연락을 보냈습니다. 사범님이 수락할 시 연락처가 서로에게 공개됩니다.');
+          const gymName = state.currentUser.gymName || state.currentUser.name || '태권도장';
+          const confirmMsg = `사범님께 면접 제안을 보내시겠습니까?\n(제안 유효기간은 발송일로부터 1주일입니다.)`;
+          if (confirm(confirmMsg)) {
+            try {
+              const proposedAt = new Date();
+              const expiresAt = new Date(proposedAt.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days later
+              
+              await db.collection('proposals').add({
+                gymId: state.currentUser.uid,
+                gymName: gymName,
+                resumeId: talent.id,
+                talentUserId: talent.userId || '',
+                proposedAt: firebase.firestore.Timestamp.fromDate(proposedAt),
+                expiresAt: firebase.firestore.Timestamp.fromDate(expiresAt),
+                status: 'pending'
+              });
+              
+              alert('사범님께 입사 제안 연락을 보냈습니다. 제안 유효기간은 1주일이며, 사범님이 수락할 시 연락처가 서로에게 공개됩니다.');
+              
+              if (dialogs.talentDetail) dialogs.talentDetail.close();
+              openTalentDetails(talent);
+            } catch (err) {
+              console.error('Failed to create proposal:', err);
+              alert('면접 제안 발송 실패: ' + err.message);
+            }
+          }
         }
+      });
+    }
+
+    // 인재 스크랩 버튼 이벤트 동적 처리
+    const btnScrapTalent = document.getElementById('btn-scrap-talent');
+    if (btnScrapTalent) {
+      const newScrapBtn = btnScrapTalent.cloneNode(true);
+      btnScrapTalent.parentNode.replaceChild(newScrapBtn, btnScrapTalent);
+      
+      const isScrapped = state.currentUser && state.currentUser.scrapped_talents && state.currentUser.scrapped_talents.includes(talent.id);
+      if (isScrapped) {
+        newScrapBtn.innerHTML = `⭐ 스크랩 해제`;
+        newScrapBtn.style.background = '#e2e8f0';
+      } else {
+        newScrapBtn.innerHTML = `⭐ 인재 스크랩`;
+        newScrapBtn.style.background = '';
+      }
+      
+      newScrapBtn.addEventListener('click', () => {
+        if (!state.currentUser) {
+          alert('로그인이 필요합니다.');
+          return;
+        }
+        toggleScrapTalent(talent.id);
       });
     }
 
@@ -5223,6 +5556,9 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('성공적으로 열람 처리가 완료되었습니다.');
       
       updateGymPassBannerUI();
+      if (typeof renderMyApplicationsView === 'function') {
+        renderMyApplicationsView();
+      }
       openTalentDetails(talent);
     } catch (err) {
       console.error('열람권 차감 처리 중 에러 발생:', err);
@@ -5491,6 +5827,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (paymentDialog) paymentDialog.close();
       
       updateGymPassBannerUI();
+      if (typeof renderMyApplicationsView === 'function') {
+        renderMyApplicationsView();
+      }
 
       const talentToOpen = state.pendingPurchaseTalent;
       state.pendingPurchaseTalent = null;
