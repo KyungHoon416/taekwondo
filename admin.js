@@ -2146,9 +2146,12 @@ window.submitNotice = async function() {
       }
 
       const timestamp = Date.now();
-      imageStoragePath = `community_images/${timestamp}_${noticeSelectedImageFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      // 업로드 전 압축 (Storage 규칙 community/ 1.1MB 미만 대응). 경로도 규칙에 맞춰 community/ 사용
+      const uploadFile = await compressCommunityImage(noticeSelectedImageFile);
+      const safeName = uploadFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      imageStoragePath = `community/${timestamp}_${safeName}`;
       const ref = storage.ref(imageStoragePath);
-      await ref.put(noticeSelectedImageFile);
+      await ref.put(uploadFile, { contentType: uploadFile.type });
       imageUrl = await ref.getDownloadURL();
     } else if (imageUrl === '') {
       if (noticeExistingStoragePath) {
@@ -2903,6 +2906,57 @@ function canvasToBlob(canvas, type, quality) {
       else reject(new Error('이미지 압축에 실패했습니다.'));
     }, type, quality);
   });
+}
+
+// 커뮤니티 게시글 이미지: 비율 유지 리사이즈 + JPEG 재인코딩.
+// Storage 규칙상 community/ 이미지는 1.1MB 미만이어야 하므로 목표를 950KB로 잡는다.
+async function compressCommunityImage(file, maxBytes = 950 * 1024) {
+  // 이미 충분히 작은 JPEG면 그대로 사용 (불필요한 화질 손실 방지)
+  if (file.size <= maxBytes && (file.type === 'image/jpeg' || file.type === 'image/jpg')) {
+    return file;
+  }
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error('이미지 파일을 읽을 수 없습니다.'));
+      image.src = url;
+    });
+    const attempts = [
+      { maxDim: 1600, quality: 0.82 },
+      { maxDim: 1600, quality: 0.7 },
+      { maxDim: 1280, quality: 0.72 },
+      { maxDim: 1024, quality: 0.7 },
+      { maxDim: 900,  quality: 0.65 },
+      { maxDim: 800,  quality: 0.55 }
+    ];
+    const baseName = (file.name || 'image').replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '_') || 'image';
+    let best = null;
+    for (const opt of attempts) {
+      let width = img.naturalWidth;
+      let height = img.naturalHeight;
+      if (width > opt.maxDim || height > opt.maxDim) {
+        if (width >= height) { height = Math.round(height * opt.maxDim / width); width = opt.maxDim; }
+        else { width = Math.round(width * opt.maxDim / height); height = opt.maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('이미지 압축을 지원하지 않는 브라우저입니다.');
+      ctx.fillStyle = '#ffffff'; // 투명 PNG 영역을 흰색으로 채움
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+      const blob = await canvasToBlob(canvas, 'image/jpeg', opt.quality);
+      best = blob;
+      if (blob.size <= maxBytes) break;
+    }
+    if (!best) throw new Error('이미지 압축에 실패했습니다.');
+    return new File([best], `${baseName}.jpg`, { type: 'image/jpeg', lastModified: Date.now() });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 async function compressBannerImage(file, maxBytes = 800 * 1024) {
