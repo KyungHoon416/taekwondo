@@ -285,7 +285,7 @@ img { max-width: 100%; }
 /* ─── Stats Cards Row ─── */
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 1rem;
   margin-bottom: 1.5rem;
 }

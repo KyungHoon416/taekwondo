@@ -481,5 +481,11 @@ service cloud.firestore {
         isAdmin()
       );
     }
+
+    // 9. Traffic (홈페이지 유입량) Collection
+    match /traffic/{dateId} {
+      allow read: if true;
+      allow create, update: if true;
+    }
   }
 }

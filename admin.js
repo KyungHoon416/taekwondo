@@ -536,6 +536,27 @@ async function fetchFirestoreData() {
     console.warn('Firestore 커뮤니티 데이터 조회 중 실패:', err);
   }
 
+  // 7. 오늘의 홈페이지 유입 (traffic 컬렉션)
+  try {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+
+    const trafficDoc = await db.collection('traffic').doc(todayStr).get();
+    if (trafficDoc.exists) {
+      const tData = trafficDoc.data();
+      todayPV = tData.pv || 0;
+      todayUV = tData.visitors ? tData.visitors.length : 0;
+    } else {
+      todayPV = 0;
+      todayUV = 0;
+    }
+  } catch (err) {
+    console.warn('Firestore 트래픽 데이터 조회 중 실패:', err);
+  }
+
   // 사이드바 메뉴 뱃지 일괄 갱신
   updateSidebarBadges();
   dbLoaded = true;
@@ -581,11 +602,15 @@ function updateDashboardStats() {
   const jobsVal = document.getElementById('stat-jobs-count');
   const resumesVal = document.getElementById('stat-resumes-count');
   const appsVal = document.getElementById('stat-applications-count');
+  const todayPvVal = document.getElementById('stat-today-pv');
+  const todayUvVal = document.getElementById('stat-today-uv');
 
   if (membersVal) membersVal.textContent = MEMBERS.length.toLocaleString('ko-KR');
   if (jobsVal) jobsVal.textContent = JOBS.length.toLocaleString('ko-KR');
   if (resumesVal) resumesVal.textContent = RESUMES.length.toLocaleString('ko-KR');
   if (appsVal) appsVal.textContent = APPLICATIONS.length.toLocaleString('ko-KR');
+  if (todayPvVal) todayPvVal.textContent = todayPV.toLocaleString('ko-KR');
+  if (todayUvVal) todayUvVal.textContent = todayUV.toLocaleString('ko-KR');
 }
 
 // ─── Dashboard Tables ────────────────────────────────────────────────────────
@@ -1914,6 +1939,10 @@ document.addEventListener('DOMContentLoaded', () => {
   filterResumes();
   filterApplications();
 });
+
+// ─── Traffic Variables ───
+let todayPV = 0;
+let todayUV = 0;
 
 // ─── Notices Data & CRUD ─────────────────────────────────────────────────────
 const DEFAULT_NOTICES = [];

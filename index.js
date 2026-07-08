@@ -255,8 +255,43 @@ async function verifyBusinessInfo({ businessNumber, startDate, ownerName, busine
     }
   }
 
+  // Track Homepage Daily Traffic
+  function trackHomepageTraffic() {
+    if (typeof db === 'undefined' || !db) return;
+    
+    // Generate/retrieve viewerId
+    let viewerId = '';
+    if (typeof auth !== 'undefined' && auth && auth.currentUser) {
+      viewerId = auth.currentUser.uid;
+    } else {
+      viewerId = localStorage.getItem('taekwondo_client_id');
+      if (!viewerId) {
+        viewerId = 'client_' + Math.random().toString(36).substring(2, 15);
+        localStorage.setItem('taekwondo_client_id', viewerId);
+      }
+    }
+
+    // Get today's YYYY-MM-DD
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+
+    try {
+      db.collection('traffic').doc(todayStr).set({
+        pv: firebase.firestore.FieldValue.increment(1),
+        visitors: firebase.firestore.FieldValue.arrayUnion(viewerId),
+        date: todayStr
+      }, { merge: true });
+    } catch (err) {
+      console.warn('Failed to track page view in Firestore:', err);
+    }
+  }
+
 document.addEventListener('DOMContentLoaded', () => {
   initMetaPixel();
+  trackHomepageTraffic();
 
   // ==========================================================================
   // 1. Mock Database
