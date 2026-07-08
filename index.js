@@ -4643,6 +4643,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const dateStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
         .replace(/\s/g, '').slice(0, -1); // '2026.06.16' 형식
 
+      // 등록 중 로딩 표시 (버튼 스피너 + 중복 제출 방지)
+      const submitBtn = formPostCommunity.querySelector('.btn-submit-dialog');
+      const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+      const setSubmitting = (on) => {
+        if (!submitBtn) return;
+        submitBtn.disabled = on;
+        submitBtn.innerHTML = on ? '<span class="btn-inline-spinner"></span>등록 중…' : originalBtnHtml;
+      };
+      setSubmitting(true);
+
+      try {
       // 이미지 업로드 처리 (선택한 경우에만)
       let imageUrl = '';
       if (commSelectedImage) {
@@ -4718,6 +4729,9 @@ document.addEventListener('DOMContentLoaded', () => {
       renderHomeCommunityPosts();
       
       alert('게시글이 성공적으로 등록되었습니다.');
+      } finally {
+        setSubmitting(false);
+      }
     });
   }
 

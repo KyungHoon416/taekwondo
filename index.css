@@ -2421,6 +2421,24 @@
   background-color: var(--accent-blue-hover);
 }
 
+.btn-submit-dialog:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* 버튼 내부 인라인 스피너 (등록 중 표시) */
+.btn-inline-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
 .auth-help-actions {
   display: flex;
   align-items: center;
