@@ -867,8 +867,7 @@ function renderJobs() {
         <td style="color:var(--blue);font-weight:700">${j.salary}</td>
         <td><span class="badge badge-gray">${j.position}</span></td>
         <td style="color:var(--muted)">${j.regDate}</td>
-        <td style="color:var(--muted)">${j.views}회</td>
-        <td style="color:var(--muted);font-weight:600">${j.uniqueViews}회</td>
+        <td style="color:var(--muted)">${j.views || 0}회</td>
         <td>${statusBadge(j.status)}</td>
         <td style="text-align:center">
           <input type="checkbox" ${j.pinned ? 'checked' : ''} onchange="toggleJobPinned('${j.fullId || j.id}', this)" style="transform: scale(1.15); cursor: pointer; vertical-align: middle;">
@@ -1712,7 +1711,35 @@ function exportCSV(type) {
   showToast('CSV 파일을 내보냅니다.', 'success');
 }
 
+  // Meta Pixel Initialization
+  function initMetaPixel() {
+    let pixelId = null;
+    if (typeof META_PIXEL_ID !== 'undefined' && META_PIXEL_ID && META_PIXEL_ID !== 'YOUR_META_PIXEL_ID') {
+      pixelId = META_PIXEL_ID;
+    }
+
+    if (pixelId) {
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', pixelId);
+      fbq('track', 'PageView');
+      console.log('Meta Pixel initialized with ID:', pixelId);
+    } else {
+      console.warn('Meta Pixel ID is not configured in firebase-config.js. Mock fbq is defined to prevent errors.');
+      window.fbq = function() {
+        console.log('[Mock Meta Pixel Event]', arguments);
+      };
+    }
+  }
+
 document.addEventListener('DOMContentLoaded', () => {
+  initMetaPixel();
   document.getElementById('btn-region-sync')?.addEventListener('click', syncRegionsFromAdmin);
   refreshRegionMeta();
   loadAdminRegions();
@@ -1951,9 +1978,8 @@ window.populateNotices = function() {
       <span class="notice-category"><span class="badge ${categoryClass}">${categoryLabel}</span></span>
       <span class="notice-title">${n.title}</span>
       <span class="notice-date">${n.date}</span>
-      <span class="notice-views" style="min-width: 110px; text-align: right; display: inline-flex; flex-direction: column; align-items: flex-end; line-height: 1.3;">
-        <span style="color: var(--text); font-weight: 600;">누적: ${n.views || 0}회</span>
-        <span style="color: var(--muted); font-size: 0.7rem;">실제: ${n.viewed_users && n.viewed_users.length ? n.viewed_users.length : Math.round((n.views || 0) * 0.75)}회</span>
+      <span class="notice-views" style="min-width: 80px; text-align: right; font-size: 0.75rem; color: var(--light);">
+        픽셀 ${n.views || 0}회
       </span>
       <div class="action-btns" onclick="event.stopPropagation()">
         <button class="btn-icon" onclick="openEditNoticeDialog('${n.id}')">✏️</button>
@@ -2398,8 +2424,7 @@ window.showDetail = async function(type, id) {
         <div class="detail-item"><strong>모집 직무</strong><span>${j.position}</span></div>
         <div class="detail-item"><strong>요구 경력</strong><span>${j.exp}</span></div>
         <div class="detail-item"><strong>등록일</strong><span>${j.regDate}</span></div>
-        <div class="detail-item"><strong>누적 조회수</strong><span>${j.views}회</span></div>
-        <div class="detail-item"><strong>실제 조회수</strong><span style="font-weight:600">${j.uniqueViews}회</span></div>
+        <div class="detail-item"><strong>픽셀 조회수</strong><span>${j.views || 0}회</span></div>
         <div class="detail-item"><strong>게시 상태</strong><span>${statusBadge(j.status === '게시중' ? 'active' : 'closed')}</span></div>
         <div class="detail-item"><strong>상위 노출</strong>
           <span>
@@ -2491,7 +2516,7 @@ window.showDetail = async function(type, id) {
       <div class="detail-grid">
         <div class="detail-item"><strong>구분</strong><span><span class="badge ${categoryClass}">${categoryLabel}</span></span></div>
         <div class="detail-item"><strong>등록일</strong><span>${n.date}</span></div>
-        <div class="detail-item"><strong>조회수</strong><span>누적: ${n.views || 0}회 / 실제: ${n.viewed_users && n.viewed_users.length ? n.viewed_users.length : Math.round((n.views || 0) * 0.75)}회</span></div>
+        <div class="detail-item"><strong>조회수</strong><span>픽셀 ${n.views || 0}회</span></div>
         <div class="detail-full"><strong>게시글 제목</strong><span style="font-size: 1.05rem; font-weight: 800; color: #0f172a;">${n.title}</span></div>
         ${imageHtml}
         <div class="detail-full">

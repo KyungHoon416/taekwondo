@@ -228,7 +228,35 @@ async function verifyBusinessInfo({ businessNumber, startDate, ownerName, busine
   return business;
 }
 
+  // Meta Pixel Initialization
+  function initMetaPixel() {
+    let pixelId = null;
+    if (typeof META_PIXEL_ID !== 'undefined' && META_PIXEL_ID && META_PIXEL_ID !== 'YOUR_META_PIXEL_ID') {
+      pixelId = META_PIXEL_ID;
+    }
+
+    if (pixelId) {
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', pixelId);
+      fbq('track', 'PageView');
+      console.log('Meta Pixel initialized with ID:', pixelId);
+    } else {
+      console.warn('Meta Pixel ID is not configured in firebase-config.js. Mock fbq is defined to prevent errors.');
+      window.fbq = function() {
+        console.log('[Mock Meta Pixel Event]', arguments);
+      };
+    }
+  }
+
 document.addEventListener('DOMContentLoaded', () => {
+  initMetaPixel();
 
   // ==========================================================================
   // 1. Mock Database
@@ -2170,7 +2198,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </span>
         <span class="job-views" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--text-muted); margin-left: auto;">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          ${job.views || 0}
+          픽셀 ${job.views || 0}
         </span>
       </div>
       <div class="job-card-footer">
@@ -3035,7 +3063,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div class="post-views">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          <span>${post.views}</span>
+          <span>픽셀 ${post.views}</span>
         </div>
       `;
 
@@ -4754,6 +4782,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Increment views locally
     post.views = (post.views || 0) + 1;
 
+    // Trigger Meta Pixel Track
+    if (typeof fbq === 'function') {
+      fbq('track', 'ViewContent', {
+        content_name: post.title,
+        content_category: 'Community',
+        content_ids: [post.id],
+        content_type: 'product'
+      });
+    }
+
     let viewerId = '';
     if (typeof auth !== 'undefined' && auth && auth.currentUser) {
       viewerId = auth.currentUser.uid;
@@ -4909,6 +4947,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Increment views locally first
     job.views = (job.views || 0) + 1;
+    
+    // Trigger Meta Pixel Track
+    if (typeof fbq === 'function') {
+      fbq('track', 'ViewContent', {
+        content_name: job.title,
+        content_category: 'Job',
+        content_ids: [job.id],
+        content_type: 'product'
+      });
+    }
     
     const viewsEl = document.getElementById('detail-job-views');
     if (viewsEl) {

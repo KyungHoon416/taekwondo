@@ -20,3 +20,5 @@ const EMAILJS_CONFIG = {
   serviceId: "YOUR_SERVICE_ID",       // EmailJS에서 추가한 Service ID를 적어주세요.
   templateId: "YOUR_TEMPLATE_ID"      // EmailJS에서 생성한 이메일 Template ID를 적어주세요.
 };
+
+const META_PIXEL_ID = "YOUR_META_PIXEL_ID"; // 메타 픽셀 ID를 입력해 주세요. (예: 999999999999999)
