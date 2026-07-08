@@ -4483,6 +4483,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const formPostCommunity = document.getElementById('form-post-community');
   // 커뮤니티 이미지 선택 상태 관리
   let commSelectedImage = null;
+  // 커뮤니티 글 등록 진행 중 플래그 (이미지 업로드 지연 중 재제출 방지)
+  let isSubmittingCommunity = false;
 
   // 이미지 파일 선택 처리 (input[type=file] 변경 이벤트)
   window.handleCommImageSelect = function(event) {
@@ -4621,6 +4623,9 @@ document.addEventListener('DOMContentLoaded', () => {
     formPostCommunity.addEventListener('submit', async (e) => {
       e.preventDefault();
 
+      // 이미 등록 처리 중이면 중복 제출 차단
+      if (isSubmittingCommunity) return;
+
       const currentUser = auth ? auth.currentUser : null;
       if (!currentUser) {
         alert('글쓰기 기능은 로그인 후 이용하실 수 있습니다.');
@@ -4651,6 +4656,7 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.disabled = on;
         submitBtn.innerHTML = on ? '<span class="btn-inline-spinner"></span>등록 중…' : originalBtnHtml;
       };
+      isSubmittingCommunity = true;
       setSubmitting(true);
 
       try {
@@ -4731,6 +4737,7 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('게시글이 성공적으로 등록되었습니다.');
       } finally {
         setSubmitting(false);
+        isSubmittingCommunity = false;
       }
     });
   }
