@@ -641,6 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
           author_id: p.author_id || '',
           date: p.date || (p.created_at ? (p.created_at.toDate ? p.created_at.toDate().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\s/g, '').slice(0, -1) : '') : ''),
           views: p.views || 0,
+          viewed_users: p.viewed_users || [],
           content: p.content || '',
           imageUrl: p.imageUrl || '',
           comments: p.comments || [],
@@ -4753,10 +4754,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // Increment views locally
     post.views = (post.views || 0) + 1;
 
+    let viewerId = '';
+    if (typeof auth !== 'undefined' && auth && auth.currentUser) {
+      viewerId = auth.currentUser.uid;
+    } else {
+      viewerId = localStorage.getItem('taekwondo_client_id');
+      if (!viewerId) {
+        viewerId = 'client_' + Math.random().toString(36).substring(2, 15);
+        localStorage.setItem('taekwondo_client_id', viewerId);
+      }
+    }
+
+    if (!post.viewed_users) {
+      post.viewed_users = [];
+    }
+    if (!post.viewed_users.includes(viewerId)) {
+      post.viewed_users.push(viewerId);
+    }
+
     if (typeof db !== 'undefined' && db && !post.id.startsWith('post-')) {
       try {
         db.collection('community').doc(post.id).update({
-          views: post.views
+          views: firebase.firestore.FieldValue.increment(1),
+          viewed_users: firebase.firestore.FieldValue.arrayUnion(viewerId)
         });
       } catch (err) {
         console.warn("Failed to increment views in Firestore", err);

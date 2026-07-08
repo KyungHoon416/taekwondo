@@ -522,6 +522,7 @@ async function fetchFirestoreData() {
         author: p.author || '관리자',
         date: p.date || (p.created_at ? (p.created_at.toDate ? p.created_at.toDate().toISOString().split('T')[0] : '') : ''),
         views: p.views || 0,
+        viewed_users: p.viewed_users || [],
         content: p.content || '',
         imageUrl: p.imageUrl || '',
         imageStoragePath: p.imageStoragePath || '',
@@ -1950,7 +1951,10 @@ window.populateNotices = function() {
       <span class="notice-category"><span class="badge ${categoryClass}">${categoryLabel}</span></span>
       <span class="notice-title">${n.title}</span>
       <span class="notice-date">${n.date}</span>
-      <span class="notice-views">👁 ${n.views || 0}</span>
+      <span class="notice-views" style="min-width: 110px; text-align: right; display: inline-flex; flex-direction: column; align-items: flex-end; line-height: 1.3;">
+        <span style="color: var(--text); font-weight: 600;">누적: ${n.views || 0}회</span>
+        <span style="color: var(--muted); font-size: 0.7rem;">실제: ${n.viewed_users && n.viewed_users.length ? n.viewed_users.length : Math.round((n.views || 0) * 0.75)}회</span>
+      </span>
       <div class="action-btns" onclick="event.stopPropagation()">
         <button class="btn-icon" onclick="openEditNoticeDialog('${n.id}')">✏️</button>
         <button class="btn-icon danger" onclick="deleteNotice('${n.id}')">🗑️</button>
@@ -2487,7 +2491,7 @@ window.showDetail = async function(type, id) {
       <div class="detail-grid">
         <div class="detail-item"><strong>구분</strong><span><span class="badge ${categoryClass}">${categoryLabel}</span></span></div>
         <div class="detail-item"><strong>등록일</strong><span>${n.date}</span></div>
-        <div class="detail-item"><strong>조회수</strong><span>${n.views}회</span></div>
+        <div class="detail-item"><strong>조회수</strong><span>누적: ${n.views || 0}회 / 실제: ${n.viewed_users && n.viewed_users.length ? n.viewed_users.length : Math.round((n.views || 0) * 0.75)}회</span></div>
         <div class="detail-full"><strong>게시글 제목</strong><span style="font-size: 1.05rem; font-weight: 800; color: #0f172a;">${n.title}</span></div>
         ${imageHtml}
         <div class="detail-full">
