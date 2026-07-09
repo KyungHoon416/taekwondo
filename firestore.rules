@@ -503,5 +503,20 @@ service cloud.firestore {
       allow create: if isAuthenticated();
       allow update, delete: if isAdmin();
     }
+
+    // 12. Activity Logs (사용자 활동 로그) Collection
+    // 비회원 포함 누구나 자신의 활동을 기록(create)할 수 있으나, 조회는 관리자만 가능
+    match /activity_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if request.resource.data.keys().hasOnly(['actorId', 'actorName', 'role', 'action', 'detail', 'path', 'created_at'])
+        && request.resource.data.action is string && request.resource.data.action.size() <= 40
+        && request.resource.data.actorId is string && request.resource.data.actorId.size() <= 60
+        && request.resource.data.actorName is string && request.resource.data.actorName.size() <= 60
+        && request.resource.data.role is string && request.resource.data.role.size() <= 20
+        && request.resource.data.detail is string && request.resource.data.detail.size() <= 120
+        && request.resource.data.path is string && request.resource.data.path.size() <= 120
+        && request.resource.data.created_at is timestamp;
+      allow update, delete: if isAdmin();
+    }
   }
 }

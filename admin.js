@@ -230,6 +230,9 @@ let cumulativePV = 0;    // 누적 조회수(PV)
 let cumulativeUV = 0;    // 누적 방문자(UV, 순 방문자)
 let trafficPeriod = 'day'; // 유입 통계 탭: 'day' | 'week' | 'month'
 let trafficChart = null;
+// 사용자 활동 로그
+let ACTIVITY_LOGS = [];  // [{ id, actorId, actorName, role, action, detail, path, ts }]
+let activityChart = null;
 
 // ─── Pagination State ────────────────────────────────────────────────────────
 const PAGE_SIZE = 7;
@@ -254,6 +257,7 @@ const VIEW_TITLES = {
   terms: '약관 등록 / 관리',
   sales: '매출 현황',
   traffic: '유입 통계',
+  activity: '활동 로그',
   settings: '설정',
 };
 
@@ -272,7 +276,7 @@ async function navigateTo(viewId, clickedItem) {
   if (el) el.textContent = title;
 
   // 탭 이동 시 최신 Firestore 데이터를 자동으로 동기화(새로 가져오기)
-  if (['dashboard', 'members', 'jobs', 'resumes', 'applications', 'inquiries', 'notices', 'sales', 'traffic'].includes(viewId)) {
+  if (['dashboard', 'members', 'jobs', 'resumes', 'applications', 'inquiries', 'notices', 'sales', 'traffic', 'activity'].includes(viewId)) {
     try {
       await fetchFirestoreData();
     } catch (e) {
@@ -295,6 +299,7 @@ async function navigateTo(viewId, clickedItem) {
   if (viewId === 'banners') loadBanners();
   if (viewId === 'sales') populateSales();
   if (viewId === 'traffic') populateTrafficStats();
+  if (viewId === 'activity') populateActivity();
   if (viewId === 'terms') {
     // 기본적으로 gym 약관 선택 로드
     selectAdminTerms('gym');
@@ -328,6 +333,8 @@ window.refreshAdminData = async function(viewId) {
       populateSales();
     } else if (viewId === 'traffic') {
       populateTrafficStats();
+    } else if (viewId === 'activity') {
+      populateActivity();
     }
 
     showToast('데이터 새로고침 완료', 'success');
@@ -610,6 +617,28 @@ async function fetchFirestoreData() {
     console.warn('Firestore 결제 데이터 조회 중 실패:', err);
   }
 
+  // 9. 사용자 활동 로그 (activity_logs 컬렉션, 최근 1000건)
+  try {
+    const logSnap = await db.collection('activity_logs').orderBy('created_at', 'desc').limit(1000).get();
+    const logs = [];
+    logSnap.forEach((doc) => {
+      const l = doc.data() || {};
+      logs.push({
+        id: doc.id,
+        actorId: l.actorId || '',
+        actorName: l.actorName || '비회원',
+        role: l.role || 'guest',
+        action: l.action || '',
+        detail: l.detail || '',
+        path: l.path || '',
+        ts: l.created_at ? (l.created_at.toDate ? l.created_at.toDate().getTime() : new Date(l.created_at).getTime()) : 0
+      });
+    });
+    ACTIVITY_LOGS = logs;
+  } catch (err) {
+    console.warn('Firestore 활동 로그 조회 중 실패:', err);
+  }
+
   // 사이드바 메뉴 뱃지 일괄 갱신
   updateSidebarBadges();
   dbLoaded = true;
@@ -860,6 +889,102 @@ window.switchTrafficPeriod = function(period, btn) {
   document.querySelectorAll('.traffic-tab').forEach(t => t.classList.remove('active'));
   if (btn) btn.classList.add('active');
   populateTrafficStats();
+};
+
+// ─── 사용자 활동 로그 ──────────────────────────────────────────────────────────
+const ACTIVITY_ACTION_LABELS = {
+  view: '탭 조회', login: '로그인', signup: '회원가입',
+  view_job: '채용공고 상세', view_talent: '인재 상세', apply: '지원',
+  post_job: '채용공고 등록', post_resume: '이력서 등록',
+  community_write: '커뮤니티 글쓰기', purchase: '결제'
+};
+
+function activityRoleBadge(role) {
+  const map = { guest: ['badge-amber', '비회원'], gym: ['badge-blue', '관장'], instructor: ['badge-green', '사범'], admin: ['badge-red', '관리자'] };
+  const [cls, label] = map[role] || ['badge-gray', '기타'];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+// 탭·기능별 활동 분포 집계 ('view'는 탭명(detail)으로, 그 외는 활동명으로 그룹)
+function aggregateActivityDistribution() {
+  const counts = {};
+  ACTIVITY_LOGS.forEach(l => {
+    const key = l.action === 'view'
+      ? (l.detail || '기타 탭')
+      : (ACTIVITY_ACTION_LABELS[l.action] || l.action || '기타');
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+}
+
+function populateActivity() {
+  const setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  const total = ACTIVITY_LOGS.length;
+  const users = new Set(ACTIVITY_LOGS.map(l => l.actorId)).size;
+  const guestCount = ACTIVITY_LOGS.filter(l => l.role === 'guest').length;
+
+  const viewCounts = {};
+  ACTIVITY_LOGS.forEach(l => { if (l.action === 'view') viewCounts[l.detail] = (viewCounts[l.detail] || 0) + 1; });
+  const topSection = Object.entries(viewCounts).sort((a, b) => b[1] - a[1])[0];
+
+  setTxt('activity-total', total.toLocaleString('ko-KR'));
+  setTxt('activity-users', users.toLocaleString('ko-KR'));
+  setTxt('activity-top-section', topSection ? topSection[0] : '-');
+  setTxt('activity-guest-ratio', total ? Math.round(guestCount / total * 100) + '%' : '0%');
+
+  const dist = aggregateActivityDistribution().slice(0, 12);
+  const canvas = document.getElementById('activityChartCanvas');
+  if (canvas && typeof Chart !== 'undefined') {
+    if (activityChart) activityChart.destroy();
+    activityChart = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: dist.map(d => d[0]),
+        datasets: [{ label: '활동 수', data: dist.map(d => d[1]), backgroundColor: 'rgba(37,99,235,0.75)', borderRadius: 4 }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } }, y: { grid: { display: false } } }
+      }
+    });
+  }
+
+  filterActivityLogs();
+}
+
+window.filterActivityLogs = function() {
+  const q = (document.getElementById('activity-search')?.value || '').toLowerCase().trim();
+  const role = document.getElementById('activity-role-filter')?.value || '';
+  const action = document.getElementById('activity-action-filter')?.value || '';
+
+  const filtered = ACTIVITY_LOGS.filter(l => {
+    const matchQ = !q || (l.actorName || '').toLowerCase().includes(q) || (l.actorId || '').toLowerCase().includes(q);
+    const matchRole = !role || l.role === role;
+    const matchAction = !action || l.action === action;
+    return matchQ && matchRole && matchAction;
+  });
+
+  const countEl = document.getElementById('activity-table-count');
+  if (countEl) countEl.textContent = `(${filtered.length.toLocaleString('ko-KR')}건)`;
+
+  const tbody = document.getElementById('activity-table-body');
+  if (!tbody) return;
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">조건에 맞는 활동 로그가 없습니다.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.slice(0, 300).map(l => {
+    const time = l.ts ? new Date(l.ts).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
+    const actionLabel = ACTIVITY_ACTION_LABELS[l.action] || l.action;
+    return `<tr>
+      <td style="white-space:nowrap;color:var(--muted)">${time}</td>
+      <td style="font-weight:600">${escapeHtml(l.actorName || '')}</td>
+      <td>${activityRoleBadge(l.role)}</td>
+      <td><span class="badge badge-blue">${escapeHtml(actionLabel)}</span></td>
+      <td style="color:var(--muted);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(l.detail || '')}</td>
+    </tr>`;
+  }).join('');
 };
 
 // ─── Members Table ───────────────────────────────────────────────────────────

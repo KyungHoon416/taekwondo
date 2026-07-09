@@ -207,6 +207,10 @@
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><polyline points="17 6 23 6 23 12"/></svg>
         유입 통계
       </div>
+      <div class="nav-item" data-view="activity" onclick="navigateTo('activity', this)">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        활동 로그
+      </div>
     </div>
 
     <!-- 설정 -->
@@ -1067,6 +1071,113 @@
               </thead>
               <tbody id="traffic-table-body">
                 <tr><td colspan="3" style="text-align:center;color:var(--muted);padding:2rem">유입 데이터를 불러오는 중입니다...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ ACTIVITY LOG (활동 로그) VIEW ════ -->
+    <div id="view-activity" class="view">
+      <div class="page-toolbar">
+        <div class="page-title-block">
+          <h2>사용자 활동 로그</h2>
+          <p>비회원부터 회원까지, 어떤 탭·기능에서 활동하는지 실시간 로그로 분석합니다.</p>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn btn-secondary" onclick="refreshAdminData('activity')">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            새로고침
+          </button>
+        </div>
+      </div>
+
+      <!-- 활동 요약 카드 -->
+      <div class="sales-summary-grid">
+        <div class="sales-card">
+          <div class="sales-card-icon" style="background:#eff6ff;color:#2563eb;">📋</div>
+          <div class="sales-card-body">
+            <div class="sales-card-label">전체 활동 수</div>
+            <div class="sales-card-value" id="activity-total">0</div>
+          </div>
+        </div>
+        <div class="sales-card">
+          <div class="sales-card-icon" style="background:#ecfdf5;color:#10b981;">👥</div>
+          <div class="sales-card-body">
+            <div class="sales-card-label">활동 사용자 수</div>
+            <div class="sales-card-value" id="activity-users">0</div>
+          </div>
+        </div>
+        <div class="sales-card">
+          <div class="sales-card-icon" style="background:#f5f3ff;color:#8b5cf6;">🔥</div>
+          <div class="sales-card-body">
+            <div class="sales-card-label">가장 활발한 탭</div>
+            <div class="sales-card-value" id="activity-top-section" style="font-size:1.15rem">-</div>
+          </div>
+        </div>
+        <div class="sales-card">
+          <div class="sales-card-icon" style="background:#fffbeb;color:#f59e0b;">👤</div>
+          <div class="sales-card-body">
+            <div class="sales-card-label">비회원 활동 비율</div>
+            <div class="sales-card-value" id="activity-guest-ratio">0%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 탭(섹션)별 활동 분포 차트 -->
+      <div class="panel" style="margin-bottom:1.5rem">
+        <div class="panel-header">
+          <div class="panel-title">탭 · 기능별 활동 분포</div>
+        </div>
+        <div class="panel-body">
+          <div class="chart-wrap" style="height:300px"><canvas id="activityChartCanvas"></canvas></div>
+        </div>
+      </div>
+
+      <!-- 필터 + 로그 테이블 -->
+      <div class="panel">
+        <div class="panel-header" style="flex-wrap:wrap;gap:0.6rem;">
+          <div class="panel-title">활동 로그 <span id="activity-table-count" style="color:var(--muted);font-weight:500;font-size:0.85rem;">(0건)</span></div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;">
+            <input type="text" id="activity-search" placeholder="사용자 검색 (이름/ID)" oninput="filterActivityLogs()"
+                   style="padding:0.4rem 0.7rem;font-size:0.82rem;border:1.5px solid var(--border,#e2e8f0);border-radius:8px;outline:none;min-width:160px;">
+            <select id="activity-role-filter" class="filter-select" onchange="filterActivityLogs()">
+              <option value="">전체 역할</option>
+              <option value="guest">비회원</option>
+              <option value="gym">관장</option>
+              <option value="instructor">사범</option>
+              <option value="admin">관리자</option>
+            </select>
+            <select id="activity-action-filter" class="filter-select" onchange="filterActivityLogs()">
+              <option value="">전체 활동</option>
+              <option value="view">탭 조회</option>
+              <option value="login">로그인</option>
+              <option value="signup">회원가입</option>
+              <option value="view_job">채용공고 상세</option>
+              <option value="view_talent">인재 상세</option>
+              <option value="apply">지원</option>
+              <option value="post_job">채용공고 등록</option>
+              <option value="post_resume">이력서 등록</option>
+              <option value="community_write">커뮤니티 글쓰기</option>
+              <option value="purchase">결제</option>
+            </select>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>시간</th>
+                  <th>사용자</th>
+                  <th>역할</th>
+                  <th>활동</th>
+                  <th>상세</th>
+                </tr>
+              </thead>
+              <tbody id="activity-table-body">
+                <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">활동 로그를 불러오는 중입니다...</td></tr>
               </tbody>
             </table>
           </div>

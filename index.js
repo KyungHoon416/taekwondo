@@ -1352,9 +1352,58 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     updateRoleFloatingCTA(viewId);
 
+    // 활동 로그: 섹션(탭) 조회 기록 (연속 중복 방지)
+    const sectionLogNames = {
+      home: '홈', jobs: '채용공고', talents: '인재정보', community: '커뮤니티',
+      myApplications: '마이페이지', customerService: '고객센터',
+      termsOfUse: '이용약관', privacyPolicy: '개인정보처리방침'
+    };
+    if (sectionLogNames[viewId] && lastLoggedView !== viewId) {
+      lastLoggedView = viewId;
+      logActivity('view', sectionLogNames[viewId]);
+    }
+
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
+
+  // ─── 사용자 활동 로그 기록 (비회원 포함) ──────────────────────────────────────
+  let lastLoggedView = '';
+  function logActivity(action, detail) {
+    try {
+      if (typeof db === 'undefined' || !db) return;
+      const user = (typeof auth !== 'undefined' && auth) ? auth.currentUser : null;
+      let role = 'guest';
+      try { role = (typeof getUserRole === 'function') ? getUserRole() : 'guest'; } catch (e) {}
+      if (role === 'loading') role = 'guest';
+
+      let actorId, actorName;
+      if (user) {
+        actorId = user.uid;
+        actorName = (state.currentUser && state.currentUser.name) ? state.currentUser.name : (user.email || '회원');
+      } else {
+        actorId = localStorage.getItem('taekwondo_client_id');
+        if (!actorId) {
+          actorId = 'client_' + Math.random().toString(36).substring(2, 15);
+          localStorage.setItem('taekwondo_client_id', actorId);
+        }
+        actorName = '비회원';
+      }
+
+      db.collection('activity_logs').add({
+        actorId: String(actorId || '').slice(0, 60),
+        actorName: String(actorName || '').slice(0, 60),
+        role: role,
+        action: String(action || '').slice(0, 40),
+        detail: String(detail || '').slice(0, 120),
+        path: String(location.hash || location.pathname || '').slice(0, 120),
+        created_at: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (e) {
+      // 로깅 실패는 사용자 경험에 영향 주지 않도록 조용히 무시
+    }
+  }
+  window.logActivity = logActivity;
 
   // ─── 약관 상세 페이지 (/Terms_of_Use) 내의 탭 전환 및 파일 동적 로드 로직 ──────────────────────
   const termsPageViewerContent = document.getElementById('terms-page-viewer-content');
@@ -4025,6 +4074,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     try {
       await auth.signInWithEmailAndPassword(email, password);
+      logActivity('login', '로그인');
       dialogs.auth.close();
       formLogin.reset();
     } catch (err) {
@@ -4243,7 +4293,9 @@ document.addEventListener('DOMContentLoaded', () => {
         masked_email: maskEmail(email),
         created_at: firebase.firestore.FieldValue.serverTimestamp()
       });
-      
+
+      logActivity('signup', (type === 'gym' ? '관장' : '사범') + ' 회원가입');
+
       dialogs.auth.close();
       formRegister.reset();
       resetBusinessChecks();
@@ -4581,6 +4633,7 @@ document.addEventListener('DOMContentLoaded', () => {
           state.regionPickers.job?.clear();
 
           // Alert & refresh UI lists
+          logActivity('post_job', '채용공고 등록: ' + (title || ''));
           alert('채용공고가 성공적으로 등록되었습니다!');
           
           // Update statistics
@@ -4726,8 +4779,9 @@ document.addEventListener('DOMContentLoaded', () => {
           state.selectedResumeRegions = [];
           state.regionPickers.resume?.clear();
 
+          logActivity('post_resume', '이력서 등록');
           alert('이력서가 성공적으로 등록되었습니다!');
-          
+
           updateStats();
           
           renderHomeTalents();
@@ -5014,6 +5068,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setupCommunityTab('free');
       renderHomeCommunityPosts();
       
+      logActivity('community_write', '커뮤니티 글쓰기: ' + (title || ''));
       alert('게시글이 성공적으로 등록되었습니다.');
       } finally {
         setSubmitting(false);
@@ -5195,7 +5250,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function openJobDetails(job) {
     if (!dialogs.jobDetail) return;
-    
+
+    logActivity('view_job', '채용공고 상세: ' + (job && job.title ? job.title : ''));
+
     // Increment views locally first
     job.views = (job.views || 0) + 1;
     
@@ -5307,6 +5364,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function openTalentDetails(talent) {
     if (!dialogs.talentDetail) return;
+
+    logActivity('view_talent', '인재 상세: ' + (talent && talent.name ? talent.name : ''));
 
     const avatarContainer = document.getElementById('detail-talent-avatar');
     if (avatarContainer) {
@@ -5838,6 +5897,8 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('결제 이력 저장 실패 (매출 데이터):', payErr);
       }
 
+      logActivity('purchase', '이력서 열람 구독 ' + months + '개월 결제');
+
       state.currentUser.resumeSubscriptionUntil = newUntil;
       state.currentUser.resumeSubscriptionMonths = months;
       
@@ -6332,6 +6393,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const applyRef = await db.collection('apply').add(applyData);
         const appliedJob = state.jobsList.find((item) => item.id === jobId);
+        logActivity('apply', '채용공고 지원: ' + (appliedJob ? appliedJob.title : ''));
         state.applicationsList.unshift({
           id: applyRef.id,
           jobId,
