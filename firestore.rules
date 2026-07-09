@@ -496,5 +496,12 @@ service cloud.firestore {
       allow create, update: if isAuthenticated();
       allow delete: if isAuthenticated() && (resource.data.gymId == request.auth.uid || isAdmin());
     }
+
+    // 11. Payments (결제 이력) Collection
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
   }
 }

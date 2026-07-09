@@ -5820,6 +5820,24 @@ document.addEventListener('DOMContentLoaded', () => {
         resumeSubscriptionMonths: months
       });
 
+      // 결제 이력을 payments 컬렉션에 저장
+      try {
+        await db.collection('payments').add({
+          userId: state.currentUser.uid,
+          userName: state.currentUser.name || state.currentUser.email || '',
+          userEmail: state.currentUser.email || '',
+          productName: `이력서 열람 구독 ${months}개월`,
+          months: months,
+          amount: price,
+          paymentDate: firebase.firestore.FieldValue.serverTimestamp(),
+          subscriptionUntil: newUntil,
+          status: 'completed',
+          type: 'subscription'
+        });
+      } catch (payErr) {
+        console.warn('결제 이력 저장 실패 (매출 데이터):', payErr);
+      }
+
       state.currentUser.resumeSubscriptionUntil = newUntil;
       state.currentUser.resumeSubscriptionMonths = months;
       
