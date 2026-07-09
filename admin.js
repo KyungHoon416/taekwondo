@@ -223,6 +223,13 @@ const APPLICATIONS = typeof db === 'undefined' || !db ? [
 ] : [];
 
 const INQUIRIES = [];
+const PAYMENTS = [];
+// 홈페이지 유입(트래픽) 전체 데이터 및 누적치
+let TRAFFIC = [];        // [{ date:'YYYY-MM-DD', pv, visitors:[], uv }]
+let cumulativePV = 0;    // 누적 조회수(PV)
+let cumulativeUV = 0;    // 누적 방문자(UV, 순 방문자)
+let trafficPeriod = 'day'; // 유입 통계 탭: 'day' | 'week' | 'month'
+let trafficChart = null;
 
 // ─── Pagination State ────────────────────────────────────────────────────────
 const PAGE_SIZE = 7;
@@ -245,6 +252,8 @@ const VIEW_TITLES = {
   analytics: '통계 대시보드',
   banners: '배너 등록 / 관리',
   terms: '약관 등록 / 관리',
+  sales: '매출 현황',
+  traffic: '유입 통계',
   settings: '설정',
 };
 
@@ -263,7 +272,7 @@ async function navigateTo(viewId, clickedItem) {
   if (el) el.textContent = title;
 
   // 탭 이동 시 최신 Firestore 데이터를 자동으로 동기화(새로 가져오기)
-  if (['dashboard', 'members', 'jobs', 'resumes', 'applications', 'inquiries', 'notices'].includes(viewId)) {
+  if (['dashboard', 'members', 'jobs', 'resumes', 'applications', 'inquiries', 'notices', 'sales', 'traffic'].includes(viewId)) {
     try {
       await fetchFirestoreData();
     } catch (e) {
@@ -284,6 +293,8 @@ async function navigateTo(viewId, clickedItem) {
   if (viewId === 'notices') populateNotices();
   if (viewId === 'analytics') initAnalyticsCharts();
   if (viewId === 'banners') loadBanners();
+  if (viewId === 'sales') populateSales();
+  if (viewId === 'traffic') populateTrafficStats();
   if (viewId === 'terms') {
     // 기본적으로 gym 약관 선택 로드
     selectAdminTerms('gym');
@@ -313,6 +324,10 @@ window.refreshAdminData = async function(viewId) {
       populateInquiries();
     } else if (viewId === 'notices') {
       populateNotices();
+    } else if (viewId === 'sales') {
+      populateSales();
+    } else if (viewId === 'traffic') {
+      populateTrafficStats();
     }
 
     showToast('데이터 새로고침 완료', 'success');
@@ -536,7 +551,7 @@ async function fetchFirestoreData() {
     console.warn('Firestore 커뮤니티 데이터 조회 중 실패:', err);
   }
 
-  // 7. 오늘의 홈페이지 유입 (traffic 컬렉션)
+  // 7. 홈페이지 유입 (traffic 컬렉션 전체: 오늘 / 누적 / 일자별)
   try {
     const now = new Date();
     const year = now.getFullYear();
@@ -544,17 +559,55 @@ async function fetchFirestoreData() {
     const day = String(now.getDate()).padStart(2, '0');
     const todayStr = `${year}-${month}-${day}`;
 
-    const trafficDoc = await db.collection('traffic').doc(todayStr).get();
-    if (trafficDoc.exists) {
-      const tData = trafficDoc.data();
-      todayPV = tData.pv || 0;
-      todayUV = tData.visitors ? tData.visitors.length : 0;
-    } else {
-      todayPV = 0;
-      todayUV = 0;
-    }
+    const snap = await db.collection('traffic').get();
+    const rows = [];
+    const allVisitors = new Set();
+    let sumPV = 0;
+    snap.forEach((doc) => {
+      const t = doc.data() || {};
+      const date = t.date || doc.id;
+      const visitors = Array.isArray(t.visitors) ? t.visitors : [];
+      const pv = t.pv || 0;
+      rows.push({ date, pv, visitors, uv: visitors.length });
+      sumPV += pv;
+      visitors.forEach((v) => allVisitors.add(v));
+    });
+    rows.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    TRAFFIC = rows;
+    cumulativePV = sumPV;
+    cumulativeUV = allVisitors.size;
+
+    const todayRow = rows.find((r) => r.date === todayStr);
+    todayPV = todayRow ? todayRow.pv : 0;
+    todayUV = todayRow ? todayRow.uv : 0;
   } catch (err) {
     console.warn('Firestore 트래픽 데이터 조회 중 실패:', err);
+  }
+
+  // 8. 결제 내역 (payments 컬렉션)
+  try {
+    const paySnap = await db.collection('payments').orderBy('paymentDate', 'desc').get();
+    const dbPayments = [];
+    paySnap.forEach((doc) => {
+      const p = doc.data();
+      dbPayments.push({
+        id: doc.id,
+        userId: p.userId || '',
+        userName: p.userName || '이름 없음',
+        userEmail: p.userEmail || '',
+        productName: p.productName || '구독 상품',
+        months: p.months || 0,
+        amount: p.amount || 0,
+        paymentDate: p.paymentDate ? (p.paymentDate.toDate ? p.paymentDate.toDate().toISOString() : p.paymentDate) : '',
+        subscriptionUntil: p.subscriptionUntil ? (p.subscriptionUntil.toDate ? p.subscriptionUntil.toDate().toISOString() : p.subscriptionUntil) : '',
+        status: p.status || 'completed',
+        type: p.type || 'subscription'
+      });
+    });
+    PAYMENTS.length = 0;
+    PAYMENTS.push(...dbPayments);
+  } catch (err) {
+    console.warn('Firestore 결제 데이터 조회 중 실패:', err);
   }
 
   // 사이드바 메뉴 뱃지 일괄 갱신
@@ -604,6 +657,8 @@ function updateDashboardStats() {
   const appsVal = document.getElementById('stat-applications-count');
   const todayPvVal = document.getElementById('stat-today-pv');
   const todayUvVal = document.getElementById('stat-today-uv');
+  const cumUvVal = document.getElementById('stat-cum-uv');
+  const cumPvVal = document.getElementById('stat-cum-pv');
 
   if (membersVal) membersVal.textContent = MEMBERS.length.toLocaleString('ko-KR');
   if (jobsVal) jobsVal.textContent = JOBS.length.toLocaleString('ko-KR');
@@ -611,6 +666,8 @@ function updateDashboardStats() {
   if (appsVal) appsVal.textContent = APPLICATIONS.length.toLocaleString('ko-KR');
   if (todayPvVal) todayPvVal.textContent = todayPV.toLocaleString('ko-KR');
   if (todayUvVal) todayUvVal.textContent = todayUV.toLocaleString('ko-KR');
+  if (cumUvVal) cumUvVal.textContent = cumulativeUV.toLocaleString('ko-KR');
+  if (cumPvVal) cumPvVal.textContent = cumulativePV.toLocaleString('ko-KR');
 }
 
 // ─── Dashboard Tables ────────────────────────────────────────────────────────
@@ -652,7 +709,158 @@ function populateDashboard() {
         </tr>`).join('');
     }
   }
+
+  // 최근 결제 내역 + 매출 요약 (대시보드)
+  populateDashboardSales();
 }
+
+// 대시보드: 매출 요약 KPI + 최근 결제 내역(누가 / 어떤 회원권)
+function populateDashboardSales() {
+  const now = new Date();
+  const monthPayments = PAYMENTS.filter(p => {
+    if (!p.paymentDate) return false;
+    const d = new Date(p.paymentDate);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const monthTotal = monthPayments.reduce((s, p) => s + (p.amount || 0), 0);
+  const allTotal = PAYMENTS.reduce((s, p) => s + (p.amount || 0), 0);
+
+  const setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  setTxt('dash-sales-month', monthTotal.toLocaleString() + '원');
+  setTxt('dash-sales-total', allTotal.toLocaleString() + '원');
+  setTxt('dash-sales-count', monthPayments.length.toLocaleString() + '건');
+
+  const tbody = document.getElementById('dash-payments-tbody');
+  if (!tbody) return;
+  if (typeof db !== 'undefined' && db && !dbLoaded && PAYMENTS.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--muted)">데이터를 불러오는 중입니다...</td></tr>`;
+    return;
+  }
+  if (PAYMENTS.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--muted)">결제 내역이 없습니다.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = PAYMENTS.slice(0, 5).map(p => {
+    const payDate = p.paymentDate ? new Date(p.paymentDate).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }) : '-';
+    return `<tr>
+      <td style="color:var(--muted);white-space:nowrap">${payDate}</td>
+      <td style="font-weight:700">${escapeHtml(p.userName || '이름 없음')}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(p.productName || '-')}</td>
+      <td style="font-weight:700;color:var(--blue);white-space:nowrap">${(p.amount || 0).toLocaleString()}원</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── 유입 통계 (일/주/월) ──────────────────────────────────────────────────────
+function parseTrafficDate(s) {
+  const [y, m, d] = String(s).split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+function trafficYmd(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+// 선택 기간(day/week/month)별로 [{label, pv, uv}] 집계
+function aggregateTraffic(period) {
+  const byDate = {};
+  TRAFFIC.forEach(r => { byDate[r.date] = r; });
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const buckets = [];
+
+  if (period === 'day') {
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(today); d.setDate(today.getDate() - i);
+      const row = byDate[trafficYmd(d)];
+      buckets.push({
+        label: `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`,
+        pv: row ? row.pv : 0,
+        uv: row ? row.uv : 0
+      });
+    }
+  } else if (period === 'week') {
+    const monday = new Date(today);
+    const dow = (monday.getDay() + 6) % 7; // 월요일=0
+    monday.setDate(monday.getDate() - dow);
+    for (let i = 7; i >= 0; i--) {
+      const start = new Date(monday); start.setDate(monday.getDate() - i * 7);
+      const end = new Date(start); end.setDate(start.getDate() + 6);
+      let pv = 0; const vis = new Set();
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const row = byDate[trafficYmd(d)];
+        if (row) { pv += row.pv; row.visitors.forEach(v => vis.add(v)); }
+      }
+      buckets.push({
+        label: `${String(start.getMonth() + 1).padStart(2, '0')}/${String(start.getDate()).padStart(2, '0')}~`,
+        pv, uv: vis.size
+      });
+    }
+  } else { // month
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const y = d.getFullYear(); const m = d.getMonth();
+      let pv = 0; const vis = new Set();
+      TRAFFIC.forEach(row => {
+        const rd = parseTrafficDate(row.date);
+        if (rd.getFullYear() === y && rd.getMonth() === m) { pv += row.pv; row.visitors.forEach(v => vis.add(v)); }
+      });
+      buckets.push({ label: `${y}.${String(m + 1).padStart(2, '0')}`, pv, uv: vis.size });
+    }
+  }
+  return buckets;
+}
+
+function populateTrafficStats() {
+  const setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  setTxt('traffic-cum-uv', cumulativeUV.toLocaleString('ko-KR'));
+  setTxt('traffic-cum-pv', cumulativePV.toLocaleString('ko-KR'));
+  setTxt('traffic-today-uv', todayUV.toLocaleString('ko-KR'));
+  setTxt('traffic-today-pv', todayPV.toLocaleString('ko-KR'));
+
+  const buckets = aggregateTraffic(trafficPeriod);
+
+  const tbody = document.getElementById('traffic-table-body');
+  if (tbody) {
+    if (buckets.every(b => b.pv === 0 && b.uv === 0)) {
+      tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--muted)">해당 기간의 유입 데이터가 없습니다.</td></tr>`;
+    } else {
+      const periodLabel = trafficPeriod === 'day' ? '일자' : trafficPeriod === 'week' ? '주(시작일)' : '월';
+      const head = document.getElementById('traffic-table-period-head');
+      if (head) head.textContent = periodLabel;
+      tbody.innerHTML = [...buckets].reverse().map(b => `<tr>
+        <td style="font-weight:600">${b.label}</td>
+        <td style="font-weight:700;color:#0866FF">${b.uv.toLocaleString('ko-KR')}명</td>
+        <td style="font-weight:700">${b.pv.toLocaleString('ko-KR')}회</td>
+      </tr>`).join('');
+    }
+  }
+
+  const canvas = document.getElementById('trafficChartCanvas');
+  if (canvas && typeof Chart !== 'undefined') {
+    if (trafficChart) trafficChart.destroy();
+    trafficChart = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: buckets.map(b => b.label),
+        datasets: [
+          { label: '방문자 (UV)', data: buckets.map(b => b.uv), backgroundColor: 'rgba(8,102,255,0.85)', borderRadius: 4 },
+          { label: '조회수 (PV)', data: buckets.map(b => b.pv), backgroundColor: 'rgba(16,185,129,0.6)', borderRadius: 4 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { precision: 0 } }, x: { grid: { display: false } } }
+      }
+    });
+  }
+}
+
+window.switchTrafficPeriod = function(period, btn) {
+  trafficPeriod = period;
+  document.querySelectorAll('.traffic-tab').forEach(t => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  populateTrafficStats();
+};
 
 // ─── Members Table ───────────────────────────────────────────────────────────
 function filterMembers() {
@@ -3492,4 +3700,157 @@ window.applyBannerCrop = function() {
     closeBannerCropperDialog();
     showToast('이미지 자르기가 정상 적용되었습니다. [등록하기]를 눌러 완료해 주세요.', 'success');
   }, 'image/webp', 0.92);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Sales Management (매출 관리)
+// ═══════════════════════════════════════════════════════════════════════════
+let salesChart = null;
+
+function populateSales() {
+  updateSalesSummaryCards();
+  renderSalesChart();
+  filterSalesData();
+}
+
+function updateSalesSummaryCards() {
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  // 이번 달 결제 필터
+  const monthPayments = PAYMENTS.filter(p => {
+    if (!p.paymentDate) return false;
+    const d = new Date(p.paymentDate);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  });
+
+  const monthTotal = monthPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const allTotal = PAYMENTS.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const monthCount = monthPayments.length;
+
+  // 활성 구독자 수 (MEMBERS 중 구독 만료일이 현재 이후인 관장 회원)
+  const activeSubs = MEMBERS.filter(m => {
+    if (m.type !== 'gym') return false;
+    const until = getAdminMillisFromDateLike(m.resumeSubscriptionUntil);
+    return until > Date.now();
+  }).length;
+
+  const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+  el('sales-month-total', monthTotal.toLocaleString() + '원');
+  el('sales-total', allTotal.toLocaleString() + '원');
+  el('sales-month-count', monthCount + '건');
+  el('sales-active-subs', activeSubs + '명');
+}
+
+function renderSalesChart() {
+  const canvas = document.getElementById('salesMonthlyChart');
+  if (!canvas) return;
+
+  // 최근 6개월 데이터 집계
+  const now = new Date();
+  const labels = [];
+  const data = [];
+
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const m = d.getMonth();
+    const y = d.getFullYear();
+    labels.push(`${y}.${String(m + 1).padStart(2, '0')}`);
+
+    const monthSum = PAYMENTS.filter(p => {
+      if (!p.paymentDate) return false;
+      const pd = new Date(p.paymentDate);
+      return pd.getMonth() === m && pd.getFullYear() === y;
+    }).reduce((sum, p) => sum + (p.amount || 0), 0);
+    data.push(monthSum);
+  }
+
+  if (salesChart) salesChart.destroy();
+
+  salesChart = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: '매출 (원)',
+        data,
+        backgroundColor: 'rgba(37, 99, 235, 0.7)',
+        borderColor: '#2563eb',
+        borderWidth: 1,
+        borderRadius: 6,
+        barPercentage: 0.6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ctx.parsed.y.toLocaleString() + '원'
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: (v) => v >= 10000 ? (v / 10000) + '만' : v.toLocaleString()
+          },
+          grid: { color: 'rgba(0,0,0,0.05)' }
+        },
+        x: {
+          grid: { display: false }
+        }
+      }
+    }
+  });
+}
+
+function filterSalesData() {
+  const periodEl = document.getElementById('sales-period-filter');
+  const days = periodEl ? periodEl.value : 'all';
+  const tbody = document.getElementById('sales-table-body');
+  const countEl = document.getElementById('sales-table-count');
+  if (!tbody) return;
+
+  let filtered = [...PAYMENTS];
+
+  if (days !== 'all') {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - parseInt(days));
+    filtered = filtered.filter(p => {
+      if (!p.paymentDate) return false;
+      return new Date(p.paymentDate) >= cutoff;
+    });
+  }
+
+  if (countEl) countEl.textContent = `총 ${filtered.length}건`;
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:3rem">해당 기간에 결제 내역이 없습니다.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(p => {
+    const payDate = p.paymentDate ? new Date(p.paymentDate).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '-';
+    const subUntil = p.subscriptionUntil ? new Date(p.subscriptionUntil).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '-';
+    const statusBadge = p.status === 'completed'
+      ? '<span class="badge badge-blue">완료</span>'
+      : p.status === 'refunded'
+        ? '<span class="badge badge-red">환불</span>'
+        : '<span class="badge badge-amber">대기</span>';
+
+    return `<tr>
+      <td>${payDate}</td>
+      <td>${escapeHtml(p.userName)}</td>
+      <td>${escapeHtml(p.userEmail)}</td>
+      <td>${escapeHtml(p.productName)}</td>
+      <td style="font-weight:700;color:var(--blue)">${(p.amount || 0).toLocaleString()}원</td>
+      <td>${subUntil}</td>
+      <td>${statusBadge}</td>
+    </tr>`;
+  }).join('');
 }

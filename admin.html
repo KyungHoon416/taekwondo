@@ -178,6 +178,15 @@
       </div>
     </div>
 
+    <!-- 매출 관리 -->
+    <div class="nav-group">
+      <div class="nav-group-label">매출 관리</div>
+      <div class="nav-item" data-view="sales" onclick="navigateTo('sales', this)">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        매출 현황
+      </div>
+    </div>
+
     <!-- 약관 관리 -->
     <div class="nav-group">
       <div class="nav-group-label">사이트 설정</div>
@@ -193,6 +202,10 @@
       <div class="nav-item" data-view="analytics" onclick="navigateTo('analytics', this)">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         통계 대시보드
+      </div>
+      <div class="nav-item" data-view="traffic" onclick="navigateTo('traffic', this)">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        유입 통계
       </div>
     </div>
 
@@ -336,16 +349,24 @@
           </div>
           <div class="stat-value" style="font-size: 1.15rem; font-weight: 800; display: flex; flex-direction: column; gap: 4px; color: var(--text); padding-top: 4px;">
             <div style="display: flex; justify-content: space-between; font-size: 0.82rem; border-bottom: 1px dashed rgba(0,0,0,0.06); padding-bottom: 3px;">
-              <span style="font-weight: normal; color: var(--muted);">방문자 (UV)</span>
+              <span style="font-weight: normal; color: var(--muted);">오늘 방문자 (UV)</span>
               <span><span id="stat-today-uv" style="color: #0866FF; font-weight: 800;">0</span>명</span>
             </div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.82rem;">
-              <span style="font-weight: normal; color: var(--muted);">조회수 (PV)</span>
+            <div style="display: flex; justify-content: space-between; font-size: 0.82rem; border-bottom: 1px dashed rgba(0,0,0,0.06); padding-bottom: 3px;">
+              <span style="font-weight: normal; color: var(--muted);">오늘 조회수 (PV)</span>
               <span><span id="stat-today-pv" style="font-weight: 800;">0</span>회</span>
             </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.82rem; border-bottom: 1px dashed rgba(0,0,0,0.06); padding-bottom: 3px;">
+              <span style="font-weight: normal; color: var(--muted);">누적 방문자</span>
+              <span><span id="stat-cum-uv" style="color: #0866FF; font-weight: 800;">0</span>명</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.82rem;">
+              <span style="font-weight: normal; color: var(--muted);">누적 조회수</span>
+              <span><span id="stat-cum-pv" style="font-weight: 800;">0</span>회</span>
+            </div>
           </div>
-          <div class="stat-trend" style="color: #0866FF; background: rgba(8, 102, 255, 0.06); border-radius: 4px; padding: 2px 6px; font-size: 0.72rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; width: fit-content;">
-            실시간 픽셀 트래픽 연동
+          <div class="stat-trend" style="color: #0866FF; background: rgba(8, 102, 255, 0.06); border-radius: 4px; padding: 2px 6px; font-size: 0.72rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; width: fit-content; cursor: pointer;" onclick="navigateTo('traffic', document.querySelector('[data-view=traffic]'))">
+            일 · 주 · 월 유입 통계 보기 &rsaquo;
           </div>
         </div>
       </div>
@@ -434,6 +455,48 @@
               <thead><tr><th>지원자</th><th>공고</th><th>상태</th></tr></thead>
               <tbody id="dash-apps-tbody"></tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 매출 요약 & 최근 결제 내역 -->
+      <div class="dashboard-grid-row2" style="margin-top:1.25rem">
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">최근 결제 내역</div>
+              <div class="panel-subtitle">누가 · 어떤 회원권을 결제했는지</div>
+            </div>
+            <span class="panel-action" onclick="navigateTo('sales', document.querySelector('[data-view=sales]'))">전체 보기 &rsaquo;</span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>결제일</th><th>회원명</th><th>상품(회원권)</th><th>금액</th></tr></thead>
+              <tbody id="dash-payments-tbody">
+                <tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--muted)">데이터를 불러오는 중입니다...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">매출 요약</div>
+            <span class="panel-action" onclick="navigateTo('sales', document.querySelector('[data-view=sales]'))">매출 관리 &rsaquo;</span>
+          </div>
+          <div class="panel-body" style="display:flex;flex-direction:column;gap:0.85rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.9rem 1rem;background:#eff6ff;border-radius:10px;">
+              <span style="color:#1e40af;font-weight:600;font-size:0.9rem;">이번 달 매출</span>
+              <span id="dash-sales-month" style="font-weight:800;font-size:1.15rem;color:#2563eb;">0원</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.9rem 1rem;background:#ecfdf5;border-radius:10px;">
+              <span style="color:#065f46;font-weight:600;font-size:0.9rem;">전체 누적 매출</span>
+              <span id="dash-sales-total" style="font-weight:800;font-size:1.15rem;color:#10b981;">0원</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.9rem 1rem;background:#f5f3ff;border-radius:10px;">
+              <span style="color:#5b21b6;font-weight:600;font-size:0.9rem;">이번 달 결제 건수</span>
+              <span id="dash-sales-count" style="font-weight:800;font-size:1.15rem;color:#8b5cf6;">0건</span>
+            </div>
           </div>
         </div>
       </div>
@@ -832,6 +895,184 @@
       </div>
     </div>
 
+
+    <!-- ════ SALES VIEW ════ -->
+    <div id="view-sales" class="view">
+      <div class="page-toolbar">
+        <div class="page-title-block">
+          <h2>매출 현황</h2>
+          <p>플랫폼 결제 내역과 매출을 관리합니다.</p>
+        </div>
+        <div class="toolbar-actions">
+          <select class="filter-select" id="sales-period-filter" onchange="filterSalesData()">
+            <option value="all">전체 기간</option>
+            <option value="7">최근 7일</option>
+            <option value="30" selected>최근 30일</option>
+            <option value="90">최근 3개월</option>
+          </select>
+          <button class="btn btn-secondary" onclick="refreshAdminData('sales')">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            새로고침
+          </button>
+        </div>
+      </div>
+
+      <!-- 매출 요약 카드 -->
+      <div class="sales-summary-grid">
+        <div class="sales-card">
+          <div class="sales-card-icon" style="background:#eff6ff;color:#2563eb;">💰</div>
+          <div class="sales-card-body">
+            <div class="sales-card-label">이번 달 매출</div>
+            <div class="sales-card-value" id="sales-month-total">0원</div>
+          </div>
+        </div>
+        <div class="sales-card">
+          <div class="sales-card-icon" style="background:#ecfdf5;color:#10b981;">📊</div>
+          <div class="sales-card-body">
+            <div class="sales-card-label">전체 누적 매출</div>
+            <div class="sales-card-value" id="sales-total">0원</div>
+          </div>
+        </div>
+        <div class="sales-card">
+          <div class="sales-card-icon" style="background:#f5f3ff;color:#8b5cf6;">🧾</div>
+          <div class="sales-card-body">
+            <div class="sales-card-label">이번 달 결제 건수</div>
+            <div class="sales-card-value" id="sales-month-count">0건</div>
+          </div>
+        </div>
+        <div class="sales-card">
+          <div class="sales-card-icon" style="background:#fffbeb;color:#f59e0b;">👤</div>
+          <div class="sales-card-body">
+            <div class="sales-card-label">활성 구독자</div>
+            <div class="sales-card-value" id="sales-active-subs">0명</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 월별 매출 추이 차트 -->
+      <div class="panel" style="margin-bottom:1.5rem">
+        <div class="panel-header">
+          <div class="panel-title">월별 매출 추이</div>
+        </div>
+        <div class="panel-body">
+          <div class="chart-wrap" style="height:300px"><canvas id="salesMonthlyChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- 결제 내역 테이블 -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">결제 내역</div>
+          <div class="panel-subtitle" id="sales-table-count">총 0건</div>
+        </div>
+        <div class="panel-body">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>결제일</th>
+                  <th>회원명</th>
+                  <th>이메일</th>
+                  <th>상품명</th>
+                  <th>금액</th>
+                  <th>구독만료일</th>
+                  <th>상태</th>
+                </tr>
+              </thead>
+              <tbody id="sales-table-body">
+                <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:3rem">결제 내역을 불러오는 중입니다...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ TRAFFIC (유입 통계) VIEW ════ -->
+    <div id="view-traffic" class="view">
+      <div class="page-toolbar">
+        <div class="page-title-block">
+          <h2>유입 통계 (Meta Pixel)</h2>
+          <p>홈페이지 방문자(UV) · 조회수(PV) 유입을 일 · 주 · 월 단위로 분석합니다.</p>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn btn-secondary" onclick="refreshAdminData('traffic')">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            새로고침
+          </button>
+        </div>
+      </div>
+
+      <!-- 유입 요약 카드 -->
+      <div class="sales-summary-grid">
+        <div class="sales-card">
+          <div class="sales-card-icon" style="background:rgba(8,102,255,0.1);color:#0866FF;">👣</div>
+          <div class="sales-card-body">
+            <div class="sales-card-label">누적 방문자 (UV)</div>
+            <div class="sales-card-value" id="traffic-cum-uv">0</div>
+          </div>
+        </div>
+        <div class="sales-card">
+          <div class="sales-card-icon" style="background:#ecfdf5;color:#10b981;">👁️</div>
+          <div class="sales-card-body">
+            <div class="sales-card-label">누적 조회수 (PV)</div>
+            <div class="sales-card-value" id="traffic-cum-pv">0</div>
+          </div>
+        </div>
+        <div class="sales-card">
+          <div class="sales-card-icon" style="background:#eff6ff;color:#2563eb;">📅</div>
+          <div class="sales-card-body">
+            <div class="sales-card-label">오늘 방문자 (UV)</div>
+            <div class="sales-card-value" id="traffic-today-uv">0</div>
+          </div>
+        </div>
+        <div class="sales-card">
+          <div class="sales-card-icon" style="background:#fffbeb;color:#f59e0b;">🔥</div>
+          <div class="sales-card-body">
+            <div class="sales-card-label">오늘 조회수 (PV)</div>
+            <div class="sales-card-value" id="traffic-today-pv">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 일/주/월 탭 + 차트 -->
+      <div class="panel" style="margin-bottom:1.5rem">
+        <div class="panel-header">
+          <div class="panel-title">기간별 유입 추이</div>
+          <div class="traffic-tabs">
+            <button class="traffic-tab active" onclick="switchTrafficPeriod('day', this)">일별</button>
+            <button class="traffic-tab" onclick="switchTrafficPeriod('week', this)">주별</button>
+            <button class="traffic-tab" onclick="switchTrafficPeriod('month', this)">월별</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="chart-wrap" style="height:320px"><canvas id="trafficChartCanvas"></canvas></div>
+        </div>
+      </div>
+
+      <!-- 기간별 상세 테이블 -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">기간별 상세</div>
+        </div>
+        <div class="panel-body">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th id="traffic-table-period-head">일자</th>
+                  <th>방문자 (UV)</th>
+                  <th>조회수 (PV)</th>
+                </tr>
+              </thead>
+              <tbody id="traffic-table-body">
+                <tr><td colspan="3" style="text-align:center;color:var(--muted);padding:2rem">유입 데이터를 불러오는 중입니다...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- ════ SETTINGS VIEW ════ -->
     <div id="view-settings" class="view">
