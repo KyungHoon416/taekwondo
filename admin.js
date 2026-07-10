@@ -12,7 +12,7 @@ let editingBanner = null;
 let bannerCache = {};
 let selectedBannerFile = null;
 let selectedBannerPreviewUrl = null;
-const ADMIN_EMAILS = ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com', 'kkh9172@gmail.com'];
+const ADMIN_EMAILS = ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com'];
 
 const DEFAULT_RESUME_PASS_PRODUCTS = [
   { id: 'month_1', name: '1개월 구독권', months: 1, price: 20000, active: true, sort: 1 },
@@ -130,6 +130,7 @@ function escapeHtml(value) {
 
         // Firestore 실시간 데이터 로드 및 렌더링
         await fetchFirestoreData();
+        await loadSiteGeneralSettings();
         await loadResumePassProducts();
         populateDashboard();
         updateDashboardStats();
@@ -1895,6 +1896,87 @@ function switchSettings(el, sectionId) {
   el.classList.add('active');
   document.getElementById(sectionId)?.classList.add('active');
 }
+
+const DEFAULT_SITE_FOOTER_SETTINGS = {
+  companyName: '(주)태권커리어',
+  representativeName: '유정민'
+};
+
+function setSiteSettingsStatus(message, type = '') {
+  const statusEl = document.getElementById('site-settings-status');
+  if (!statusEl) return;
+  statusEl.textContent = message;
+  statusEl.style.color = type === 'error' ? '#dc2626' : type === 'success' ? '#16a34a' : 'var(--muted)';
+}
+
+window.loadSiteGeneralSettings = async function() {
+  const companyInput = document.getElementById('footer-company-name-input');
+  const representativeInput = document.getElementById('footer-representative-name-input');
+  if (!companyInput || !representativeInput) return;
+
+  companyInput.value = DEFAULT_SITE_FOOTER_SETTINGS.companyName;
+  representativeInput.value = DEFAULT_SITE_FOOTER_SETTINGS.representativeName;
+
+  if (!db) {
+    setSiteSettingsStatus('Firestore 연결이 없습니다.', 'error');
+    return;
+  }
+
+  try {
+    const doc = await db.collection('siteSettings').doc('footer').get();
+    if (doc.exists) {
+      const data = doc.data() || {};
+      companyInput.value = data.companyName || DEFAULT_SITE_FOOTER_SETTINGS.companyName;
+      representativeInput.value = data.representativeName || DEFAULT_SITE_FOOTER_SETTINGS.representativeName;
+      const updatedAt = data.updated_at && typeof data.updated_at.toDate === 'function'
+        ? data.updated_at.toDate().toLocaleString('ko-KR')
+        : '';
+      setSiteSettingsStatus(updatedAt ? `최근 수정일: ${updatedAt}` : '');
+    } else {
+      setSiteSettingsStatus('기본값 사용 중');
+    }
+  } catch (err) {
+    console.error('사이트 일반 설정 로드 실패:', err);
+    setSiteSettingsStatus('설정을 불러오지 못했습니다.', 'error');
+  }
+};
+
+window.saveSiteGeneralSettings = async function() {
+  const companyInput = document.getElementById('footer-company-name-input');
+  const representativeInput = document.getElementById('footer-representative-name-input');
+  const companyName = companyInput?.value?.trim() || '';
+  const representativeName = representativeInput?.value?.trim() || '';
+
+  if (!companyName) {
+    alert('하단 상호명을 입력해 주세요.');
+    companyInput?.focus();
+    return;
+  }
+  if (!representativeName) {
+    alert('하단 대표자명을 입력해 주세요.');
+    representativeInput?.focus();
+    return;
+  }
+  if (!db) {
+    showToast('Firestore 연결 정보가 없습니다.', 'error');
+    return;
+  }
+
+  try {
+    setSiteSettingsStatus('저장 중...');
+    await db.collection('siteSettings').doc('footer').set({
+      companyName,
+      representativeName,
+      updated_at: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    setSiteSettingsStatus(`최근 수정일: ${new Date().toLocaleString('ko-KR')} (저장 완료)`, 'success');
+    showToast('홈페이지 하단 정보가 저장되었습니다.', 'success');
+  } catch (err) {
+    console.error('사이트 일반 설정 저장 실패:', err);
+    setSiteSettingsStatus('저장 실패', 'error');
+    showToast('하단 정보 저장 실패: ' + err.message, 'error');
+  }
+};
 
 async function ensureDefaultResumePassProducts() {
   const snap = await db.collection('resume_pass_products').limit(1).get();

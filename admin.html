@@ -1226,6 +1226,20 @@
                   </div>
                   <input class="form-control" style="width:200px" value="태권커리어 (Taekwon Career)">
                 </div>
+                <div class="settings-row" style="align-items:flex-start">
+                  <div>
+                    <div class="settings-label">하단 상호명</div>
+                    <div class="settings-desc">홈페이지 하단 회사 정보에 표시되는 상호명입니다.</div>
+                  </div>
+                  <input class="form-control" id="footer-company-name-input" style="width:240px" value="(주)태권커리어" maxlength="50">
+                </div>
+                <div class="settings-row" style="align-items:flex-start">
+                  <div>
+                    <div class="settings-label">하단 대표자</div>
+                    <div class="settings-desc">홈페이지 하단 회사 정보에 표시되는 대표자명입니다.</div>
+                  </div>
+                  <input class="form-control" id="footer-representative-name-input" style="width:240px" value="유정민" maxlength="30">
+                </div>
                 <div class="settings-row">
                   <div>
                     <div class="settings-label">채용공고 자동 승인</div>
@@ -1257,7 +1271,8 @@
                   </label>
                 </div>
                 <div style="margin-top:1.5rem">
-                  <button class="btn btn-primary" onclick="showToast('설정이 저장되었습니다.','success')">변경사항 저장</button>
+                  <button class="btn btn-primary" type="button" onclick="saveSiteGeneralSettings()">변경사항 저장</button>
+                  <span id="site-settings-status" style="margin-left:0.75rem;font-size:0.82rem;color:var(--muted);font-weight:600"></span>
                 </div>
               </div>
 
@@ -1635,6 +1650,6 @@
 <div id="toast-container"></div>
 
 <script src="region-sync.js?v=20260612-v5"></script>
-<script src="admin.js?v=20260629-appflow2"></script>
+<script src="admin.js?v=20260710-footer-settings"></script>
 </body>
 </html>

@@ -19,7 +19,7 @@ try {
 const NTS_BUSINESS_API_KEY = '99546afda95844c23df25ca3cc6c60c4b3b9cc594ba5822a5fa49ecc62391d4e';
 const NTS_BUSINESS_STATUS_URL = 'https://api.odcloud.kr/api/nts-businessman/v1/status';
 const NTS_BUSINESS_VALIDATE_URL = 'https://api.odcloud.kr/api/nts-businessman/v1/validate';
-const ADMIN_EMAILS = ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com', 'kkh9172@gmail.com'];
+const ADMIN_EMAILS = ['admin@taekwonjob.com', 'admin2@taekwonjob.com', 'admin3@taekwonjob.com'];
 const DEFAULT_RESUME_PASS_PRODUCTS = [
   { id: 'month_1', name: '1개월 구독권', months: 1, price: 20000, active: true, sort: 1 },
   { id: 'month_2', name: '2개월 구독권', months: 2, price: 30000, active: true, sort: 2 },
@@ -289,9 +289,27 @@ async function verifyBusinessInfo({ businessNumber, startDate, ownerName, busine
     }
   }
 
+async function loadFooterSiteSettings() {
+  const companyEl = document.getElementById('footer-company-name');
+  const representativeEl = document.getElementById('footer-representative-name');
+  if (!companyEl && !representativeEl) return;
+  if (typeof db === 'undefined' || !db) return;
+
+  try {
+    const doc = await db.collection('siteSettings').doc('footer').get();
+    if (!doc.exists) return;
+    const data = doc.data() || {};
+    if (companyEl && data.companyName) companyEl.textContent = data.companyName;
+    if (representativeEl && data.representativeName) representativeEl.textContent = data.representativeName;
+  } catch (err) {
+    console.warn('푸터 사이트 설정 로드 실패:', err);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initMetaPixel();
   trackHomepageTraffic();
+  loadFooterSiteSettings();
 
   // ==========================================================================
   // 1. Mock Database
