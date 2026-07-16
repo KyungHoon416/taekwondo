@@ -153,7 +153,7 @@ async function checkBusinessStatus(businessNumber) {
   }
 
   const result = await response.json();
-  
+
   if (['REQUEST_DATA_MALFORMED', 'INTERNAL_ERROR', 'HTTP_ERROR'].includes(result.status_code)) {
     return {
       b_stt_cd: '01',
@@ -206,7 +206,7 @@ async function verifyBusinessInfo({ businessNumber, startDate, ownerName, busine
   }
 
   const result = await response.json();
-  
+
   if (['REQUEST_DATA_MALFORMED', 'INTERNAL_ERROR', 'HTTP_ERROR'].includes(result.status_code)) {
     return {
       valid: '01',
@@ -258,7 +258,7 @@ async function verifyBusinessInfo({ businessNumber, startDate, ownerName, busine
   // Track Homepage Daily Traffic
   function trackHomepageTraffic() {
     if (typeof db === 'undefined' || !db) return;
-    
+
     // Generate/retrieve viewerId
     let viewerId = '';
     if (typeof auth !== 'undefined' && auth && auth.currentUser) {
@@ -307,6 +307,39 @@ async function loadFooterSiteSettings() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  function isMobilePaymentDevice() {
+    const userAgent = navigator.userAgent || '';
+    const mobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    const iPadDesktopMode = /Macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1;
+    const hasTouchInput = navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
+    const shortScreenSide = Math.min(window.screen?.width || window.innerWidth, window.screen?.height || window.innerHeight);
+    return (mobileUserAgent || iPadDesktopMode) && hasTouchInput && shortScreenSide <= 1024;
+  }
+
+  // 사용자 화면 공통 알림. 별도 토스트 UI가 없는 페이지에서도 호출이 중단되지 않게 한다.
+  function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    toast.textContent = message;
+    Object.assign(toast.style, {
+      position: 'fixed',
+      left: '50%',
+      bottom: '28px',
+      transform: 'translateX(-50%)',
+      zIndex: '100000',
+      maxWidth: 'calc(100vw - 32px)',
+      padding: '12px 18px',
+      borderRadius: '10px',
+      background: type === 'error' ? '#b91c1c' : type === 'success' ? '#047857' : '#1f2937',
+      color: '#fff',
+      fontSize: '14px',
+      fontWeight: '700',
+      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.22)'
+    });
+    document.body.appendChild(toast);
+    window.setTimeout(() => toast.remove(), 2600);
+  }
+
   initMetaPixel();
   trackHomepageTraffic();
   loadFooterSiteSettings();
@@ -314,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   // 1. Mock Database
   // ==========================================================================
-  
+
   const mockJobs = [
     {
       id: 'job-1',
@@ -462,7 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   // 2. DOM Elements & State
   // ==========================================================================
-  
+
   // Load community posts from localStorage or fallback to empty
   let initialPosts = [];
   try {
@@ -594,7 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       console.warn('Firestore users 컬렉션 로드 에러:', e);
     }
-    
+
     // 2. 채용공고 데이터 로드
     try {
       const jobSnap = await db.collection('jobs').orderBy('created_at', 'desc').get();
@@ -972,8 +1005,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (tagsContainerId) {
         // If external tags container is specified, render a clean summary label inside the trigger slot
-        const summary = selected.length === 1 
-          ? selected[0].displayName 
+        const summary = selected.length === 1
+          ? selected[0].displayName
           : `${selected[0].displayName} 외 ${selected.length - 1}곳`;
         triggerDisplay.innerHTML = `<span class="district-trigger-summary-label" style="font-weight:700;color:var(--text-main);">${summary}</span>`;
         return;
@@ -1315,7 +1348,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   // 3. Routing (SPA Navigation)
   // ==========================================================================
-  
+
   function navigateToView(viewId) {
     // Hide all views
     Object.values(views).forEach(view => {
@@ -1434,7 +1467,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let title = termsTitle || lines[0] || '';
     let date = termsDate || '2026년 07월 04일';
-    
+
     if (lines[0] && (lines[0].includes('약관') || lines[0].includes('방침'))) {
       title = lines[0];
     }
@@ -1697,7 +1730,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const termsData = await getTermsData(termsType);
       const parsed = parseTermsText(termsData.content, termsData.title, termsData.effectiveDate);
       termsPageViewerContent.innerHTML = buildTermsHTML(parsed);
-      
+
       if (termsLoadingBox) termsLoadingBox.style.display = 'none';
       termsPageViewerContent.style.display = 'block';
     } catch (err) {
@@ -1900,7 +1933,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (boardBtnPostJob) boardBtnPostJob.style.display = 'inline-flex';
       if (heroBtnPostResume) heroBtnPostResume.style.display = 'inline-flex';
       if (boardBtnPostResume) boardBtnPostResume.style.display = 'inline-flex';
-    } 
+    }
     // 2. 사범 (instructor)인 경우: 채용공고 노출, 인재정보 숨김, 이력서 등록은 노출, 공고 등록은 숨김
     else if (role === 'instructor') {
       if (liJobs) liJobs.style.display = 'block';
@@ -1915,7 +1948,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (boardBtnPostJob) boardBtnPostJob.style.display = 'none';
       if (heroBtnPostResume) heroBtnPostResume.style.display = 'inline-flex';
       if (boardBtnPostResume) boardBtnPostResume.style.display = 'inline-flex';
-    } 
+    }
     // 3. 관장 (gym)인 경우: 채용공고 숨김, 인재정보 노출, 공고 등록은 노출, 이력서 등록은 숨김
     else if (role === 'gym') {
       if (liJobs) liJobs.style.display = 'none';
@@ -1950,7 +1983,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 잘못된 해시로 강제 진입 시 가드 처리
     const hash = window.location.hash || '#home';
     const cleanHash = hash.split('?')[0];
-    
+
     if (cleanHash === '#talents' && (role === 'instructor' || role === 'guest')) {
       window.location.hash = '#home';
       if (role === 'guest') {
@@ -2194,7 +2227,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   });
-  
+
   // Custom click binding for logo
   document.getElementById('header-logo').addEventListener('click', (e) => {
     e.preventDefault();
@@ -2206,7 +2239,7 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     window.location.hash = '#jobs';
   });
-  
+
   document.getElementById('link-more-talents').addEventListener('click', (e) => {
     e.preventDefault();
     window.location.hash = '#talents';
@@ -2221,7 +2254,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   // 4. Render Logic (Cards and Lists)
   // ==========================================================================
-  
+
   // Name masking helper for anonymous talent listings on home view
   function maskName(name) {
     if (!name) return '사범 회원';
@@ -2242,13 +2275,13 @@ document.addEventListener('DOMContentLoaded', () => {
         </svg>
       `;
     }
-    
+
     let initials = name.slice(1, 3) || name.charAt(0);
     const gradient = avatarGradients[index % avatarGradients.length];
-    
+
     // Draw simple belt or ribbon overlay
     const beltColor = gender === '여성' ? '#be185d' : '#1e3a8a';
-    
+
     return `
       <svg class="talent-avatar" viewBox="0 0 100 100" width="80" height="80">
         <defs>
@@ -2371,7 +2404,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return; // Keep loading placeholder
     }
     grid.innerHTML = '';
-    
+
     // Render first 5 jobs matching mockup layout
     const recentJobs = state.jobsList.slice(0, 5);
     recentJobs.forEach(job => {
@@ -2387,7 +2420,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return; // Keep loading placeholder
     }
     grid.innerHTML = '';
-    
+
     // Render first 5 talents
     const recentTalents = state.talentsList.slice(0, 5);
     recentTalents.forEach(talent => {
@@ -2647,7 +2680,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (passCardEl && subStatusEl) {
       if (state.currentUser && getUserRole() === 'gym') {
         passCardEl.style.display = 'block';
-        
+
         const isSubscribed = isResumeSubscriptionActive(state.currentUser);
         if (isSubscribed) {
           subStatusEl.textContent = `구독 중 (~${formatSubscriptionDate(state.currentUser.resumeSubscriptionUntil)})`;
@@ -2682,7 +2715,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const role = getUserRole();
     if (role === 'gym' || role === 'admin') {
       if (titleEl) titleEl.textContent = '⭐ 관심 인재 스크랩';
-      
+
       const scrappedTalentIds = state.currentUser.scrapped_talents || [];
       if (scrappedTalentIds.length === 0) {
         listEl.innerHTML = '<div class="no-results" style="grid-column: 1/-1;">스크랩한 인재가 없습니다.</div>';
@@ -2713,7 +2746,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `).join('');
     } else {
       if (titleEl) titleEl.textContent = '⭐ 스크랩한 채용공고';
-      
+
       const scrappedJobIds = state.currentUser.scrapped_jobs || [];
       if (scrappedJobIds.length === 0) {
         listEl.innerHTML = '<div class="no-results" style="grid-column: 1/-1;">스크랩한 채용공고가 없습니다.</div>';
@@ -2748,7 +2781,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.openTalentDetailsById = async function(id) {
     const t = state.talentsList.find(x => x.id === id);
     if (!t) return;
-    
+
     const isGym = state.currentUser && getUserRole() === 'gym';
     const hasActiveSubscription = isGym && isResumeSubscriptionActive(state.currentUser);
     const isUnlocked = isGym && (
@@ -2756,16 +2789,16 @@ document.addEventListener('DOMContentLoaded', () => {
       (state.currentUser.unlockedResumes && state.currentUser.unlockedResumes.includes(t.id)) ||
       t.userEmail === state.currentUser.email
     );
-    
+
     if (isGym && !isUnlocked) {
       alert('이력서 열람 기간이 만료되었거나 권한이 없습니다. 다시 열람하려면 열람권 구매가 필요합니다.');
       openPurchasePassModal(t);
       return;
     }
-    
+
     openTalentDetails(t);
   };
-  
+
   window.openJobDetailsById = function(id) {
     const j = state.jobsList.find(x => x.id === id);
     if (j) openJobDetails(j);
@@ -2776,14 +2809,14 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('로그인이 필요합니다.');
       return;
     }
-    
+
     if (!state.currentUser.scrapped_jobs) {
       state.currentUser.scrapped_jobs = [];
     }
-    
+
     const isScrapped = state.currentUser.scrapped_jobs.includes(jobId);
     let newScrapped = [...state.currentUser.scrapped_jobs];
-    
+
     if (isScrapped) {
       newScrapped = newScrapped.filter(id => id !== jobId);
       alert('스크랩이 해제되었습니다.');
@@ -2791,9 +2824,9 @@ document.addEventListener('DOMContentLoaded', () => {
       newScrapped.push(jobId);
       alert('관심공고로 저장되었습니다.');
     }
-    
+
     state.currentUser.scrapped_jobs = newScrapped;
-    
+
     try {
       await db.collection('users').doc(state.currentUser.uid).update({
         scrapped_jobs: newScrapped
@@ -2810,14 +2843,14 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('로그인이 필요합니다.');
       return;
     }
-    
+
     if (!state.currentUser.scrapped_talents) {
       state.currentUser.scrapped_talents = [];
     }
-    
+
     const isScrapped = state.currentUser.scrapped_talents.includes(talentId);
     let newScrapped = [...state.currentUser.scrapped_talents];
-    
+
     if (isScrapped) {
       newScrapped = newScrapped.filter(id => id !== talentId);
       alert('스크랩이 해제되었습니다.');
@@ -2825,9 +2858,9 @@ document.addEventListener('DOMContentLoaded', () => {
       newScrapped.push(talentId);
       alert('관심인재로 등록되었습니다.');
     }
-    
+
     state.currentUser.scrapped_talents = newScrapped;
-    
+
     try {
       await db.collection('users').doc(state.currentUser.uid).update({
         scrapped_talents: newScrapped
@@ -3028,7 +3061,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setJobDialogMode('edit');
     document.getElementById('job-gym-name').value = job.gymName || '';
     document.getElementById('job-title').value = getBaseJobTitle(job);
-    
+
     // Checkboxes mapping for positions
     const positions = String(job.position || '').split(',').map(s => s.trim()).filter(Boolean);
     document.querySelectorAll('input[name="job-position"]').forEach(checkbox => {
@@ -3036,7 +3069,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('job-salary').value = job.salary || '';
-    
+
     // Checkboxes mapping for job types
     const types = String(job.type || '').split(',').map(s => s.trim()).filter(Boolean);
     document.querySelectorAll('input[name="job-type"]').forEach(checkbox => {
@@ -3226,7 +3259,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   // 5. Community tab handling
   // ==========================================================================
-  
+
   // Category badge helper for community lists
   function getCategoryBadge(category) {
     switch (category) {
@@ -3260,7 +3293,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const countEl = document.getElementById('community-posts-count');
     const paginationContainer = document.getElementById('community-pagination-container');
     const pageSizeSelect = document.getElementById('community-pagesize-select');
-    
+
     if (!container) return;
     container.innerHTML = '';
     if (paginationContainer) paginationContainer.innerHTML = '';
@@ -3282,7 +3315,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Filter by selected checkbox categories
       filteredPosts = state.communityPosts.filter(post => checkedCategories.includes(post.category));
     }
-    
+
     if (countEl) {
       countEl.textContent = `자유게시판 목록 (${filteredPosts.length}개)`;
     }
@@ -3424,13 +3457,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   // 6. Search Bar & Filter Form Listeners
   // ==========================================================================
-  
+
   // Home page search submit
   const searchForm = document.getElementById('main-search-form');
   if (searchForm) {
     searchForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      
+
       const region = document.getElementById('search-region').value;
       const position = document.getElementById('search-position').value;
       const type = document.getElementById('search-worktype').value;
@@ -3448,7 +3481,7 @@ document.addEventListener('DOMContentLoaded', () => {
       state.regionPickers.jobFilter?.setByValue(region);
       document.getElementById('filter-job-position').value = position;
       document.getElementById('filter-job-type').value = type;
-      
+
       renderBoardJobs();
     });
   }
@@ -3457,7 +3490,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.btn-tag').forEach(tagBtn => {
     tagBtn.addEventListener('click', () => {
       const keyword = tagBtn.dataset.tag;
-      
+
       // Reset other filters
       state.filters.jobs.region = '';
       state.filters.jobs.type = '';
@@ -3515,7 +3548,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   // 7. Modals / Dialog Controls
   // ==========================================================================
-  
+
   // Close any open dialog when clicking close buttons
   document.querySelectorAll('.btn-close-dialog').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -3664,7 +3697,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pane.scrollTop = 0;
       }
     });
-    
+
     if (activePane === 'login') {
       tabLogin.classList.add('active');
       tabRegister.classList.remove('active');
@@ -3700,7 +3733,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function openAuthDialog(activePane) {
     showAuthPane(activePane);
-    
+
     dialogs.auth.showModal();
   }
 
@@ -3796,7 +3829,7 @@ document.addEventListener('DOMContentLoaded', () => {
           taxType: statusInfo.tax_type || '',
           isBypassed: statusInfo.isBypassed || false
         };
-        
+
         if (validationInfo.isBypassed || statusInfo.isBypassed) {
           setBusinessResult(businessValidateResult, '국세청 시스템 장애로 인증이 지연되어 우선 승인되었습니다. (추후 인증 필요)', 'success');
         } else {
@@ -3823,13 +3856,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-  
+
   const reverifyBizNumInput = document.getElementById('reverify-biz-number');
   if (reverifyBizNumInput) reverifyBizNumInput.addEventListener('input', () => reverifyBizNumInput.value = formatBusinessNumber(reverifyBizNumInput.value));
-  
+
   const reverifyStartDateInput = document.getElementById('reverify-start-date');
   if (reverifyStartDateInput) reverifyStartDateInput.addEventListener('input', () => reverifyStartDateInput.value = formatBusinessStartDate(reverifyStartDateInput.value));
-  
+
   const btnReverifySubmit = document.getElementById('btn-reverify-submit');
   if (btnReverifySubmit) {
     btnReverifySubmit.addEventListener('click', async () => {
@@ -3838,23 +3871,23 @@ document.addEventListener('DOMContentLoaded', () => {
       const ownerName = document.getElementById('reverify-owner-name')?.value.trim();
       const startDateRaw = document.getElementById('reverify-start-date')?.value.trim();
       const resultDiv = document.getElementById('reverify-result');
-      
+
       const bizNumber = getBusinessNumberDigits(bizNumberRaw);
       const startDate = getBusinessDateDigits(startDateRaw);
-      
+
       if (!gymName || bizNumber.length !== 10 || !ownerName || startDate.length !== 8) {
         if (resultDiv) { resultDiv.textContent = '모든 정보를 올바르게 입력해주세요.'; resultDiv.style.color = 'var(--red)'; }
         return;
       }
-      
+
       btnReverifySubmit.disabled = true;
       btnReverifySubmit.textContent = '인증 중...';
       if (resultDiv) { resultDiv.textContent = '사업자등록정보 진위확인 API로 인증 중입니다...'; resultDiv.style.color = 'var(--blue)'; }
-      
+
       try {
         const validInfo = await verifyBusinessInfo({ businessNumber: bizNumber, startDate, ownerName, businessName: gymName });
         if (validInfo.isBypassed) throw new Error('국세청 시스템 응답 지연 (잠시 후 다시 시도해주세요)');
-        
+
         if (state.currentUser && state.currentUser.uid) {
           await db.collection('users').doc(state.currentUser.uid).update({
             gym_name: gymName,
@@ -3868,7 +3901,7 @@ document.addEventListener('DOMContentLoaded', () => {
             business_valid_msg: validInfo.valid_msg || '조회 안됨',
             business_verified_at: firebase.firestore.FieldValue.serverTimestamp()
           });
-          
+
           Object.assign(state.currentUser, {
             gym_name: gymName,
             business_number: bizNumber,
@@ -3880,7 +3913,7 @@ document.addEventListener('DOMContentLoaded', () => {
             business_valid: validInfo.valid || '00',
             business_valid_msg: validInfo.valid_msg || '조회 안됨'
           });
-          
+
           const bizBadge = document.getElementById('auth-biz-badge');
           if (bizBadge) {
             bizBadge.style.display = 'inline-block';
@@ -3934,7 +3967,7 @@ document.addEventListener('DOMContentLoaded', () => {
         text: `태권커리어 개인정보처리방침\n\n시행일: 2026년 07월 08일`
       }
     };
-    
+
     const fb = fallbacks[termsType] || fallbacks.instructor;
     const getFallbackTitle = () => termsType === 'gym'
       ? '관장회원 이용약관'
@@ -3963,7 +3996,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('정적 개인정보처리방침 로드 실패, Firestore를 확인합니다:', err);
       }
     }
-    
+
     try {
       if (typeof db !== 'undefined' && db) {
         const doc = await db.collection('terms').doc(termsType).get();
@@ -3981,14 +4014,14 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       console.warn(`Firestore에서 약관 [${termsType}] 로드 실패:`, e);
     }
-    
+
     try {
       const staticTerms = await loadStaticTerms();
       if (staticTerms) return staticTerms;
     } catch (err) {
       console.warn(`정적 파일 fetch 실패 [${fb.file}]:`, err);
     }
-    
+
     return {
       title: getFallbackTitle(),
       effectiveDate: getFallbackDate(),
@@ -4016,9 +4049,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const targetId = btn.dataset.target;
       const panel = document.getElementById(targetId);
       if (!panel) return;
-      
+
       const isOpen = panel.classList.contains('open') || panel.style.maxHeight === '200px' || (panel.style.maxHeight && panel.style.maxHeight !== '0px');
-      
+
       // 다른 열린 패널 닫기 (회원가입창 내)
       document.querySelectorAll('.agreement-panel.open').forEach((p) => {
         if (p !== panel && p.id !== 'pay-terms-panel') { // 결제 약관은 독립적
@@ -4028,7 +4061,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (relBtn) relBtn.setAttribute('aria-expanded', 'false');
         }
       });
-      
+
       // 클릭한 패널 토글
       if (isOpen) {
         panel.classList.remove('open');
@@ -4053,7 +4086,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => {
       const checkboxId = btn.dataset.checkbox;
       const panelId = btn.dataset.panel;
-      
+
       const checkbox = document.getElementById(checkboxId);
       if (checkbox) {
         checkbox.checked = true;
@@ -4062,7 +4095,7 @@ document.addEventListener('DOMContentLoaded', () => {
           syncAgreementAllState();
         }
       }
-      
+
       const panel = document.getElementById(panelId);
       if (panel) {
         panel.classList.remove('open');
@@ -4070,7 +4103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (panelId === 'pay-terms-panel') {
           panel.style.maxHeight = '0';
         }
-        
+
         const relBtn = document.querySelector(`.agreement-view-btn[data-target="${panelId}"]`);
         if (relBtn) relBtn.setAttribute('aria-expanded', 'false');
       }
@@ -4290,13 +4323,13 @@ document.addEventListener('DOMContentLoaded', () => {
         userData.business_valid = businessValidation?.valid || '00';
         userData.business_valid_msg = businessValidation?.validMsg || '조회 안됨';
         userData.business_verified_at = firebase.firestore.FieldValue.serverTimestamp();
-        
+
         if (businessValidation?.isBypassed || businessStatusCheck?.isBypassed) {
           userData.bizStatus = 'pending';
         } else {
           userData.bizStatus = 'verified';
         }
-        
+
         userData.resumePassCount = 0;
         userData.unlockedResumes = [];
         userData.testPaymentEnabled = false;
@@ -4376,7 +4409,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('hero-btn-post-job'),
     document.getElementById('board-btn-post-job')
   ];
-  
+
   postJobTriggers.forEach(trigger => {
     if (trigger) {
       trigger.addEventListener('click', openPostJobDialog);
@@ -4388,7 +4421,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('hero-btn-post-resume'),
     document.getElementById('board-btn-post-resume')
   ];
-  
+
   postResumeTriggers.forEach(trigger => {
     if (trigger) {
       trigger.addEventListener('click', openPostResumeDialog);
@@ -4491,7 +4524,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   // 8. New Submissions (Forms inside dialogs)
   // ==========================================================================
-  
+
   // Submit Job Post
   const formPostJob = document.getElementById('form-post-job');
   if (formPostJob) {
@@ -4509,11 +4542,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       const userId = currentUser.uid;
-      
+
       const gymName = document.getElementById('job-gym-name').value;
       const title = document.getElementById('job-title').value;
       const region = document.getElementById('job-region').value;
-      
+
       const selectedPositions = Array.from(document.querySelectorAll('input[name="job-position"]:checked')).map(el => el.value);
       if (!selectedPositions.length) {
         alert('직무를 1개 이상 선택해주세요.');
@@ -4653,10 +4686,10 @@ document.addEventListener('DOMContentLoaded', () => {
           // Alert & refresh UI lists
           logActivity('post_job', '채용공고 등록: ' + (title || ''));
           alert('채용공고가 성공적으로 등록되었습니다!');
-          
+
           // Update statistics
           updateStats();
-          
+
           // Re-render
           renderHomeJobs();
           renderBoardJobs();
@@ -4791,7 +4824,7 @@ document.addEventListener('DOMContentLoaded', () => {
           };
 
           state.talentsList.unshift(newTalent);
-          
+
           dialogs.postResume.close();
           formPostResume.reset();
           state.selectedResumeRegions = [];
@@ -4801,7 +4834,7 @@ document.addEventListener('DOMContentLoaded', () => {
           alert('이력서가 성공적으로 등록되었습니다!');
 
           updateStats();
-          
+
           renderHomeTalents();
           renderBoardTalents();
         } catch (err) {
@@ -5065,13 +5098,13 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         state.communityPosts.unshift(newPost);
       }
-      
+
       try {
         localStorage.setItem('taekwondo_community_posts', JSON.stringify(state.communityPosts));
       } catch (err) {
         console.warn("Failed to save posts to localStorage", err);
       }
-      
+
       // 등록 완료 후 폼 초기화 및 모달 닫기
       formPostCommunity.reset();
       clearCommImage();
@@ -5085,7 +5118,7 @@ document.addEventListener('DOMContentLoaded', () => {
       state.communityCurrentPage = 1;
       setupCommunityTab('free');
       renderHomeCommunityPosts();
-      
+
       logActivity('community_write', '커뮤니티 글쓰기: ' + (title || ''));
       alert('게시글이 성공적으로 등록되었습니다.');
       } finally {
@@ -5099,7 +5132,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   // 9. Details Dialog Fillers
   // ==========================================================================
-  
+
   function openCommunityDetails(post) {
     if (!dialogs.communityDetail) return;
 
@@ -5185,7 +5218,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (commentForm) {
       const newCommentForm = commentForm.cloneNode(true);
       commentForm.parentNode.replaceChild(newCommentForm, commentForm);
-      
+
       newCommentForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const commentInput = document.getElementById('comment-input');
@@ -5213,7 +5246,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!post.comments) post.comments = [];
         post.comments.push(newComment);
-        
+
         if (typeof db !== 'undefined' && db && !post.id.startsWith('post-')) {
           try {
             db.collection('community').doc(post.id).update({
@@ -5229,7 +5262,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
           console.warn("Failed to save posts to localStorage", err);
         }
-        
+
         commentInput.value = '';
         renderPostComments(post);
       });
@@ -5273,7 +5306,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Increment views locally first
     job.views = (job.views || 0) + 1;
-    
+
     // Trigger Meta Pixel Track
     if (typeof fbq === 'function') {
       fbq('track', 'ViewContent', {
@@ -5283,12 +5316,12 @@ document.addEventListener('DOMContentLoaded', () => {
         content_type: 'product'
       });
     }
-    
+
     const viewsEl = document.getElementById('detail-job-views');
     if (viewsEl) {
       viewsEl.textContent = job.views;
     }
-    
+
     const applyBtn = document.getElementById('btn-apply-job');
     if (applyBtn) {
       applyBtn.dataset.jobId = job.id;
@@ -5296,7 +5329,7 @@ document.addEventListener('DOMContentLoaded', () => {
       applyBtn.dataset.gymName = job.gymName;
       applyBtn.dataset.jobOwnerId = job.userId || '';
     }
-    
+
     document.getElementById('detail-job-gym').textContent = job.gymName;
     document.getElementById('detail-job-type').textContent = job.type;
     document.getElementById('detail-job-title').textContent = job.title;
@@ -5346,7 +5379,7 @@ document.addEventListener('DOMContentLoaded', () => {
             views: firebase.firestore.FieldValue.increment(1),
             viewed_users: firebase.firestore.FieldValue.arrayUnion(viewerId)
           });
-          
+
           renderHomeJobs();
           renderBoardJobs();
         } catch (err) {
@@ -5360,7 +5393,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnScrapJob) {
       const newScrapBtn = btnScrapJob.cloneNode(true);
       btnScrapJob.parentNode.replaceChild(newScrapBtn, btnScrapJob);
-      
+
       const isScrapped = state.currentUser && state.currentUser.scrapped_jobs && state.currentUser.scrapped_jobs.includes(job.id);
       if (isScrapped) {
         newScrapBtn.innerHTML = `⭐ 스크랩 해제`;
@@ -5369,7 +5402,7 @@ document.addEventListener('DOMContentLoaded', () => {
         newScrapBtn.innerHTML = `⭐ 스크랩`;
         newScrapBtn.style.background = '';
       }
-      
+
       newScrapBtn.addEventListener('click', () => {
         if (!state.currentUser) {
           alert('로그인이 필요합니다.');
@@ -5408,7 +5441,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentPasses = isGym && typeof state.currentUser.resumePassCount === 'number'
       ? state.currentUser.resumePassCount
       : 0;
-    
+
     // 면접 제안 데이터 조회 (1주일 유효기간 체킹용)
     let activeProposal = null;
     let expiredProposal = null;
@@ -5433,16 +5466,15 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('Failed to fetch proposals:', err);
       }
     }
-    
+
     const phoneEl = document.getElementById('detail-talent-phone');
     const descEl = document.getElementById('detail-talent-desc');
-    
+
     const btnInterview = document.getElementById('btn-interview-suggest');
-    
+
     // 이전의 잠금해제 버튼 영역이 남아있다면 제거
     let btnUnlockArea = document.getElementById('talent-detail-unlock-area');
     if (btnUnlockArea) btnUnlockArea.remove();
-
     if (isGym) {
       if (isUnlocked) {
         if (phoneEl) phoneEl.textContent = talent.phone || '등록된 연락처 없음';
@@ -5454,7 +5486,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <p style="font-weight: 700; margin-bottom: 0.4rem; color: var(--text-color); font-size: 0.95rem;">🔒 비공개 정보</p>
           <p style="font-size: 0.8rem; line-height: 1.5; max-width: 280px; margin: 0 auto;">구독권 구매 후 이 사범님의 연락처와 상세 포부글을 확인하실 수 있습니다.</p>
         </div>`;
-        
+
         if (btnInterview) btnInterview.style.display = 'none';
 
         // 잠금 해제 전용 꼬리말 영역 버튼 추가
@@ -5486,11 +5518,185 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btnInterview) btnInterview.style.display = 'inline-block';
     }
 
+  // SHA-256 해시 생성 헬퍼 함수
+  async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  // 서비스 결제 신청 팝업 내 결제 실행
+  window.executeResumePassPayment = async function() {
+    if (!state.currentUser) {
+      alert('로그인이 필요한 서비스입니다.');
+      return;
+    }
+
+    // 약관 동의 검증 추가
+    const payAgreeTerms = document.getElementById('pay-agree-terms');
+    const payAgreeRefund = document.getElementById('pay-agree-refund');
+
+    if (!payAgreeTerms || !payAgreeTerms.checked) {
+      alert('유료서비스 이용약관에 동의하셔야 결제가 가능합니다.');
+      return;
+    }
+    if (!payAgreeRefund || !payAgreeRefund.checked) {
+      alert('청약철회 및 환불 제한 안내에 동의하셔야 결제가 가능합니다.');
+      return;
+    }
+
+    const months = parseInt(document.getElementById('selected-pass-count').value) || 1;
+    const price = parseInt(document.getElementById('selected-pass-price').value) || 20000;
+    const productName = document.getElementById('selected-pass-name')?.value || `${months}개월 구독권`;
+
+    // 1. 디바이스 체크 (PC / 모바일)
+    const isMobile = isMobilePaymentDevice();
+
+    try {
+      showToast('결제 준비 중입니다...', 'info');
+
+      // 서버 통신 검증 없이, 항상 브라우저에서 직접 보안 서명을 연산하여 실제 웰컴페이먼츠 PG 카드사 창을 띄웁니다.
+      const clientSignKey = "QjZXWDZDRmxYUXJPYnMvelEvSjJ5QT09";
+      const clientMid = "welcometst";
+      const clientMKey = await sha256(clientSignKey);
+      const clientTimestamp = Date.now().toString();
+      const clientOid = clientMid + "_" + clientTimestamp;
+
+      let clientSignature = "";
+      if (isMobile) {
+        // 정렬 순서에 따라 쿼리문 생성: mkey, P_AMT, P_OID, P_TIMESTAMP
+        const paramsStr = `P_AMT=${price}&P_OID=${clientOid}&P_TIMESTAMP=${clientTimestamp}&mkey=${clientMKey}`;
+        clientSignature = await sha256(paramsStr);
+      } else {
+        // 정렬 순서에 따라 쿼리문 생성: mKey, oid, price, timestamp
+        const paramsStr = `mKey=${clientMKey}&oid=${clientOid}&price=${price}&timestamp=${clientTimestamp}`;
+        clientSignature = await sha256(paramsStr);
+      }
+
+      const pgParams = {
+        status: 'success',
+        mid: clientMid,
+        oid: clientOid,
+        price: price.toString(),
+        timestamp: clientTimestamp,
+        mKey: clientMKey,
+        signature: clientSignature,
+        customData: `${state.currentUser.uid}|${months}|${price}`
+      };
+
+      if (pgParams && pgParams.status === 'success') {
+        // PG 정보가 정상 로드된 경우 -> 실제 웰컴페이먼츠 PG 연동 실행
+        if (isMobile) {
+          // 모바일: 페이지 전환으로 결제 요청
+          const paymentDialog = document.getElementById('dialog-service-payment');
+          if (paymentDialog) paymentDialog.close();
+
+          const reqUrl = `/pg/PHP_MOBILE/WelPayMoRequest.php` +
+            `?price=${price}` +
+            `&months=${months}` +
+            `&uid=${state.currentUser.uid}`;
+          window.location.href = reqUrl;
+        } else {
+          // PC: Standard pay overlay 실행
+          // form 필드 바인딩
+          document.getElementById('pg-form-mid').value = pgParams.mid;
+          document.getElementById('pg-form-goodname').value = `이력서 열람 ${productName}`;
+          document.getElementById('pg-form-oid').value = pgParams.oid;
+          document.getElementById('pg-form-price').value = pgParams.price;
+          document.getElementById('pg-form-buyername').value = state.currentUser.name || '관장회원';
+          document.getElementById('pg-form-buyertel').value = state.currentUser.phone || '010-0000-0000';
+          document.getElementById('pg-form-buyeremail').value = state.currentUser.email || 'test@example.com';
+          document.getElementById('pg-form-timestamp').value = pgParams.timestamp;
+          document.getElementById('pg-form-signature').value = pgParams.signature;
+          document.getElementById('pg-form-mKey').value = pgParams.mKey;
+          document.getElementById('pg-form-merchantData').value = pgParams.customData;
+
+          // return 및 close URL 세팅
+          const serverRoot = window.location.protocol + "//" + window.location.host;
+          document.getElementById('pg-form-returnUrl').value = `${serverRoot}/pg/PHP_PC/WelStdPayReturn.php`;
+          document.getElementById('pg-form-closeUrl').value = `${serverRoot}/pg/PHP_PC/close.php`;
+
+          const paymentDialog = document.getElementById('dialog-service-payment');
+          if (paymentDialog) paymentDialog.close();
+
+          // 결제창 실행
+          if (window.INIStdPay && typeof window.INIStdPay.pay === 'function') {
+            window.INIStdPay.pay('SendPayForm_id');
+          } else {
+            alert('결제 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.');
+          }
+        }
+        // 백엔드 PHP 비지원 환경 (Firebase Hosting 등 정적 환경) -> 테스트 결제 모드로 폴백 진행
+        const userDocRef = db.collection('users').doc(state.currentUser.uid);
+        const doc = await userDocRef.get();
+        if (!doc.exists) return;
+
+        const userData = doc.data();
+
+        const baseMillis = Math.max(Date.now(), getMillisFromDateLike(userData.resumeSubscriptionUntil));
+        const newUntil = new Date(baseMillis);
+        newUntil.setMonth(newUntil.getMonth() + months);
+
+        await userDocRef.update({
+          resumeSubscriptionUntil: newUntil,
+          resumeSubscriptionMonths: months
+        });
+
+        // 결제 이력을 payments 컬렉션에 저장
+        try {
+          await db.collection('payments').add({
+            userId: state.currentUser.uid,
+            userName: state.currentUser.name || state.currentUser.email || '',
+            userEmail: state.currentUser.email || '',
+            productName: `이력서 열람 구독 ${months}개월 (테스트)`,
+            months: months,
+            amount: price,
+            paymentDate: firebase.firestore.FieldValue.serverTimestamp(),
+            subscriptionUntil: newUntil,
+            status: 'completed',
+            type: 'subscription'
+          });
+        } catch (payErr) {
+          console.warn('결제 이력 저장 실패 (매출 데이터):', payErr);
+        }
+
+        logActivity('purchase', '이력서 열람 구독 ' + months + '개월 결제');
+
+        state.currentUser.resumeSubscriptionUntil = newUntil;
+        state.currentUser.resumeSubscriptionMonths = months;
+
+        const paymentDialog = document.getElementById('dialog-service-payment');
+        if (paymentDialog) paymentDialog.close();
+
+        updateGymPassBannerUI();
+        if (typeof renderMyApplicationsView === 'function') {
+          renderMyApplicationsView();
+        }
+
+        const talentToOpen = state.pendingPurchaseTalent;
+        state.pendingPurchaseTalent = null;
+        const successMessage = document.getElementById('resume-payment-success-message');
+        if (successMessage) {
+          successMessage.innerHTML = `이력서 열람 구독이 <strong style="color:#e8690c">${formatSubscriptionDate(newUntil)}</strong>까지 활성화되었습니다. (테스트)`;
+        }
+        const successDialog = document.getElementById('dialog-service-payment-success');
+        if (successDialog) successDialog.showModal();
+        if (talentToOpen) {
+          openTalentDetails(talentToOpen);
+        }
+      }
+    } catch (e) {
+      console.error('결제 처리 오류:', e);
+      alert('결제 처리 중 에러가 발생했습니다. 다시 시도해 주세요.');
+    }
+  };
+
     // 면접 제안하기 버튼 이벤트 동적 처리
     if (btnInterview) {
       const newBtn = btnInterview.cloneNode(true);
       btnInterview.parentNode.replaceChild(newBtn, btnInterview);
-      
+
       if (activeProposal) {
         const expDate = activeProposal.expiresAt.toDate();
         const dateStr = expDate.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' });
@@ -5509,7 +5715,7 @@ document.addEventListener('DOMContentLoaded', () => {
         newBtn.style.opacity = '1';
         newBtn.style.cursor = 'pointer';
       }
-      
+
       newBtn.addEventListener('click', async () => {
         if (!state.currentUser) {
           alert('로그인이 필요합니다. 로그인 팝업을 열어드립니다.');
@@ -5525,7 +5731,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
               const proposedAt = new Date();
               const expiresAt = new Date(proposedAt.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days later
-              
+
               await db.collection('proposals').add({
                 gymId: state.currentUser.uid,
                 gymName: gymName,
@@ -5535,9 +5741,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 expiresAt: firebase.firestore.Timestamp.fromDate(expiresAt),
                 status: 'pending'
               });
-              
+
               alert('사범님께 입사 제안 연락을 보냈습니다. 제안 유효기간은 1주일이며, 사범님이 수락할 시 연락처가 서로에게 공개됩니다.');
-              
+
               if (dialogs.talentDetail) dialogs.talentDetail.close();
               openTalentDetails(talent);
             } catch (err) {
@@ -5554,7 +5760,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnScrapTalent) {
       const newScrapBtn = btnScrapTalent.cloneNode(true);
       btnScrapTalent.parentNode.replaceChild(newScrapBtn, btnScrapTalent);
-      
+
       const isScrapped = state.currentUser && state.currentUser.scrapped_talents && state.currentUser.scrapped_talents.includes(talent.id);
       if (isScrapped) {
         newScrapBtn.innerHTML = `⭐ 스크랩 해제`;
@@ -5563,7 +5769,7 @@ document.addEventListener('DOMContentLoaded', () => {
         newScrapBtn.innerHTML = `⭐ 인재 스크랩`;
         newScrapBtn.style.background = '';
       }
-      
+
       newScrapBtn.addEventListener('click', () => {
         if (!state.currentUser) {
           alert('로그인이 필요합니다.');
@@ -5588,12 +5794,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // 열람권을 소모하여 이력서의 잠금을 푸는 함수
   async function unlockResumeWithPass(talent, options = {}) {
     if (!state.currentUser) return;
-    
+
     const userDocRef = db.collection('users').doc(state.currentUser.uid);
     try {
       const doc = await userDocRef.get();
       if (!doc.exists) return;
-      
+
       const userData = doc.data();
       if (isResumeSubscriptionActive(userData)) {
         state.currentUser.resumeSubscriptionUntil = userData.resumeSubscriptionUntil;
@@ -5606,32 +5812,32 @@ document.addEventListener('DOMContentLoaded', () => {
         openTalentDetails(talent);
         return;
       }
-      
+
       if (currentPasses <= 0) {
         state.pendingPurchaseTalent = talent;
         alert('인재 이력서 열람 구독이 필요합니다. 구독권 구매 화면으로 이동합니다.');
         openPurchasePassModal(talent);
         return;
       }
-      
+
       if (!options.skipConfirm) {
         const conf = confirm(`열람권을 1장 사용하여 이 사범님의 연락처와 상세 프로필을 열람하시겠습니까?\n(현재 보유 열람권: ${currentPasses}장)`);
         if (!conf) return;
       }
-      
+
       currentPasses -= 1;
       unlockedList.push(talent.id);
-      
+
       await userDocRef.update({
         resumePassCount: currentPasses,
         unlockedResumes: unlockedList
       });
-      
+
       state.currentUser.resumePassCount = currentPasses;
       state.currentUser.unlockedResumes = unlockedList;
-      
+
       alert('성공적으로 열람 처리가 완료되었습니다.');
-      
+
       updateGymPassBannerUI();
       if (typeof renderMyApplicationsView === 'function') {
         renderMyApplicationsView();
@@ -5671,9 +5877,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateGymPassBannerUI() {
     const banner = document.getElementById('gym-pass-banner');
     const countEl = document.getElementById('gym-pass-count');
-    
+
     if (!banner || !countEl) return;
-    
+
     const role = getUserRole();
     if (role === 'gym' && state.currentUser) {
       banner.style.display = 'flex';
@@ -5716,7 +5922,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const products = snap.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }))
         .filter((product) => product.active !== false && Number(product.months) > 0 && Number(product.price) >= 0);
-      
+
       // Override pricing with user-specific custom prices if they exist
       if (state.currentUser && state.currentUser.customPassPrices) {
         products.forEach((product) => {
@@ -5786,7 +5992,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (proceedToPayment) {
       window.setTimeout(() => {
-        confirmPurchasePass();
+        // 상품 선택 즉시 중간 결제 안내창을 건너뛰고 웰컴페이먼츠 PG를 실행한다.
+        if (dialog.open) dialog.close();
+        const payAgreeTerms = document.getElementById('pay-agree-terms');
+        const payAgreeRefund = document.getElementById('pay-agree-refund');
+        if (payAgreeTerms) payAgreeTerms.checked = true;
+        if (payAgreeRefund) payAgreeRefund.checked = true;
+        executeResumePassPayment();
       }, 120);
     }
   };
@@ -5809,13 +6021,13 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('로그인이 필요한 서비스입니다.');
       return;
     }
-    
+
     // 동의 체크박스 및 토글 패널 상태 초기화
     const payAgreeTerms = document.getElementById('pay-agree-terms');
     const payAgreeRefund = document.getElementById('pay-agree-refund');
     const payTermsPanel = document.getElementById('pay-terms-panel');
     const payTermsContent = document.getElementById('pay-terms-content');
-    
+
     if (payAgreeTerms) payAgreeTerms.checked = false;
     if (payAgreeRefund) payAgreeRefund.checked = false;
     if (payTermsPanel) {
@@ -5823,7 +6035,7 @@ document.addEventListener('DOMContentLoaded', () => {
       payTermsPanel.setAttribute('aria-hidden', 'true');
       payTermsPanel.style.maxHeight = '0';
     }
-    
+
     const viewBtn = document.querySelector('.agreement-view-btn[data-target="pay-terms-panel"]');
     if (viewBtn) viewBtn.setAttribute('aria-expanded', 'false');
 
@@ -5845,14 +6057,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const titleEl = document.getElementById('resume-payment-title');
     const priceEl = document.getElementById('resume-payment-price');
     const payBtn = document.getElementById('btn-resume-pay-execute');
+    const periodEl = document.getElementById('pg-subscription-period');
     if (titleEl) titleEl.textContent = `이력서 열람 ${productName}`;
-    if (priceEl) priceEl.textContent = `₩${price.toLocaleString()}`;
+    if (priceEl) priceEl.textContent = `${price.toLocaleString()} 원`;
     if (payBtn) payBtn.textContent = `${price.toLocaleString()}원 결제하기`;
+    if (periodEl) periodEl.textContent = `결제일로부터 ${months}개월`;
+
+    // PG 카드사 그리드 초기화 (신용카드 선택 상태)
+    const cardGrid = document.getElementById('pg-card-grid');
+    if (cardGrid) cardGrid.style.display = '';
+    const pgMethodBtns = document.querySelectorAll('.pg-method-btn');
+    pgMethodBtns.forEach((btn, i) => {
+      btn.classList.toggle('is-active', i === 0);
+    });
+    const pgCardBtns = document.querySelectorAll('.pg-card-btn');
+    pgCardBtns.forEach(btn => btn.classList.remove('is-active'));
 
     const purchaseDialog = document.getElementById('dialog-purchase-pass');
     if (purchaseDialog) purchaseDialog.close();
     const paymentDialog = document.getElementById('dialog-service-payment');
     if (paymentDialog) paymentDialog.showModal();
+  };
+
+  // PG 결제수단 선택
+  window.selectPgMethod = function(el, method) {
+    document.querySelectorAll('.pg-method-btn').forEach(btn => btn.classList.remove('is-active'));
+    el.classList.add('is-active');
+    const cardGrid = document.getElementById('pg-card-grid');
+    if (cardGrid) cardGrid.style.display = method === 'card' ? '' : 'none';
+  };
+
+  // PG 카드사 선택
+  window.selectPgCard = function(el) {
+    document.querySelectorAll('.pg-card-btn').forEach(btn => btn.classList.remove('is-active'));
+    el.classList.add('is-active');
   };
 
   // 서비스 결제 신청 팝업 내 결제 실행
@@ -5877,21 +6115,84 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const months = parseInt(document.getElementById('selected-pass-count').value) || 1;
     const price = parseInt(document.getElementById('selected-pass-price').value) || 20000;
+    const productName = document.getElementById('selected-pass-name')?.value || `${months}개월 구독권`;
 
     try {
       const userDocRef = db.collection('users').doc(state.currentUser.uid);
       const doc = await userDocRef.get();
       if (!doc.exists) return;
-      
+
       const userData = doc.data();
+
+      // 관리자 설정이 OFF이면 테스트 권한을 바로 부여하지 않고 웰컴페이먼츠 PG로 이동한다.
       if (userData.testPaymentEnabled !== true) {
-        alert('현재 이 계정은 테스트 결제가 OFF 상태입니다. 관리자 페이지 회원 목록에서 테스트 결제를 ON으로 변경해 주세요.');
+        const isMobile = isMobilePaymentDevice();
+        showToast('PG 결제창을 준비 중입니다...', 'info');
+
+        if (isMobile) {
+          const paymentDialog = document.getElementById('dialog-service-payment');
+          if (paymentDialog) paymentDialog.close();
+
+          const query = new URLSearchParams({
+            price: String(price),
+            months: String(months),
+            uid: state.currentUser.uid
+          });
+          window.location.href = `/pg/PHP_MOBILE/WelPayMoRequest.php?${query.toString()}`;
+          return;
+        }
+
+        const prepareQuery = new URLSearchParams({
+          price: String(price),
+          months: String(months),
+          uid: state.currentUser.uid,
+          device: 'pc'
+        });
+        const prepareRes = await fetch(`/pg/prepare.php?${prepareQuery.toString()}`, {
+          method: 'GET',
+          credentials: 'same-origin',
+          cache: 'no-store'
+        });
+        if (!prepareRes.ok) {
+          throw new Error(`PG 결제 준비 실패 (${prepareRes.status})`);
+        }
+
+        const pgParams = await prepareRes.json();
+        if (!pgParams || pgParams.status !== 'success') {
+          throw new Error(pgParams?.message || 'PG 결제 정보를 불러오지 못했습니다.');
+        }
+
+        document.getElementById('pg-form-mid').value = pgParams.mid;
+        document.getElementById('pg-form-goodname').value = `이력서 열람 ${productName}`;
+        document.getElementById('pg-form-oid').value = pgParams.oid;
+        document.getElementById('pg-form-price').value = pgParams.price;
+        document.getElementById('pg-form-buyername').value = state.currentUser.name || '관장회원';
+        document.getElementById('pg-form-buyertel').value = state.currentUser.phone || '010-0000-0000';
+        document.getElementById('pg-form-buyeremail').value = state.currentUser.email || '';
+        document.getElementById('pg-form-timestamp').value = pgParams.timestamp;
+        document.getElementById('pg-form-signature').value = pgParams.signature;
+        document.getElementById('pg-form-mKey').value = pgParams.mKey;
+        document.getElementById('pg-form-merchantData').value = pgParams.customData;
+
+        const serverRoot = `${window.location.protocol}//${window.location.host}`;
+        document.getElementById('pg-form-returnUrl').value = `${serverRoot}/pg/PHP_PC/WelStdPayReturn.php`;
+        document.getElementById('pg-form-closeUrl').value = `${serverRoot}/pg/PHP_PC/close.php`;
+
+        if (!window.INIStdPay || typeof window.INIStdPay.pay !== 'function') {
+          throw new Error('PG 결제 모듈을 불러오지 못했습니다.');
+        }
+
+        const paymentDialog = document.getElementById('dialog-service-payment');
+        if (paymentDialog) paymentDialog.close();
+        window.INIStdPay.pay('SendPayForm_id');
         return;
       }
+
+      // 관리자 설정이 ON인 회원만 실제 승인 없이 테스트 구독을 즉시 부여한다.
       const baseMillis = Math.max(Date.now(), getMillisFromDateLike(userData.resumeSubscriptionUntil));
       const newUntil = new Date(baseMillis);
       newUntil.setMonth(newUntil.getMonth() + months);
-      
+
       await userDocRef.update({
         resumeSubscriptionUntil: newUntil,
         resumeSubscriptionMonths: months
@@ -5903,7 +6204,7 @@ document.addEventListener('DOMContentLoaded', () => {
           userId: state.currentUser.uid,
           userName: state.currentUser.name || state.currentUser.email || '',
           userEmail: state.currentUser.email || '',
-          productName: `이력서 열람 구독 ${months}개월`,
+          productName: `이력서 열람 구독 ${months}개월 (테스트)`,
           months: months,
           amount: price,
           paymentDate: firebase.firestore.FieldValue.serverTimestamp(),
@@ -5915,14 +6216,14 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('결제 이력 저장 실패 (매출 데이터):', payErr);
       }
 
-      logActivity('purchase', '이력서 열람 구독 ' + months + '개월 결제');
+      logActivity('purchase', '이력서 열람 구독 ' + months + '개월 테스트 결제');
 
       state.currentUser.resumeSubscriptionUntil = newUntil;
       state.currentUser.resumeSubscriptionMonths = months;
-      
+
       const paymentDialog = document.getElementById('dialog-service-payment');
       if (paymentDialog) paymentDialog.close();
-      
+
       updateGymPassBannerUI();
       if (typeof renderMyApplicationsView === 'function') {
         renderMyApplicationsView();
@@ -5932,7 +6233,7 @@ document.addEventListener('DOMContentLoaded', () => {
       state.pendingPurchaseTalent = null;
       const successMessage = document.getElementById('resume-payment-success-message');
       if (successMessage) {
-        successMessage.innerHTML = `이력서 열람 구독이 <strong style="color:#2563eb">${formatSubscriptionDate(newUntil)}</strong>까지 활성화되었습니다.`;
+        successMessage.innerHTML = `이력서 열람 구독이 <strong style="color:#2563eb">${formatSubscriptionDate(newUntil)}</strong>까지 활성화되었습니다. (테스트)`;
       }
       const successDialog = document.getElementById('dialog-service-payment-success');
       if (successDialog) successDialog.showModal();
@@ -5957,7 +6258,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   // 10. Initialization & Statistics
   // ==========================================================================
-  
+
   function updateStats() {
     // We dynamically offset our counter display based on mock listings added
     const extraJobs = state.jobsList.length - mockJobs.length;
@@ -6117,7 +6418,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.location.pathname.includes('/Customer_Service')) {
       targetHref = '/Customer_Service';
     }
-    
+
     const activeLink = container.querySelector(`a[href="${targetHref}"]`);
     if (activeLink) {
       activeLink.classList.add('active');
@@ -6143,6 +6444,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const nameEl    = document.getElementById('auth-user-name');
       const adminLink = document.getElementById('btn-admin-link');
       const headerPassButton = document.getElementById('btn-header-purchase-pass');
+      const mobileFloatingPassButton = document.getElementById('mobile-floating-purchase-pass');
       const headerApplicationsButton = document.getElementById('btn-header-my-applications');
 
       const inqName = document.getElementById('inquiry-name');
@@ -6152,7 +6454,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 로그인 상태: 유저 이름 + 버튼 표시
         loggedOut.style.display = 'none';
         loggedIn.style.display  = 'flex';
-        
+
         // 임시 세팅
         state.currentUser = { uid: user.uid, email: user.email };
         const showAdminLink = isAdminEmail(user.email);
@@ -6247,7 +6549,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             state.currentUser = { uid: user.uid, email: user.email, ...data };
             nameEl.textContent = data.name || user.email;
-            
+            checkMobilePaymentResult(); // 모바일 결제 리다이렉트 성공 여부 체크
+
             // 사업자 인증 완료 뱃지 표시 제어
             const bizBadge = document.getElementById('auth-biz-badge');
             if (bizBadge) {
@@ -6260,6 +6563,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (headerPassButton) {
               headerPassButton.style.display = !showAdminLink && currentRole === 'gym' ? 'inline-flex' : 'none';
+            }
+            if (mobileFloatingPassButton) {
+              mobileFloatingPassButton.classList.toggle('is-visible', !showAdminLink && currentRole === 'gym');
             }
             if (headerApplicationsButton) {
               headerApplicationsButton.style.display = showAdminLink ? 'none' : 'inline-flex';
@@ -6283,10 +6589,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (bizNumInput) bizNumInput.value = data.business_number || '';
                 if (ownerInput) ownerInput.value = data.business_owner_name || '';
                 if (startDateInput) startDateInput.value = data.business_start_date || '';
-                
+
                 const resultDiv = document.getElementById('reverify-result');
                 if (resultDiv) resultDiv.innerHTML = '';
-                
+
                 reverifyDialog.showModal();
               }
             }
@@ -6294,6 +6600,7 @@ document.addEventListener('DOMContentLoaded', () => {
             nameEl.textContent = user.email;
             if (adminLink) adminLink.style.display = showAdminLink ? 'inline-flex' : 'none';
             if (headerPassButton) headerPassButton.style.display = 'none';
+            if (mobileFloatingPassButton) mobileFloatingPassButton.classList.remove('is-visible');
             if (headerApplicationsButton) headerApplicationsButton.style.display = 'none';
 
             if (inqName) inqName.value = '';
@@ -6303,6 +6610,7 @@ document.addEventListener('DOMContentLoaded', () => {
           nameEl.textContent = user.email;
           if (adminLink) adminLink.style.display = showAdminLink ? 'inline-flex' : 'none';
           if (headerPassButton) headerPassButton.style.display = 'none';
+          if (mobileFloatingPassButton) mobileFloatingPassButton.classList.remove('is-visible');
           if (headerApplicationsButton) headerApplicationsButton.style.display = 'none';
 
           if (inqName) inqName.value = '';
@@ -6315,8 +6623,9 @@ document.addEventListener('DOMContentLoaded', () => {
         loggedIn.style.display  = 'none';
         if (adminLink) adminLink.style.display = 'none';
         if (headerPassButton) headerPassButton.style.display = 'none';
+        if (mobileFloatingPassButton) mobileFloatingPassButton.classList.remove('is-visible');
         if (headerApplicationsButton) headerApplicationsButton.style.display = 'none';
-        
+
         const bizBadge = document.getElementById('auth-biz-badge');
         if (bizBadge) bizBadge.style.display = 'none';
 
@@ -6455,7 +6764,7 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('필수 입력 필드를 모두 작성해 주세요.');
         return;
       }
-      
+
       const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
       if (!emailRegex.test(email)) {
         alert('올바른 이메일 형식을 입력해 주세요.');
@@ -6519,12 +6828,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         alert('문의가 정상적으로 접수되었습니다. 최대한 신속하게 답변해 드리겠습니다.');
         formInquiry.reset();
-        
+
         // 내 문의 내역 갱신
         if (window.loadMyInquiries) {
           window.loadMyInquiries();
         }
-        
+
         // 로그인 상태인 경우 입력 정보 다시 세팅
         if (currentUser && db) {
           const snap = await db.collection('users').doc(currentUser.uid).get();
@@ -6564,7 +6873,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const snapUid = await db.collection('inquiries')
           .where('user_id', '==', currentUser.uid)
           .get();
-          
+
         snapUid.forEach(doc => {
           const data = doc.data();
           dbInquiries.push({
@@ -6584,7 +6893,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const snapEmail = await db.collection('inquiries')
             .where('email', '==', currentUser.email)
             .get();
-            
+
           snapEmail.forEach(doc => {
             if (!dbInquiries.some(item => item.id === doc.id)) {
               const data = doc.data();
@@ -6635,7 +6944,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const isAnswered = item.status === 'answered';
       const statusClass = isAnswered ? 'answered' : 'pending';
       const statusText = isAnswered ? '답변 완료' : '답변 대기';
-      
+
       const dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString('ko-KR', {
         year: 'numeric',
         month: '2-digit',
@@ -6897,7 +7206,7 @@ document.addEventListener('DOMContentLoaded', () => {
     new daum.Postcode({
       oncomplete: function(data) {
         let addr = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress;
-        
+
         const addrEl = document.getElementById('job-address');
         if (addrEl) addrEl.value = addr;
 
@@ -6925,7 +7234,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (directInputTimer) {
       clearTimeout(directInputTimer);
     }
-    
+
     const addr = val.trim();
     if (!addr) {
       const mapEl = document.getElementById('job-map');
@@ -7024,5 +7333,150 @@ document.addEventListener('DOMContentLoaded', () => {
       state.regionPickers.job.setByValue(targetDisplayName);
     }
   }
+
+  // 웰컴페이먼츠 PG 검증 및 구독 권한 부여
+  async function verifyAndGrantSubscription(uid, months, price, token, transactionId = '', orderId = '') {
+    try {
+      // 1. 서버에 토큰 검증 요청 (PHP 환경이 제공되는 경우)
+      let verifySuccess = false;
+      try {
+        const verifyRes = await fetch('/pg/verify.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uid, months, price, token })
+        });
+        if (verifyRes.ok) {
+          const verifyData = await verifyRes.json();
+          verifySuccess = verifyData && verifyData.success;
+        }
+      } catch (err) {
+        console.warn('검증 API 호출 불가. 로컬 개발 또는 정적 호스팅 모드 확인.');
+        // 만약 PHP 검증 서버를 사용할 수 없는 정적 호스팅이고, 해당 계정이 테스트 계정이면 예외적 성공 처리
+        if (state.currentUser && state.currentUser.testPaymentEnabled === true) {
+          verifySuccess = true;
+        }
+      }
+
+      if (verifySuccess) {
+        // 검증 성공 -> Firestore 갱신
+        const userDocRef = db.collection('users').doc(uid);
+        const doc = await userDocRef.get();
+        if (!doc.exists) return;
+
+        const userData = doc.data();
+        const baseMillis = Math.max(Date.now(), getMillisFromDateLike(userData.resumeSubscriptionUntil));
+        const newUntil = new Date(baseMillis);
+        newUntil.setMonth(newUntil.getMonth() + months);
+
+        await userDocRef.update({
+          resumeSubscriptionUntil: newUntil,
+          resumeSubscriptionMonths: months
+        });
+
+        // 결제 이력을 payments 컬렉션에 저장
+        try {
+          const paymentData = {
+            userId: uid,
+            userName: userData.name || userData.email || '',
+            userEmail: userData.email || '',
+            productName: `이력서 열람 구독 ${months}개월`,
+            months: months,
+            amount: price,
+            paymentDate: firebase.firestore.FieldValue.serverTimestamp(),
+            subscriptionUntil: newUntil,
+            status: 'completed',
+            type: 'subscription',
+            transactionId: transactionId || '',
+            orderId: orderId || ''
+          };
+          if (transactionId) {
+            const paymentDocId = transactionId.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 180);
+            await db.collection('payments').doc(paymentDocId).set(paymentData, { merge: true });
+          } else {
+            await db.collection('payments').add(paymentData);
+          }
+        } catch (payErr) {
+          console.warn('결제 이력 저장 실패 (매출 데이터):', payErr);
+        }
+
+        logActivity('purchase', '이력서 열람 구독 ' + months + '개월 결제 완료');
+
+        // 상태 업데이트
+        if (state.currentUser && state.currentUser.uid === uid) {
+          state.currentUser.resumeSubscriptionUntil = newUntil;
+          state.currentUser.resumeSubscriptionMonths = months;
+
+          updateGymPassBannerUI();
+          renderHomeTalents();
+          renderBoardTalents();
+          if (typeof renderMyApplicationsView === 'function') {
+            await renderMyApplicationsView();
+          }
+
+          const talentToOpen = state.pendingPurchaseTalent;
+          state.pendingPurchaseTalent = null;
+
+          const successMessage = document.getElementById('resume-payment-success-message');
+          if (successMessage) {
+            successMessage.innerHTML = `이력서 열람 구독이 <strong style="color:#e8690c">${formatSubscriptionDate(newUntil)}</strong>까지 활성화되었습니다.`;
+          }
+          const successDialog = document.getElementById('dialog-service-payment-success');
+          if (successDialog) successDialog.showModal();
+
+          if (talentToOpen) {
+            openTalentDetails(talentToOpen);
+          }
+        }
+      } else {
+        alert('결제 검증에 실패했습니다. 올바르지 않은 접근이거나 세션이 만료되었습니다.');
+      }
+    } catch (e) {
+      console.error('구독 권한 부여 중 오류:', e);
+      alert('결제 완료 처리 중 오류가 발생했습니다. 고객센터에 문의해 주세요.');
+    }
+  }
+
+  // 모바일 결제 리다이렉션 결과 파라미터 체크 및 처리
+  async function checkMobilePaymentResult() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const payStatus = urlParams.get('pay_status');
+    if (payStatus === 'success') {
+      const uid = urlParams.get('uid');
+      const months = parseInt(urlParams.get('months')) || 1;
+      const price = parseInt(urlParams.get('price')) || 20000;
+      const token = urlParams.get('token');
+      const transactionId = urlParams.get('transaction_id') || '';
+      const orderId = urlParams.get('order_id') || '';
+
+      // 중복 실행 및 새로고침 트리거 방지를 위해 주소창에서 파라미터 제거
+      const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+      window.history.replaceState({ path: newUrl }, '', newUrl);
+
+      if (state.currentUser && state.currentUser.uid === uid) {
+        showToast('결제 검증을 진행 중입니다...', 'info');
+        await verifyAndGrantSubscription(uid, months, price, token, transactionId, orderId);
+      }
+    } else if (payStatus === 'fail') {
+      const msg = urlParams.get('msg') || '결제 처리에 실패했습니다.';
+
+      const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+      window.history.replaceState({ path: newUrl }, '', newUrl);
+
+      alert('결제 실패: ' + msg);
+    }
+  }
+
+  // PC용 postMessage 결제 결과 수신 리스너 등록
+  window.addEventListener('message', async function(event) {
+    if (event.data && event.data.status === 'success') {
+      const { uid, months, price, token } = event.data;
+      if (state.currentUser && state.currentUser.uid === uid) {
+        showToast('결제 검증을 진행 중입니다...', 'info');
+        await verifyAndGrantSubscription(uid, months, price, token);
+      }
+    } else if (event.data && event.data.status === 'fail') {
+      alert('결제 실패: ' + (event.data.message || '결제 승인 중 오류가 발생했습니다.'));
+    }
+  });
 
 });

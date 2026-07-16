@@ -17,11 +17,19 @@
       ".agents/**",
       ".codex/**",
       ".claude/**",
+      "pg/**",
       "**/.*",
       "**/node_modules/**",
       ".npm-cache/**"
     ],
     "rewrites": [
+      {
+        "source": "/pg/**",
+        "run": {
+          "serviceId": "taekwoncareer-pg",
+          "region": "asia-northeast3"
+        }
+      },
       {
         "source": "/admin.html",
         "destination": "/admin.html"

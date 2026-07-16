@@ -7,6 +7,8 @@
    ========================================================================== */
 let auth, db, storage;
 let dbLoaded = false;
+let adminRealtimeUnsubscribers = [];
+let adminRealtimeRefreshTimer = null;
 let bannerDialogMode = 'create';
 let editingBanner = null;
 let bannerCache = {};
@@ -19,6 +21,35 @@ const DEFAULT_RESUME_PASS_PRODUCTS = [
   { id: 'month_2', name: '2개월 구독권', months: 2, price: 30000, active: true, sort: 2 },
   { id: 'month_3', name: '3개월 구독권', months: 3, price: 40000, active: true, sort: 3 }
 ];
+
+function refreshCurrentAdminViewAfterRealtimeUpdate() {
+  const activeView = document.querySelector('.view.active')?.id?.replace('view-', '') || 'dashboard';
+  if (activeView === 'dashboard') {
+    populateDashboard();
+    updateDashboardStats();
+  } else if (activeView === 'members') {
+    filterMembers();
+  } else if (activeView === 'sales') {
+    populateSales();
+  }
+}
+
+function startAdminRealtimeSync() {
+  adminRealtimeUnsubscribers.forEach((unsubscribe) => unsubscribe());
+  adminRealtimeUnsubscribers = [];
+  if (!db) return;
+
+  const scheduleRefresh = () => {
+    clearTimeout(adminRealtimeRefreshTimer);
+    adminRealtimeRefreshTimer = setTimeout(async () => {
+      await fetchFirestoreData();
+      refreshCurrentAdminViewAfterRealtimeUpdate();
+    }, 300);
+  };
+
+  adminRealtimeUnsubscribers.push(db.collection('users').onSnapshot(scheduleRefresh));
+  adminRealtimeUnsubscribers.push(db.collection('payments').onSnapshot(scheduleRefresh));
+}
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -140,6 +171,7 @@ function escapeHtml(value) {
         filterJobs();
         filterResumes();
         filterApplications();
+        startAdminRealtimeSync();
 
         // 로그아웃 버튼 연결
         const logoutArea = document.querySelector('.sidebar-footer');

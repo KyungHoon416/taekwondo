@@ -8,7 +8,7 @@
   
   <!-- Font Preload & stylesheet -->
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
-  <link rel="stylesheet" href="index.css?v=20260629-agree1">
+  <link rel="stylesheet" href="index.css?v=20260715-mobile-pass-v2">
   
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
@@ -83,6 +83,11 @@
       <span class="role-floating-cta-text">퀵 메뉴</span>
     </button>
   </div>
+
+  <button type="button" id="mobile-floating-purchase-pass" class="mobile-floating-purchase-pass" onclick="openPurchasePassModal()" aria-label="열람권 구매">
+    <span aria-hidden="true">🎫</span>
+    <span>열람권 구매</span>
+  </button>
 
   <!-- SPA Sub-Pages container -->
   <main id="app-content">
@@ -2538,88 +2543,100 @@ khjoon6367@nate.com
   </dialog>
 
   <!-- 12. SERVICE PAYMENT APPLICATION DIALOG -->
-  <dialog id="dialog-service-payment" class="modal-dialog auth-dialog" style="max-width: 460px;">
-    <div class="dialog-content">
-      <div class="dialog-header">
-        <h2 style="display: flex; align-items: center; gap: 8px;">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--primary-color)" stroke-width="2.5"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="18" x2="12" y2="6"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
-          서비스 결제 신청
-        </h2>
-        <button type="button" class="btn-close-dialog" onclick="document.getElementById('dialog-service-payment').close();" aria-label="닫기">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+  <dialog id="dialog-service-payment" class="modal-dialog pg-payment-dialog">
+    <div class="pg-payment-wrap">
+      <!-- PG 헤더 -->
+      <div class="pg-header">
+        <div class="pg-header-left">
+          <span class="pg-header-logo">태권커리어</span>
+          <span class="pg-header-sub">안전하고 편리한 결제입니다.</span>
+        </div>
+        <button type="button" class="pg-close-btn" onclick="document.getElementById('dialog-service-payment').close();" aria-label="닫기">✕</button>
       </div>
-      <div style="padding: 1.25rem 1.5rem 1.5rem 1.5rem;">
-        <div style="background: #f8fafc; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; border: 1px solid #e2e8f0; box-sizing: border-box;">
-          <div style="font-size: 0.78rem; font-weight: 700; color: #64748b; margin-bottom: 0.3rem;">신청 서비스</div>
-          <div style="font-size: 1rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;" id="resume-payment-title">이력서 열람 1개월 구독권</div>
-          <div style="display: flex; align-items: baseline; gap: 4px;">
-            <span style="font-size: 1.35rem; font-weight: 900; color: var(--primary-color);" id="resume-payment-price">₩20,000</span>
+
+      <div class="pg-body">
+        <!-- 좌측: 결제수단 + 약관 -->
+        <div class="pg-main">
+          <!-- 결제수단 탭 -->
+          <div class="pg-section-title">결제수단 선택</div>
+          <div class="pg-methods-grid" id="resume-payment-methods">
+            <button type="button" class="pg-method-btn is-active" onclick="selectPgMethod(this, 'card')">
+              <span class="pg-method-icon">💳</span>
+              <span>신용카드</span>
+            </button>
+            <button type="button" class="pg-method-btn" onclick="selectPgMethod(this, 'kakaopay')">
+              <span class="pg-method-icon" style="background:#ffeb00;color:#3c1e1e;font-size:0.55rem;font-weight:900;">talk</span>
+              <span>카카오페이</span>
+            </button>
+            <button type="button" class="pg-method-btn" onclick="selectPgMethod(this, 'naverpay')">
+              <span class="pg-method-icon" style="background:#03c75a;color:#fff;font-weight:900;font-size:0.7rem;">N</span>
+              <span>네이버페이</span>
+            </button>
+            <button type="button" class="pg-method-btn" onclick="selectPgMethod(this, 'tosspay')">
+              <span class="pg-method-icon" style="background:#0064ff;color:#fff;font-weight:900;font-style:italic;font-size:0.6rem;">toss</span>
+              <span>토스페이</span>
+            </button>
+          </div>
+
+          <!-- 카드사 선택 (신용카드 선택 시) -->
+          <div class="pg-card-grid" id="pg-card-grid">
+            <button type="button" class="pg-card-btn" onclick="selectPgCard(this)">현대카드</button>
+            <button type="button" class="pg-card-btn" onclick="selectPgCard(this)">비씨카드</button>
+            <button type="button" class="pg-card-btn" onclick="selectPgCard(this)">KB국민</button>
+            <button type="button" class="pg-card-btn" onclick="selectPgCard(this)">삼성카드</button>
+            <button type="button" class="pg-card-btn" onclick="selectPgCard(this)">신한카드</button>
+            <button type="button" class="pg-card-btn" onclick="selectPgCard(this)">롯데카드</button>
+            <button type="button" class="pg-card-btn" onclick="selectPgCard(this)">농협(NH)</button>
+            <button type="button" class="pg-card-btn" onclick="selectPgCard(this)">하나카드</button>
+            <button type="button" class="pg-card-btn" onclick="selectPgCard(this)">우리카드</button>
+            <button type="button" class="pg-card-btn" onclick="selectPgCard(this)">토스뱅크</button>
+            <button type="button" class="pg-card-btn" onclick="selectPgCard(this)">카카오뱅크</button>
+            <button type="button" class="pg-card-btn" onclick="selectPgCard(this)">그 외</button>
+          </div>
+
+          <!-- 약관 동의 -->
+          <div class="pg-terms-area">
+            <div class="pg-terms-row">
+              <label class="pg-checkbox-label">
+                <input type="checkbox" id="pay-agree-terms">
+                <span><em class="pg-badge-req">필수</em>유료서비스 이용약관 동의</span>
+              </label>
+              <button type="button" class="pg-terms-view-btn agreement-view-btn" data-target="pay-terms-panel" aria-expanded="false">약관보기 ▾</button>
+            </div>
+            <div class="agreement-panel" id="pay-terms-panel" aria-hidden="true" style="max-height:0;overflow:hidden;transition:all 0.25s ease;">
+              <div class="agreement-panel-inner" id="pay-terms-content" style="font-size:0.72rem;background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:0.75rem;max-height:160px;overflow-y:auto;white-space:pre-line;margin-top:0.4rem;">
+              </div>
+              <button type="button" class="agreement-panel-agree-btn" data-checkbox="pay-agree-terms" data-panel="pay-terms-panel" style="font-size:0.75rem;padding:0.4rem 0;margin-top:0.4rem;">확인하고 동의하기</button>
+            </div>
+            <div class="pg-terms-row" style="margin-top:0.4rem;">
+              <label class="pg-checkbox-label">
+                <input type="checkbox" id="pay-agree-refund">
+                <span><em class="pg-badge-req">필수</em>청약철회 및 환불 제한 동의</span>
+              </label>
+            </div>
           </div>
         </div>
 
-        <div id="resume-payment-methods">
-          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.6rem;">결제 수단 선택</label>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.5rem;">
-            <label style="border: 1.5px solid var(--primary-color); border-radius: 10px; padding: 0.8rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s; background: #f0f7ff;" class="resume-pay-option" id="resume-label-pay-card">
-              <input type="radio" name="resume-pay-method" value="card" checked style="accent-color: var(--primary-color);" onclick="selectResumePayOption('card')">
-              <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b;">신용/체크카드</span>
-            </label>
-            <label style="border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.8rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s;" class="resume-pay-option" id="resume-label-pay-kakao">
-              <input type="radio" name="resume-pay-method" value="kakaopay" style="accent-color: #ffeb00;" onclick="selectResumePayOption('kakao')">
-              <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 4px;">
-                <span style="background: #ffeb00; color: #3c1e1e; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem; font-weight: 900; line-height: 1;">talk</span>카카오페이
-              </span>
-            </label>
-            <label style="border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.8rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s;" class="resume-pay-option" id="resume-label-pay-naver">
-              <input type="radio" name="resume-pay-method" value="naverpay" style="accent-color: #03c75a;" onclick="selectResumePayOption('naver')">
-              <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 4px;">
-                <span style="background: #03c75a; color: #fff; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem; font-weight: 900; line-height: 1;">N</span>네이버페이
-              </span>
-            </label>
-            <label style="border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.8rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s;" class="resume-pay-option" id="resume-label-pay-toss">
-              <input type="radio" name="resume-pay-method" value="tosspay" style="accent-color: #0064ff;" onclick="selectResumePayOption('toss')">
-              <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 4px;">
-                <span style="color: #0064ff; font-weight: 900; font-style: italic; font-size: 0.85rem;">toss</span>페이
-              </span>
-            </label>
-          </div>
-
-          <!-- 유료서비스 결제 약관 동의 영역 (잡코리아 스타일) -->
-          <div class="agreement-box" style="margin-top: 1rem; margin-bottom: 1.25rem; background: #f8fafc; border: 1.5px solid #e2e8f0; padding: 0.85rem; border-radius: 8px;">
-            <!-- [필수] 유료서비스 이용약관 동의 -->
-            <div class="agreement-item" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 0.5rem;">
-              <div class="agreement-item-header" style="display: flex; align-items: center; justify-content: space-between;">
-                <label class="agreement-check-label" style="font-weight: 700; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
-                  <input type="checkbox" id="pay-agree-terms" required style="width: 16px; height: 16px; accent-color: var(--primary-color);">
-                  <span><em class="agree-badge agree-badge-required" style="margin-right: 4px; font-size: 0.65rem;">필수</em>유료서비스 이용약관에 동의합니다.</span>
-                </label>
-                <button type="button" class="agreement-view-btn" data-target="pay-terms-panel" aria-expanded="false" style="font-size: 0.72rem; padding: 0.15rem 0.4rem;">
-                  내용보기 <span class="agreement-view-arrow">∨</span>
-                </button>
-              </div>
-              <div class="agreement-panel" id="pay-terms-panel" aria-hidden="true" style="max-height: 0; overflow: hidden; transition: all 0.25s ease;">
-                <div class="agreement-panel-inner" id="pay-terms-content" style="font-size: 0.72rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.75rem; max-height: 180px; overflow-y: auto; white-space: pre-line; margin-top: 0.4rem;">
-                  <!-- 유료서비스 이용약관 내용이 로드됩니다 -->
-                </div>
-                <button type="button" class="agreement-panel-agree-btn" data-checkbox="pay-agree-terms" data-panel="pay-terms-panel" style="font-size: 0.75rem; padding: 0.4rem 0; margin-top: 0.4rem;">
-                  확인하고 동의하기
-                </button>
-              </div>
+        <!-- 우측: 주문 요약 -->
+        <div class="pg-sidebar">
+          <div class="pg-sidebar-header">태권커리어</div>
+          <div class="pg-sidebar-body">
+            <div class="pg-info-row">
+              <span class="pg-info-label">상품명</span>
+              <span class="pg-info-value" id="resume-payment-title">이력서 열람 1개월 구독권</span>
             </div>
-
-            <!-- [필수] 청약철회 및 환불 제한 동의 -->
-            <div class="agreement-item" style="padding-bottom: 0.2rem;">
-              <div class="agreement-item-header">
-                <label class="agreement-check-label" style="font-weight: 700; font-size: 0.82rem; display: inline-flex; align-items: start; gap: 6px; cursor: pointer; line-height: 1.4;">
-                  <input type="checkbox" id="pay-agree-refund" required style="width: 16px; height: 16px; accent-color: var(--primary-color); margin-top: 2px; flex-shrink: 0;">
-                  <span><em class="agree-badge agree-badge-required" style="margin-right: 4px; font-size: 0.65rem; display: inline-block; vertical-align: middle;">필수</em>결제 완료 즉시 열람권 이용기간이 시작되며, 이용 시작 후에는 청약철회 및 환불이 제한될 수 있음을 확인했습니다.</span>
-                </label>
-              </div>
+            <div class="pg-info-row">
+              <span class="pg-info-label">제공기간</span>
+              <span class="pg-info-value" id="pg-subscription-period">결제일로부터 1개월</span>
+            </div>
+            <div class="pg-info-row pg-info-row-total">
+              <span class="pg-info-label">결제금액</span>
+              <span class="pg-info-price" id="resume-payment-price">20,000 원</span>
             </div>
           </div>
-
-          <button type="button" id="btn-resume-pay-execute" class="btn-action-primary" onclick="executeResumePassPayment()" style="width: 100%; height: 44px; font-size: 0.95rem; font-weight: 800;">20,000원 결제하기</button>
+          <button type="button" id="btn-resume-pay-execute" class="pg-pay-btn" onclick="executeResumePassPayment()">
+            결제하기
+          </button>
         </div>
       </div>
     </div>
@@ -2695,10 +2712,36 @@ khjoon6367@nate.com
     </svg>
   </button>
 
+  <!-- 웰컴페이먼츠 표준결제 SDK -->
+  <script language="javascript" type="text/javascript" src="https://tstdpay.paywelcome.co.kr/stdjs/INIStdPay.js" charset="UTF-8"></script>
+
+  <!-- 웰컴페이먼츠 결제 Form -->
+  <form id="SendPayForm_id" name="SendPayForm" method="POST" style="display:none;">
+    <input type="hidden" name="version" value="1.0">
+    <input type="hidden" name="mid" id="pg-form-mid">
+    <input type="hidden" name="goodname" id="pg-form-goodname">
+    <input type="hidden" name="oid" id="pg-form-oid">
+    <input type="hidden" name="price" id="pg-form-price">
+    <input type="hidden" name="currency" value="WON">
+    <input type="hidden" name="buyername" id="pg-form-buyername">
+    <input type="hidden" name="buyertel" id="pg-form-buyertel">
+    <input type="hidden" name="buyeremail" id="pg-form-buyeremail">
+    <input type="hidden" name="timestamp" id="pg-form-timestamp">
+    <input type="hidden" name="signature" id="pg-form-signature">
+    <input type="hidden" name="returnUrl" id="pg-form-returnUrl">
+    <input type="hidden" name="mKey" id="pg-form-mKey">
+    <input type="hidden" name="gopaymethod" id="pg-form-gopaymethod" value="Card">
+    <input type="hidden" name="offerPeriod" id="pg-form-offerPeriod">
+    <input type="hidden" name="acceptmethod" value="HPP(1):no_receipt:va_receipt:vbanknoreg(0):below1000">
+    <input type="hidden" name="payViewType" value="overlay">
+    <input type="hidden" name="closeUrl" id="pg-form-closeUrl">
+    <input type="hidden" name="merchantData" id="pg-form-merchantData">
+  </form>
+
   <!-- Interactive JavaScript -->
   <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <script id="kakao-map-sdk" type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=28f3ae7ad7bb29db3e5774383d5bebe3&libraries=services&autoload=false"></script>
   <script src="region-sync.js?v=20260612-v6"></script>
-  <script src="index.js?v=20260710-footer-settings"></script>
+  <script src="index.js?v=20260715-subscription-sync-v10"></script>
 </body>
 </html>
