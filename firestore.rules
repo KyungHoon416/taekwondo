@@ -249,9 +249,11 @@ service cloud.firestore {
         areImmutableFieldsUnchanged(['created_at', 'type'])
       ) || (
         isAdmin() &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['testPaymentEnabled', 'customPassPrices']) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['testPaymentEnabled', 'customPassPrices', 'resumeSubscriptionUntil', 'resumeSubscriptionMonths']) &&
         (!request.resource.data.keys().hasAny(['customPassPrices']) || request.resource.data.customPassPrices is map) &&
-        (!request.resource.data.keys().hasAny(['testPaymentEnabled']) || request.resource.data.testPaymentEnabled is bool)
+        (!request.resource.data.keys().hasAny(['testPaymentEnabled']) || request.resource.data.testPaymentEnabled is bool) &&
+        (!request.resource.data.keys().hasAny(['resumeSubscriptionUntil']) || request.resource.data.resumeSubscriptionUntil == null || request.resource.data.resumeSubscriptionUntil is timestamp) &&
+        (!request.resource.data.keys().hasAny(['resumeSubscriptionMonths']) || request.resource.data.resumeSubscriptionMonths is int)
       );
       allow delete: if isOwner(userId) || isAdmin();
     }

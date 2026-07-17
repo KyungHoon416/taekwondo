@@ -3012,6 +3012,7 @@ window.showDetail = async function(type, id) {
       footerEl.innerHTML = `
         <button class="btn btn-secondary" onclick="closeDialog('detail-dialog')">닫기</button>
         <button class="btn btn-primary" onclick="saveMemberCustomPrices('${m.fullId}')">개별 금액 저장</button>
+        <button class="btn" onclick="resetMemberSubscription('${m.fullId}')" style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:0.5rem 1rem;cursor:pointer;font-weight:600;margin-left:auto;transition:all 0.15s">구독권 초기화</button>
       `;
     } else {
       footerEl.innerHTML = `
@@ -3021,6 +3022,41 @@ window.showDetail = async function(type, id) {
   }
 
   openDialog('detail-dialog');
+};
+
+// 구독권 초기화 핸들러 함수
+window.resetMemberSubscription = async function(fullId) {
+  if (!confirm('정말로 이 회원의 구독권을 초기화하시겠습니까?\n초기화 시 이력서 열람 구독기간이 만료 처리됩니다.')) {
+    return;
+  }
+
+  try {
+    showToast('구독권을 초기화하는 중입니다...', 'warning');
+    
+    // Firestore 유저 구독 정보 리셋 (만료일 빈 값 또는 과거 일자 처리)
+    await db.collection('users').doc(fullId).update({
+      resumeSubscriptionUntil: null,
+      resumeSubscriptionMonths: 0
+    });
+
+    // 로컬 데이터 상태 동기화
+    const member = MEMBERS.find(m => m.fullId === fullId);
+    if (member) {
+      member.resumeSubscriptionUntil = null;
+      member.resumeSubscriptionMonths = 0;
+    }
+
+    showToast('구독권 초기화가 완료되었습니다.', 'success');
+    closeDialog('detail-dialog');
+    
+    // 회원 테이블 뷰 리프레시
+    if (typeof filterMembers === 'function') {
+      filterMembers();
+    }
+  } catch (err) {
+    console.error('구독권 초기화 실패:', err);
+    showToast('구독권 초기화에 실패했습니다: ' + err.message, 'error');
+  }
 };
 
 window.saveMemberCustomPrices = async function(fullId) {

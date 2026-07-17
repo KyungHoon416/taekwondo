@@ -5627,64 +5627,6 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('결제 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.');
           }
         }
-        // 백엔드 PHP 비지원 환경 (Firebase Hosting 등 정적 환경) -> 테스트 결제 모드로 폴백 진행
-        const userDocRef = db.collection('users').doc(state.currentUser.uid);
-        const doc = await userDocRef.get();
-        if (!doc.exists) return;
-
-        const userData = doc.data();
-
-        const baseMillis = Math.max(Date.now(), getMillisFromDateLike(userData.resumeSubscriptionUntil));
-        const newUntil = new Date(baseMillis);
-        newUntil.setMonth(newUntil.getMonth() + months);
-
-        await userDocRef.update({
-          resumeSubscriptionUntil: newUntil,
-          resumeSubscriptionMonths: months
-        });
-
-        // 결제 이력을 payments 컬렉션에 저장
-        try {
-          await db.collection('payments').add({
-            userId: state.currentUser.uid,
-            userName: state.currentUser.name || state.currentUser.email || '',
-            userEmail: state.currentUser.email || '',
-            productName: `이력서 열람 구독 ${months}개월 (테스트)`,
-            months: months,
-            amount: price,
-            paymentDate: firebase.firestore.FieldValue.serverTimestamp(),
-            subscriptionUntil: newUntil,
-            status: 'completed',
-            type: 'subscription'
-          });
-        } catch (payErr) {
-          console.warn('결제 이력 저장 실패 (매출 데이터):', payErr);
-        }
-
-        logActivity('purchase', '이력서 열람 구독 ' + months + '개월 결제');
-
-        state.currentUser.resumeSubscriptionUntil = newUntil;
-        state.currentUser.resumeSubscriptionMonths = months;
-
-        const paymentDialog = document.getElementById('dialog-service-payment');
-        if (paymentDialog) paymentDialog.close();
-
-        updateGymPassBannerUI();
-        if (typeof renderMyApplicationsView === 'function') {
-          renderMyApplicationsView();
-        }
-
-        const talentToOpen = state.pendingPurchaseTalent;
-        state.pendingPurchaseTalent = null;
-        const successMessage = document.getElementById('resume-payment-success-message');
-        if (successMessage) {
-          successMessage.innerHTML = `이력서 열람 구독이 <strong style="color:#e8690c">${formatSubscriptionDate(newUntil)}</strong>까지 활성화되었습니다. (테스트)`;
-        }
-        const successDialog = document.getElementById('dialog-service-payment-success');
-        if (successDialog) successDialog.showModal();
-        if (talentToOpen) {
-          openTalentDetails(talentToOpen);
-        }
       }
     } catch (e) {
       console.error('결제 처리 오류:', e);
