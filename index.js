@@ -4484,6 +4484,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (dialogs.postCommunity) {
+        resetCommunityFormMode();
         dialogs.postCommunity.showModal();
       }
       roleFloatingCTA.classList.remove('is-open');
@@ -4859,6 +4860,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (dialogs.postCommunity) {
+        resetCommunityFormMode();
         dialogs.postCommunity.showModal();
       }
     });
@@ -4868,8 +4870,40 @@ document.addEventListener('DOMContentLoaded', () => {
   const formPostCommunity = document.getElementById('form-post-community');
   // 커뮤니티 이미지 선택 상태 관리
   let commSelectedImage = null;
+  let editingCommunityPost = null;
+  let editingCommunityImageUrl = '';
   // 커뮤니티 글 등록 진행 중 플래그 (이미지 업로드 지연 중 재제출 방지)
   let isSubmittingCommunity = false;
+
+  function resetCommunityFormMode() {
+    editingCommunityPost = null;
+    editingCommunityImageUrl = '';
+    formPostCommunity?.reset();
+    clearCommImage();
+    const titleEl = document.getElementById('community-form-title');
+    const submitEl = document.getElementById('community-form-submit');
+    if (titleEl) titleEl.textContent = '커뮤니티 글쓰기';
+    if (submitEl) submitEl.textContent = '등록하기';
+  }
+
+  function openCommunityEditForm(post) {
+    const currentUser = auth ? auth.currentUser : null;
+    if (!currentUser || post.author_id !== currentUser.uid) {
+      alert('작성자만 게시글을 수정할 수 있습니다.');
+      return;
+    }
+    editingCommunityPost = post;
+    editingCommunityImageUrl = post.imageUrl || '';
+    document.getElementById('comm-post-category').value = post.category || 'free';
+    document.getElementById('comm-post-title').value = post.title || '';
+    document.getElementById('comm-post-content').value = post.content || '';
+    const titleEl = document.getElementById('community-form-title');
+    const submitEl = document.getElementById('community-form-submit');
+    if (titleEl) titleEl.textContent = '커뮤니티 글 수정';
+    if (submitEl) submitEl.textContent = '수정하기';
+    dialogs.communityDetail?.close();
+    dialogs.postCommunity?.showModal();
+  }
 
   // 이미지 파일 선택 처리 (input[type=file] 변경 이벤트)
   window.handleCommImageSelect = function(event) {
@@ -5046,7 +5080,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       try {
       // 이미지 업로드 처리 (선택한 경우에만)
-      let imageUrl = '';
+      let imageUrl = editingCommunityPost ? editingCommunityImageUrl : '';
       if (commSelectedImage) {
         try {
           const storageInst = (typeof firebase !== 'undefined' && firebase.storage) ? firebase.storage() : null;
@@ -5075,7 +5109,15 @@ document.addEventListener('DOMContentLoaded', () => {
         comments: []
       };
 
-      if (typeof db !== 'undefined' && db) {
+      if (editingCommunityPost) {
+        if (typeof db === 'undefined' || !db || String(editingCommunityPost.id).startsWith('post-')) {
+          alert('서버에 등록된 게시글만 수정할 수 있습니다.');
+          return;
+        }
+        const updates = { category, title, content, imageUrl };
+        await db.collection('community').doc(editingCommunityPost.id).update(updates);
+        Object.assign(editingCommunityPost, updates);
+      } else if (typeof db !== 'undefined' && db) {
         try {
           const postToSave = {
             ...newPostData,
@@ -5106,9 +5148,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // 등록 완료 후 폼 초기화 및 모달 닫기
-      formPostCommunity.reset();
-      clearCommImage();
-      commSelectedImage = null;
+      const wasEditing = !!editingCommunityPost;
+      resetCommunityFormMode();
       if (dialogs.postCommunity) {
         dialogs.postCommunity.close();
       }
@@ -5119,8 +5160,11 @@ document.addEventListener('DOMContentLoaded', () => {
       setupCommunityTab('free');
       renderHomeCommunityPosts();
 
-      logActivity('community_write', '커뮤니티 글쓰기: ' + (title || ''));
-      alert('게시글이 성공적으로 등록되었습니다.');
+      logActivity(wasEditing ? 'community_edit' : 'community_write', `커뮤니티 ${wasEditing ? '수정' : '글쓰기'}: ${title || ''}`);
+      alert(wasEditing ? '게시글이 수정되었습니다.' : '게시글이 성공적으로 등록되었습니다.');
+      } catch (err) {
+        console.error('Failed to save community post', err);
+        alert('게시글 저장에 실패했습니다. 로그인 상태와 권한을 확인해주세요.');
       } finally {
         setSubmitting(false);
         isSubmittingCommunity = false;
@@ -5209,6 +5253,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('detail-post-desc').textContent = post.content || '본문 내용이 없습니다.';
+
+    const ownerActions = document.getElementById('detail-post-owner-actions');
+    const currentUser = auth ? auth.currentUser : null;
+    const isOwner = !!(currentUser && post.author_id && post.author_id === currentUser.uid);
+    if (ownerActions) ownerActions.style.display = isOwner ? 'flex' : 'none';
+    const editBtn = document.getElementById('btn-edit-community-post');
+    const deleteBtn = document.getElementById('btn-delete-community-post');
+    if (editBtn) editBtn.onclick = () => openCommunityEditForm(post);
+    if (deleteBtn) deleteBtn.onclick = async () => {
+      const user = auth ? auth.currentUser : null;
+      if (!user || post.author_id !== user.uid) {
+        alert('작성자만 게시글을 삭제할 수 있습니다.');
+        return;
+      }
+      if (!confirm('이 게시글을 삭제할까요? 삭제한 글은 복구할 수 없습니다.')) return;
+      deleteBtn.disabled = true;
+      try {
+        if (typeof db === 'undefined' || !db || String(post.id).startsWith('post-')) {
+          throw new Error('server-post-required');
+        }
+        await db.collection('community').doc(post.id).delete();
+        state.communityPosts = state.communityPosts.filter(item => item.id !== post.id);
+        localStorage.setItem('taekwondo_community_posts', JSON.stringify(state.communityPosts));
+        dialogs.communityDetail?.close();
+        setupCommunityTab('free');
+        renderHomeCommunityPosts();
+        logActivity('community_delete', '커뮤니티 삭제: ' + (post.title || ''));
+        alert('게시글이 삭제되었습니다.');
+      } catch (err) {
+        console.error('Failed to delete community post', err);
+        alert('게시글 삭제에 실패했습니다. 로그인 상태와 권한을 확인해주세요.');
+      } finally {
+        deleteBtn.disabled = false;
+      }
+    };
 
     // Bind Comments
     renderPostComments(post);
@@ -5475,6 +5554,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 이전의 잠금해제 버튼 영역이 남아있다면 제거
     let btnUnlockArea = document.getElementById('talent-detail-unlock-area');
     if (btnUnlockArea) btnUnlockArea.remove();
+    const talentFooter = document.querySelector('#dialog-talent-detail .detail-footer');
+    if (talentFooter) talentFooter.classList.remove('is-locked');
     if (isGym) {
       if (isUnlocked) {
         if (phoneEl) phoneEl.textContent = talent.phone || '등록된 연락처 없음';
@@ -5490,24 +5571,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btnInterview) btnInterview.style.display = 'none';
 
         // 잠금 해제 전용 꼬리말 영역 버튼 추가
-        const footer = document.querySelector('#dialog-talent-detail .detail-footer');
+        const footer = talentFooter;
         if (footer) {
+          footer.classList.add('is-locked');
           btnUnlockArea = document.createElement('div');
           btnUnlockArea.id = 'talent-detail-unlock-area';
-          btnUnlockArea.style.display = 'flex';
-          btnUnlockArea.style.gap = '0.5rem';
-          btnUnlockArea.style.width = '100%';
           btnUnlockArea.innerHTML = `
-            <button type="button" class="btn-action-primary" id="btn-unlock-talent" style="flex: 2; background: #059669; border-color: #059669; font-weight: 700;">🔑 구독권 구매 후 열람</button>
-            <button type="button" class="btn-action-secondary" id="btn-buy-pass-inside" style="flex: 1; font-weight: 600;">🎫 구독권 구매</button>
+            <button type="button" class="btn-action-primary" id="btn-unlock-talent">🔑 구독권 구매 후 열람</button>
           `;
           footer.insertBefore(btnUnlockArea, footer.firstChild);
 
           // 이벤트 리스너 바인딩
           document.getElementById('btn-unlock-talent').addEventListener('click', () => {
-            unlockResumeWithPass(talent);
-          });
-          document.getElementById('btn-buy-pass-inside').addEventListener('click', () => {
             openPurchasePassModal(talent);
           });
         }
@@ -5725,12 +5800,6 @@ document.addEventListener('DOMContentLoaded', () => {
       dialogs.talentDetail.showModal();
     }
 
-    if (isGym && !isUnlocked && !hasActiveSubscription && currentPasses <= 0) {
-      state.pendingPurchaseTalent = talent;
-      setTimeout(() => {
-        openPurchasePassModal(talent);
-      }, 150);
-    }
   }
 
   // 열람권을 소모하여 이력서의 잠금을 푸는 함수
@@ -5838,6 +5907,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const dialog = document.getElementById('dialog-purchase-pass');
     if (dialog) {
       if (talent) state.pendingPurchaseTalent = talent;
+
+      // 구매 단계에서는 상세 팝업을 닫아 구매/결제 화면이 항상 앞에 보이게 한다.
+      if (dialogs.talentDetail && dialogs.talentDetail.open) {
+        dialogs.talentDetail.close();
+      }
 
       // Fetch the latest user doc from Firestore to check for any custom pricing updates
       if (state.currentUser && state.currentUser.uid && typeof db !== 'undefined' && db) {
@@ -6015,6 +6089,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const pgCardBtns = document.querySelectorAll('.pg-card-btn');
     pgCardBtns.forEach(btn => btn.classList.remove('is-active'));
 
+    if (dialogs.talentDetail && dialogs.talentDetail.open) {
+      dialogs.talentDetail.close();
+    }
     const purchaseDialog = document.getElementById('dialog-purchase-pass');
     if (purchaseDialog) purchaseDialog.close();
     const paymentDialog = document.getElementById('dialog-service-payment');
@@ -6492,6 +6569,11 @@ document.addEventListener('DOMContentLoaded', () => {
             state.currentUser = { uid: user.uid, email: user.email, ...data };
             nameEl.textContent = data.name || user.email;
             checkMobilePaymentResult(); // 모바일 결제 리다이렉트 성공 여부 체크
+
+            // 로그인 완료 시 인재 데이터를 다시 동기화하여 홈 추천 인재 목록을 즉시 갱신한다.
+            await initJobsAndTalents();
+            renderHomeTalents();
+            renderBoardTalents();
 
             // 사업자 인증 완료 뱃지 표시 제어
             const bizBadge = document.getElementById('auth-biz-badge');

@@ -3252,6 +3252,48 @@
   margin-bottom: 0.25rem;
 }
 
+/* Locked talent detail footer: keep both actions on one balanced row. */
+#dialog-talent-detail .detail-footer {
+  align-items: stretch;
+}
+
+#talent-detail-unlock-area {
+  display: flex;
+  flex: 2 1 0;
+  min-width: 0;
+}
+
+#talent-detail-unlock-area .btn-action-primary {
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+  background-color: #059669;
+  border-color: #059669;
+  font-weight: 700;
+}
+
+#talent-detail-unlock-area .btn-action-primary:hover {
+  background-color: #047857;
+}
+
+#dialog-talent-detail .detail-footer.is-locked #btn-scrap-talent {
+  flex: 1 1 0;
+  min-width: 140px;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  #dialog-talent-detail .detail-footer.is-locked {
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  #dialog-talent-detail .detail-footer.is-locked #btn-scrap-talent {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
 
 /* ==========================================================================
    Animations

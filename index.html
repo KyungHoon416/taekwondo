@@ -2255,7 +2255,7 @@ khjoon6367@nate.com
   <dialog id="dialog-post-community" class="modal-dialog">
     <div class="dialog-content">
       <div class="dialog-header">
-        <h2>커뮤니티 글쓰기</h2>
+        <h2 id="community-form-title">커뮤니티 글쓰기</h2>
         <button type="button" class="btn-close-dialog" aria-label="닫기">
           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -2303,7 +2303,7 @@ khjoon6367@nate.com
             <button type="button" onclick="clearCommImage()" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.78rem;font-weight:600;padding:0;">제거</button>
           </div>
         </div>
-        <button type="submit" class="btn-submit-dialog">등록하기</button>
+        <button type="submit" class="btn-submit-dialog" id="community-form-submit">등록하기</button>
       </form>
     </div>
   </dialog>
@@ -2456,6 +2456,10 @@ khjoon6367@nate.com
           <p id="detail-post-desc" class="desc-content" style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.8; color: var(--text-main);">
             게시글 본문 내용이 여기에 표시됩니다.
           </p>
+          <div id="detail-post-owner-actions" style="display:none; justify-content:flex-end; gap:0.5rem; margin-top:1.25rem;">
+            <button type="button" id="btn-edit-community-post" class="btn-action-secondary" style="width:auto; padding:0.55rem 1rem;">수정</button>
+            <button type="button" id="btn-delete-community-post" class="btn-action-secondary" style="width:auto; padding:0.55rem 1rem; color:#dc2626; border-color:#fecaca;">삭제</button>
+          </div>
         </div>
 
         <!-- 댓글 섹션 -->

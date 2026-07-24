@@ -484,11 +484,11 @@ service cloud.firestore {
     // 8. Community (자유게시판) Collection
     match /community/{postId} {
       allow read: if true;
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.author_id == request.auth.uid;
       allow update: if (
         (isAuthenticated() && (
-          resource.data.author_id == request.auth.uid ||
-          isUserOfType(request.auth.uid, 'gym') ||
+          (resource.data.author_id == request.auth.uid &&
+            request.resource.data.author_id == resource.data.author_id) ||
           isAdmin() ||
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'comments'])
         )) ||
@@ -497,7 +497,6 @@ service cloud.firestore {
       );
       allow delete: if isAuthenticated() && (
         resource.data.author_id == request.auth.uid ||
-        isUserOfType(request.auth.uid, 'gym') ||
         isAdmin()
       );
     }

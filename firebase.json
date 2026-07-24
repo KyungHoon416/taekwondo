@@ -18,6 +18,9 @@
       ".codex/**",
       ".claude/**",
       "pg/**",
+      "*.csv",
+      "*.xlsx",
+      "*.sql",
       "**/.*",
       "**/node_modules/**",
       ".npm-cache/**"
